@@ -1,64 +1,69 @@
 import { useGLTF, Instance, Instances } from '@react-three/drei';
 import { useFrame } from '@react-three/fiber';
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { GameState } from '../types/game';
 import { GAME_SPEED } from '../constants/game';
 
 export function EnvironmentDecorations({ gameState }: { gameState: GameState }) {
-  const treePositions = useRef<Array<[number, number, number]>>([]);
-  const rockPositions = useRef<Array<[number, number, number]>>([]);
+  const [treePositions, setTreePositions] = useState<Array<[number, number, number]>>([]);
+  const [rockPositions, setRockPositions] = useState<Array<[number, number, number]>>([]);
   const lastTime = useRef(0);
   
   useEffect(() => {
-    // Generate initial positions
+    // Generate initial positions closer to the player
+    const initialTrees: Array<[number, number, number]> = [];
     for (let i = 0; i < 30; i++) {
       const x = Math.random() * 60 - 30; // -30 to 30
-      const z = Math.random() * 200 - 100; // -100 to 100
-      if (Math.abs(x) > 8) { // Keep away from the road
-        treePositions.current.push([x, 0, z]);
+      const z = Math.random() * 20 - 10; // Adjusted to be closer to the player
+      if (Math.abs(x) > 8) {
+        initialTrees.push([x, 0, z]);
       }
     }
+    setTreePositions(initialTrees);
     
+    // Similarly for rocks
+    const initialRocks: Array<[number, number, number]> = [];
     for (let i = 0; i < 20; i++) {
       const x = Math.random() * 50 - 25;
-      const z = Math.random() * 200 - 100;
-      if (Math.abs(x) > 10) { // Keep away from the road
-        rockPositions.current.push([x, 0, z]);
+      const z = Math.random() * 20 - 10; // Adjusted to be closer to the player
+      if (Math.abs(x) > 10) {
+        initialRocks.push([x, 0, z]);
       }
     }
+    setRockPositions(initialRocks);
   }, []);
 
   useFrame((state, delta) => {
-    // Use constant forward motion, independent of lane changes
     const moveAmount = GAME_SPEED * gameState.multiplier * delta * 60;
 
-    // Move decorations with constant forward motion
-    treePositions.current = treePositions.current.map(([x, y, z]) => {
+    setTreePositions(prevTrees => prevTrees.map(([x, y, z]) => {
       let newZ = z + moveAmount;
-      
-      // Smooth looping
       if (newZ > 50) {
         newZ = -150 + (newZ - 50);
       }
       return [x, y, newZ];
-    });
-    
-    rockPositions.current = rockPositions.current.map(([x, y, z]) => {
+    }));
+
+    setRockPositions(prevRocks => prevRocks.map(([x, y, z]) => {
       let newZ = z + moveAmount;
-      
-      // Smooth looping
       if (newZ > 50) {
         newZ = -150 + (newZ - 50);
       }
       return [x, y, newZ];
-    });
+    }));
+
+    // Debug: Log positions of the first few trees and rocks occasionally
+    if (Math.random() < 0.01) {
+      console.log('[Environment Debug] First tree position:', treePositions[0]);
+      console.log('[Environment Debug] First rock position:', rockPositions[0]);
+    }
   });
 
   return (
     <>
       <group>
-        {treePositions.current.map((position, i) => (
+        {treePositions.map((position, i) => (
           <mesh 
             key={i} 
             position={position}
@@ -76,7 +81,7 @@ export function EnvironmentDecorations({ gameState }: { gameState: GameState }) 
       </group>
 
       <group>
-        {rockPositions.current.map((position, i) => (
+        {rockPositions.map((position, i) => (
           <mesh 
             key={i} 
             position={position}
