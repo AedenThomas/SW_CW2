@@ -1,6 +1,6 @@
 import { useGLTF, Instance, Instances } from '@react-three/drei';
 import { useFrame } from '@react-three/fiber';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useMemo } from 'react';
 import * as THREE from 'three';
 import { GameState } from '../types/game';
 import { GAME_SPEED } from '../constants/game';
@@ -11,27 +11,21 @@ export function EnvironmentDecorations({ gameState }: { gameState: GameState }) 
   const lastTime = useRef(0);
   
   useEffect(() => {
-    // Generate initial positions closer to the player
-    const initialTrees: Array<[number, number, number]> = [];
-    for (let i = 0; i < 30; i++) {
-      const x = Math.random() * 60 - 30; // -30 to 30
-      const z = Math.random() * 20 - 10; // Adjusted to be closer to the player
-      if (Math.abs(x) > 8) {
-        initialTrees.push([x, 0, z]);
+    // Generate initial positions randomly around the road
+    const generatePositions = (count: number, xRange: number, zRange: number, minX: number): Array<[number, number, number]> => {
+      const positions: Array<[number, number, number]> = [];
+      for (let i = 0; i < count; i++) {
+        const x = Math.random() * xRange - xRange / 2; // Centered around the road
+        const z = Math.random() * zRange - zRange / 2;
+        if (Math.abs(x) > minX) { // Ensure spacing from the road center
+          positions.push([x, 0, z]);
+        }
       }
-    }
-    setTreePositions(initialTrees);
-    
-    // Similarly for rocks
-    const initialRocks: Array<[number, number, number]> = [];
-    for (let i = 0; i < 20; i++) {
-      const x = Math.random() * 50 - 25;
-      const z = Math.random() * 20 - 10; // Adjusted to be closer to the player
-      if (Math.abs(x) > 10) {
-        initialRocks.push([x, 0, z]);
-      }
-    }
-    setRockPositions(initialRocks);
+      return positions;
+    };
+
+    setTreePositions(generatePositions(50, 60, 200, 8)); // Increased tree count and zRange
+    setRockPositions(generatePositions(30, 50, 200, 10)); // Increased rock count and zRange
   }, []);
 
   useFrame((state, delta) => {
@@ -39,25 +33,27 @@ export function EnvironmentDecorations({ gameState }: { gameState: GameState }) 
 
     setTreePositions(prevTrees => prevTrees.map(([x, y, z]) => {
       let newZ = z + moveAmount;
-      if (newZ > 50) {
-        newZ = -150 + (newZ - 50);
+      if (newZ > 100) { // Adjusted reset threshold
+        newZ = -100;
+        x = Math.random() * 60 - 30; // Re-randomize x position
       }
       return [x, y, newZ];
     }));
 
     setRockPositions(prevRocks => prevRocks.map(([x, y, z]) => {
       let newZ = z + moveAmount;
-      if (newZ > 50) {
-        newZ = -150 + (newZ - 50);
+      if (newZ > 100) { // Adjusted reset threshold
+        newZ = -100;
+        x = Math.random() * 50 - 25; // Re-randomize x position
       }
       return [x, y, newZ];
     }));
 
-    // Debug: Log positions of the first few trees and rocks occasionally
-    if (Math.random() < 0.01) {
-      console.log('[Environment Debug] First tree position:', treePositions[0]);
-      console.log('[Environment Debug] First rock position:', rockPositions[0]);
-    }
+    // Optional: Remove debug logs for performance
+    // if (Math.random() < 0.01) {
+    //   console.log('[Environment Debug] First tree position:', treePositions[0]);
+    //   console.log('[Environment Debug] First rock position:', rockPositions[0]);
+    // }
   });
 
   return (
@@ -65,7 +61,7 @@ export function EnvironmentDecorations({ gameState }: { gameState: GameState }) 
       <group>
         {treePositions.map((position, i) => (
           <mesh 
-            key={i} 
+            key={`tree-${i}`} 
             position={position}
             castShadow
             receiveShadow
@@ -83,7 +79,7 @@ export function EnvironmentDecorations({ gameState }: { gameState: GameState }) 
       <group>
         {rockPositions.map((position, i) => (
           <mesh 
-            key={i} 
+            key={`rock-${i}`} 
             position={position}
             castShadow
             receiveShadow
