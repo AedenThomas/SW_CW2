@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, useMemo } from 'react';
 import * as THREE from 'three';
 import { GameState } from '../types/game';
 import { GAME_SPEED } from '../constants/game';
+import { LANE_WIDTH } from '../constants/game';
 
 export function EnvironmentDecorations({ gameState }: { gameState: GameState }) {
   const [treePositions, setTreePositions] = useState<Array<[number, number, number]>>([]);
@@ -12,20 +13,33 @@ export function EnvironmentDecorations({ gameState }: { gameState: GameState }) 
   
   useEffect(() => {
     // Generate initial positions randomly around the road
-    const generatePositions = (count: number, xRange: number, zRange: number, minX: number): Array<[number, number, number]> => {
+    const generatePositions = (
+      count: number,
+      xRange: number,
+      zRange: number,
+      minX: number
+    ): Array<[number, number, number]> => {
       const positions: Array<[number, number, number]> = [];
       for (let i = 0; i < count; i++) {
-        const x = Math.random() * xRange - xRange / 2; // Centered around the road
+        let x;
+        // Position trees and rocks only on the sides
+        do {
+          x = Math.random() * xRange - xRange / 2; // Centered around the road
+        } while (Math.abs(x) <= minX); // Ensure outside the road width
+
         const z = Math.random() * zRange - zRange / 2;
-        if (Math.abs(x) > minX) { // Ensure spacing from the road center
-          positions.push([x, 0, z]);
-        }
+        positions.push([x, 0, z]);
       }
       return positions;
     };
 
-    setTreePositions(generatePositions(50, 60, 200, 8)); // Increased tree count and zRange
-    setRockPositions(generatePositions(30, 50, 200, 10)); // Increased rock count and zRange
+    // **Ensure ROAD_WIDTH Matches Road Component**
+    const ROAD_WIDTH = 15; // Must match the Road component's planeGeometry width
+    const ROAD_HALF_WIDTH = ROAD_WIDTH / 2; // 7.5
+    const MIN_X = ROAD_HALF_WIDTH + 2; // 7.5 + 2 = 9.5 units
+
+    setTreePositions(generatePositions(50, 60, 200, MIN_X)); // Increased tree count and zRange
+    setRockPositions(generatePositions(30, 50, 200, MIN_X)); // Increased rock count and zRange
   }, []);
 
   useFrame((state, delta) => {

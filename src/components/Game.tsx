@@ -10,6 +10,7 @@ import * as THREE from 'three';
 import { EnvironmentDecorations } from './Environment';
 import { GAME_SPEED } from '../constants/game';
 import { GameState, Question } from '../types/game'; // Import Question type
+import Coins from './Coins'; // Ensure Coins component is imported
 
 // Remove the local Question interface since we're importing it
 
@@ -166,6 +167,14 @@ export default function Game() {
     });
   }, [gameState.multiplier, gameState.currentLane]);
 
+  const handleCoinCollect = () => {
+    setGameState(prev => ({
+      ...prev,
+      score: prev.score + 10, // Increment score by 10 for each coin
+    }));
+    debugLog('Coin collected, score updated', { score: gameState.score + 10 });
+  };
+
   return (
     <div className="w-full h-screen">
       {/* Game UI Overlay */}
@@ -226,6 +235,15 @@ export default function Game() {
               gameState={gameState}
             />
           )}
+          {/* Add Coins component for each lane */}
+          {LANE_POSITIONS.map((_, index) => (
+            <Coins
+              key={`coins-lane-${index}`}
+              lane={index}
+              gameState={gameState}
+              onCollect={handleCoinCollect}
+            />
+          ))}
         </Physics>
       </Canvas>
     </div>

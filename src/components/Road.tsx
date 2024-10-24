@@ -20,7 +20,7 @@ export function Road() {
 
   return (
     <mesh rotation={[-Math.PI / 2, 0, 0]} receiveShadow position={[0, 0, 0]}>
-      <planeGeometry args={[15, 200]} />
+      <planeGeometry args={[15, 200]} /> {/* Ensure width is 15 */}
       <meshStandardMaterial
         map={roadTexture}
         normalMap={roadNormalMap}
