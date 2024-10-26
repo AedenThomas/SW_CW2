@@ -193,6 +193,61 @@ function MovingLaneDividers({ gameState }: { gameState: GameState }) {
   );
 }
 
+// Add this new component for Oracle feedback
+function OraclePresence({ feedback, onRequestHint }: { 
+  feedback: GameState['oracleFeedback'], 
+  onRequestHint: () => void 
+}) {
+  return (
+    <motion.div 
+      initial={{ opacity: 0, scale: 0.8 }}
+      animate={{ opacity: 1, scale: 1 }}
+      exit={{ opacity: 0, scale: 0.9 }}
+      className="fixed bottom-10 right-10 z-50"
+    >
+      {/* Oracle's Permanent Presence */}
+      <div className="flex items-end gap-4">
+        <motion.button
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          onClick={onRequestHint}
+          className="bg-purple-600/90 p-4 rounded-full shadow-lg hover:bg-purple-500/90 transition-colors"
+        >
+          <span className="text-2xl">🔮</span>
+        </motion.button>
+        
+        {/* Feedback Display */}
+        {feedback && feedback.shown && (
+          <motion.div
+            initial={{ opacity: 0, x: 50 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: 50 }}
+            className={`
+              max-w-md p-6 rounded-lg shadow-xl backdrop-blur-sm
+              ${feedback.type === 'hint' ? 'bg-blue-600/90 border-blue-400/30' :
+                feedback.type === 'correction' ? 'bg-red-600/90 border-red-400/30' :
+                'bg-green-600/90 border-green-400/30'}
+              border text-white
+            `}
+          >
+            <div className="flex items-start gap-4">
+              <div className="flex-grow">
+                <motion.p
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className="text-lg"
+                >
+                  {feedback.message}
+                </motion.p>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </div>
+    </motion.div>
+  );
+}
+
 export default function Game() {
   const [gameState, setGameState] = useState<GameState>({
     currentLane: 1,
@@ -204,7 +259,12 @@ export default function Game() {
     isGameOver: false,
     currentQuestion: null,
     isMoving: true,
-    coinsCollected: 0  // Correct initialization
+    coinsCollected: 0,
+    oracleMode: false,
+    oracleFeedback: null,
+    isPlaying: false,
+    mistakeCount: 0,    // Add this
+    hintsUsed: 0        // Add this
   });
 
   const targetLanePosition = useRef(LANE_POSITIONS[1]);
@@ -225,7 +285,9 @@ export default function Game() {
       id: questionIdCounter.current++,
       text: baseQuestion.text,
       options: [...baseQuestion.options],
-      correctAnswer: baseQuestion.correctAnswer
+      correctAnswer: baseQuestion.correctAnswer,
+      explanation: baseQuestion.explanation,
+      oracleHelp: baseQuestion.oracleHelp
     };
     
     setGameState(prev => ({
@@ -235,39 +297,84 @@ export default function Game() {
   };
 
   const handleCollision = (isCorrect: boolean) => {
-    debugLog('Main collision handler called', { isCorrect });
-    
-    if (isCorrect) {
-      debugLog('Correct answer selected, updating score');
-      setGameState(prev => {
-        const newState = {
+    if (gameState.oracleMode) {
+      const currentQuestion = gameState.currentQuestion;
+      if (!currentQuestion) return;
+
+      if (isCorrect) {
+        setGameState(prev => ({
+          ...prev,
+          score: prev.score + 100,
+          oracleFeedback: {
+            message: currentQuestion.oracleHelp.correctAnswerInsight,
+            type: 'praise',
+            shown: true
+          }
+        }));
+      } else {
+        const wrongOption = gameState.currentLane;
+        setGameState(prev => ({
+          ...prev,
+          mistakeCount: prev.mistakeCount + 1,
+          oracleFeedback: {
+            message: currentQuestion.oracleHelp.wrongAnswerFeedback[wrongOption],
+            type: 'correction',
+            shown: true
+          }
+        }));
+      }
+
+      // Clear feedback after delay
+      setTimeout(() => {
+        setGameState(prev => ({
+          ...prev,
+          oracleFeedback: null
+        }));
+        showNextQuestion();
+      }, 4000);
+    } else {
+      // Original non-oracle mode logic
+      if (isCorrect) {
+        setGameState(prev => ({
           ...prev,
           score: prev.score + 100,
           currentQuestion: null,
-          multiplier: 1,
-        };
-        debugLog('New game state after correct answer', newState);
-        return newState;
-      });
-      
-      setTimeout(() => {
-        debugLog('Showing next question');
-        showNextQuestion();
-      }, 200);
-    } else {
-      debugLog('Incorrect answer, reducing lives');
-      setGameState(prev => {
-        const newLives = prev.lives - 1;
-        const newState = {
-          ...prev,
-          lives: newLives,
-          multiplier: prev.multiplier + 0.2,
-          isGameOver: newLives <= 0 // Set game over when lives reach 0
-        };
-        debugLog('New game state after incorrect answer', newState);
-        return newState;
-      });
+        }));
+        setTimeout(showNextQuestion, 200);
+      } else {
+        setGameState(prev => {
+          const newLives = prev.lives - 1;
+          return {
+            ...prev,
+            lives: newLives,
+            isGameOver: newLives <= 0,
+          };
+        });
+      }
     }
+  };
+
+  // Add hint request handler
+  const handleHintRequest = () => {
+    if (!gameState.currentQuestion || !gameState.oracleMode) return;
+    
+    setGameState(prev => ({
+      ...prev,
+      hintsUsed: prev.hintsUsed + 1,
+      oracleFeedback: {
+        message: gameState.currentQuestion!.oracleHelp.hint,
+        type: 'hint',
+        shown: true
+      }
+    }));
+
+    // Clear hint after delay
+    setTimeout(() => {
+      setGameState(prev => ({
+        ...prev,
+        oracleFeedback: null
+      }));
+    }, 3000);
   };
 
   // Update keyboard controls with debuggingYes
@@ -370,6 +477,90 @@ export default function Game() {
 
   return (
     <div className="w-full h-screen">
+      {/* Game Menu */}
+      {!gameState.isPlaying && (
+        <div className="absolute inset-0 flex items-center justify-center z-30 bg-black/80">
+          <motion.div 
+            initial={{ scale: 0.8, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            className="bg-white p-8 rounded-lg text-center"
+          >
+            <h2 className="text-3xl font-bold mb-6">Road Safety Game</h2>
+            
+            {/* Oracle Mode Toggle */}
+            <div className="mb-6 flex items-center justify-center gap-3">
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  className="sr-only peer"
+                  checked={gameState.oracleMode}
+                  onChange={(e) => setGameState(prev => ({
+                    ...prev,
+                    oracleMode: e.target.checked
+                  }))}
+                />
+                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 
+                              peer-focus:ring-blue-300 rounded-full peer 
+                              peer-checked:after:translate-x-full peer-checked:after:border-white 
+                              after:content-[''] after:absolute after:top-[2px] after:left-[2px] 
+                              after:bg-white after:border-gray-300 after:border after:rounded-full 
+                              after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600">
+                </div>
+                <span className="ml-3 text-sm font-medium text-gray-900">Oracle Mode</span>
+              </label>
+              <div className="group relative">
+                <span className="cursor-help text-gray-500">ⓘ</span>
+                <div className="invisible group-hover:visible absolute left-6 top-0 w-64 p-2 
+                              bg-gray-800 text-white text-xs rounded shadow-lg">
+                  Oracle Mode provides detailed feedback when you answer incorrectly
+                </div>
+              </div>
+            </div>
+
+            <button
+              onClick={() => {
+                setGameState(prev => ({ ...prev, isPlaying: true }));
+                showNextQuestion();
+              }}
+              className="bg-blue-500 hover:bg-blue-600 text-white px-6 py-3 
+                       rounded-lg font-semibold transition-colors"
+            >
+              Start Game
+            </button>
+          </motion.div>
+        </div>
+      )}
+
+      {/* Oracle Feedback Modal */}
+      {gameState.oracleMode && gameState.oracleFeedback && (
+        <motion.div 
+          initial={{ opacity: 0, y: 50 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -50 }}
+          className="absolute inset-0 flex items-center justify-center z-25 pointer-events-none"
+        >
+          <div className="bg-gradient-to-b from-purple-600/90 to-indigo-900/90 p-6 rounded-lg 
+                        shadow-2xl max-w-md text-white backdrop-blur-sm border border-purple-400/30">
+            <div className="flex items-start gap-4">
+              <div className="flex-shrink-0">
+                <div className="w-12 h-12 rounded-full bg-purple-400/20 flex items-center justify-center">
+                  <span className="text-2xl">🔮</span>
+                </div>
+              </div>
+              <div>
+                <h3 className="text-xl font-semibold mb-2">Oracle's Wisdom</h3>
+                <p className="text-purple-100 mb-4">
+                  {gameState.oracleFeedback?.message || ''}
+                </p>
+                <div className="text-sm text-purple-200 italic">
+                  "Learn from this wisdom, and your journey shall improve."
+                </div>
+              </div>
+            </div>
+          </div>
+        </motion.div>
+      )}
+
       {/* Game UI Overlay */}
       <div className="absolute top-0 left-0 w-full p-4 z-10">
         <motion.div 
@@ -420,7 +611,12 @@ export default function Game() {
                   isGameOver: false,
                   currentQuestion: null,
                   isMoving: true,
-                  coinsCollected: 0
+                  coinsCollected: 0,
+                  oracleMode: false,
+                  oracleFeedback: null,
+                  isPlaying: true,
+                  mistakeCount: 0,    // Add this
+                  hintsUsed: 0        // Add this
                 });
                 showNextQuestion();
               }}
@@ -486,6 +682,14 @@ export default function Game() {
           ))}
         </Physics>
       </Canvas>
+
+      {/* Add Oracle Presence when Oracle Mode is enabled */}
+      {gameState.oracleMode && (
+        <OraclePresence 
+          feedback={gameState.oracleFeedback}
+          onRequestHint={handleHintRequest}
+        />
+      )}
     </div>
   );
 }
