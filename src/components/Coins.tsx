@@ -1,104 +1,158 @@
 import React, { useRef, useEffect, useState } from 'react';
-import { RigidBody, CuboidCollider } from '@react-three/rapier';
+import { RigidBody, RapierRigidBody, CollisionEnterPayload, CuboidCollider } from '@react-three/rapier';
 import { Vector3 } from 'three';
 import { useFrame } from '@react-three/fiber';
 import { GameState } from '../types/game';
-import { LANE_POSITIONS } from '../constants/game'; // Ensure this import is correct
-import { GAME_SPEED } from '../constants/game'; // Ensure GAME_SPEED is imported
-import { motion } from 'framer-motion'; // Import framer-motion for animations
+import { LANE_POSITIONS, GAME_SPEED } from '../constants/game';
+import { UserData } from '../types/userData';
 
 interface CoinsProps {
   lane: number;
   gameState: GameState;
-  onCollect: () => void;
+  onCollect: (id: number) => void;
 }
 
-const Coin = React.forwardRef(({ position, onCollect }: { position: Vector3; onCollect: () => void }, ref: any) => {
-  return (
-    <RigidBody
-      ref={ref}
-      position={position.toArray()}
-      type="kinematicPosition"
-      colliders="cuboid"
-      sensor={true}
-      onIntersectionEnter={() => {
-        onCollect();
-        // Add visual feedback for collection
-        // For example, trigger a burst animation here
-      }}
-    >
-      <CuboidCollider args={[0.5, 0.5, 0.5]} sensor={true} />
-      <mesh>
-        <sphereGeometry args={[0.5, 32, 32]} />
-        <meshStandardMaterial color="yellow" emissive="yellow" />
-      </mesh>
-    </RigidBody>
-  );
-});
+// Define a custom collision event interface
+interface CustomCollisionEvent {
+  otherRigidBody: RapierRigidBody;
+}
 
-Coin.displayName = 'Coin';
+const DEBUG = true;
+function debugLog(message: string, data?: any) {
+  if (DEBUG) {
+    console.log(`[Coins Debug] ${message}`, data || '');
+  }
+}
 
-interface CoinData {
-  id: number;
-  position: Vector3;
-  collected: boolean;
+interface UserDataWithId extends UserData {
+  coinId: number;
 }
 
 const Coins: React.FC<CoinsProps> = ({ lane, gameState, onCollect }) => {
-  const coinsRef = useRef<Array<{ rigidBodyRef: any; position: Vector3; id: number }>>([]);
+  const coinsRef = useRef<Array<{
+    rigidBodyRef: React.RefObject<RapierRigidBody>;
+    position: Vector3;
+    id: number;
+  }>>([]);
   const [collectedCoins, setCollectedCoins] = useState<number[]>([]);
   const numCoins = 5; // Number of coins per lane
 
+  // Initialize coins with better spacing
   useEffect(() => {
-    // Generate random z positions ahead of the player
     const generatedCoins = Array.from({ length: numCoins }).map((_, index) => {
-      const z = Math.random() * -200 - 50; // Spawn between -50 and -250 units ahead
+      const z = -50 - index * 40; // Even spacing
       return {
-        rigidBodyRef: React.createRef<any>(),
+        rigidBodyRef: React.createRef<RapierRigidBody>(),
         position: new Vector3(LANE_POSITIONS[lane], 1, z),
-        id: index, // Assign a unique ID to each coin
+        id: index + lane * 1000, // Unique ID per lane
       };
     });
     coinsRef.current = generatedCoins;
+    debugLog('Generated coins with new spacing:', generatedCoins);
   }, [lane]);
 
-  const handleCollect = (id: number) => {
-    setCollectedCoins(prev => [...prev, id]);
-    onCollect();
-    // Optionally, trigger a visual effect or sound here
+  // Add collision zone check similar to options
+  const isInCollisionZone = (z: number) => {
+    return z > -2 && z < 2;
   };
 
   useFrame((state, delta) => {
     const moveAmount = GAME_SPEED * gameState.multiplier * delta * 60;
-
+    
     coinsRef.current.forEach(coin => {
       if (coin.rigidBodyRef.current && !collectedCoins.includes(coin.id)) {
-        const trans = coin.rigidBodyRef.current.translation();
+        const currentPosition = coin.rigidBodyRef.current.translation();
+        const newZ = currentPosition.z + moveAmount;
+        
+        // Check for position-based collision like options
+        if (isInCollisionZone(currentPosition.z)) {
+          if (lane === gameState.currentLane && !collectedCoins.includes(coin.id)) {
+            debugLog('Position-based coin collision detected', {
+              coinId: coin.id,
+              lane,
+              playerLane: gameState.currentLane,
+              coinZ: currentPosition.z
+            });
+            handleCollect(coin.id);
+          }
+        }
 
-        const currentPosition = new Vector3(trans.x, trans.y, trans.z + moveAmount);
-
-        // Reset position if coin has passed the player
-        if (currentPosition.z > 10) {
-          currentPosition.z = Math.random() * -200 - 50; // Respawn ahead
-          coin.rigidBodyRef.current.setTranslation(currentPosition, true);
+        // Reset position if passed player
+        if (newZ > 10) {
+          const resetZ = Math.random() * -100 - 150;
+          coin.rigidBodyRef.current.setTranslation(
+            { x: LANE_POSITIONS[lane], y: 1, z: resetZ },
+            true
+          );
+          debugLog('Coin reset position', {
+            coinId: coin.id,
+            newPosition: { x: LANE_POSITIONS[lane], y: 1, z: resetZ }
+          });
         } else {
-          coin.rigidBodyRef.current.setTranslation(currentPosition, true);
+          coin.rigidBodyRef.current.setTranslation(
+            { x: currentPosition.x, y: 1, z: newZ },
+            true
+          );
         }
       }
     });
   });
 
+  // Simplify the collision handler
+  const handleCollect = (id: number) => {
+    if (!collectedCoins.includes(id)) {
+      debugLog('Collecting coin', {
+        coinId: id,
+        lane,
+        playerLane: gameState.currentLane
+      });
+      
+      setCollectedCoins(prev => [...prev, id]);
+      onCollect(id);
+
+      // Hide the collected coin
+      const coin = coinsRef.current.find(c => c.id === id);
+      if (coin?.rigidBodyRef.current) {
+        coin.rigidBodyRef.current.setTranslation(
+          { x: LANE_POSITIONS[lane], y: -10, z: coin.position.z },
+          true
+        );
+      }
+    }
+  };
+
   return (
     <>
-      {coinsRef.current.map((coin, index) => (
-        !collectedCoins.includes(coin.id) && (
-          <Coin
-            key={`coin-${lane}-${index}`}
-            position={coin.position}
-            onCollect={() => handleCollect(coin.id)}
-            ref={coin.rigidBodyRef}
+      {coinsRef.current.map(coin => (
+        <RigidBody
+          key={coin.id}
+          ref={coin.rigidBodyRef}
+          position={[LANE_POSITIONS[lane], 1, coin.position.z]}
+          type="kinematicPosition"
+          colliders={false}
+          userData={{ 
+            type: 'Coin', 
+            coinId: coin.id, 
+            lane 
+          }}
+        >
+          <CuboidCollider 
+            args={[0.5, 0.5, 0.5]} // Increased size for better collision detection
+            sensor={true}
           />
-        )
+          {!collectedCoins.includes(coin.id) && (
+            <mesh castShadow>
+              <cylinderGeometry args={[0.5, 0.5, 0.1, 32]} />
+              <meshStandardMaterial 
+                color="#FFD700"
+                metalness={0.8}
+                roughness={0.3}
+                emissive="#FFD700"
+                emissiveIntensity={0.2}
+              />
+            </mesh>
+          )}
+        </RigidBody>
       ))}
     </>
   );

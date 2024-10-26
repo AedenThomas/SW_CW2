@@ -1,23 +1,17 @@
 import { Canvas, useFrame } from '@react-three/fiber';
 import { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
-import { Physics, RigidBody, CuboidCollider } from '@react-three/rapier';
+import { Physics, RigidBody, CuboidCollider, RapierRigidBody } from '@react-three/rapier';
 import { Environment, PerspectiveCamera, useGLTF, Text, Sky, Stars } from '@react-three/drei';
 import { Vector3 } from 'three';
 import { questions } from '../data/questions';
 import { lerp } from 'three/src/math/MathUtils';
 import * as THREE from 'three';
 import { EnvironmentDecorations } from './Environment';
-import { GAME_SPEED } from '../constants/game';
+import { GAME_SPEED, LANE_POSITIONS, LANE_SWITCH_SPEED, LANE_SWITCH_COOLDOWN } from '../constants/game';
 import { GameState, Question } from '../types/game'; // Import Question type
 import Coins from './Coins'; // Ensure Coins component is imported
-
-// Remove the local Question interface since we're importing it
-
-const LANE_WIDTH = 4;
-const LANE_POSITIONS = [-LANE_WIDTH, 0, LANE_WIDTH];
-const LANE_SWITCH_SPEED = 0.2;
-const LANE_SWITCH_COOLDOWN = 300;
+import { UserData } from '../types/userData';
 
 // Add debug logging utility
 const DEBUG = true;
@@ -26,6 +20,178 @@ const debugLog = (message: string, data?: any) => {
     console.log(`[Game Debug] ${message}`, data || '');
   }
 };
+
+// Define Road component at the top level
+function Road() {
+  return (
+    <mesh rotation={[-Math.PI / 2, 0, 0]} receiveShadow position={[0, 0, 0]}>
+      <planeGeometry args={[15, 200]} /> {/* Increased length from 100 to 200 */}
+      <meshStandardMaterial color="#333333" />
+    </mesh>
+  );
+}
+
+// Define PlayerCar component
+function PlayerCar({ position, targetPosition, handleCoinCollect }: { 
+  position: [number, number, number], 
+  targetPosition: number,
+  handleCoinCollect: (id: number) => void 
+}) {
+  const { scene } = useGLTF('/models/car.glb');
+  const rigidBodyRef = useRef<RapierRigidBody>(null);
+  const currentPos = useRef(position[0]);
+  const lastUpdateTime = useRef(0);
+  const isMoving = useRef(false);
+  
+  const MIN_UPDATE_INTERVAL = 16;
+  const COLLISION_BOX = { width: 2, height: 1, depth: 4 };
+
+  useFrame((state, delta) => {
+    if (!rigidBodyRef.current) return;
+
+    const now = performance.now();
+    if (now - lastUpdateTime.current < MIN_UPDATE_INTERVAL) return;
+
+    try {
+      const targetDiff = targetPosition - currentPos.current;
+      const threshold = 0.01; // Small threshold to consider movement complete
+
+      if (Math.abs(targetDiff) > threshold) {
+        isMoving.current = true;
+        debugLog('Movement update', {
+          currentPos: currentPos.current,
+          targetPos: targetPosition,
+          diff: targetDiff
+        });
+
+        const maxStep = LANE_SWITCH_SPEED;
+        const step = Math.sign(targetDiff) * Math.min(Math.abs(targetDiff), maxStep);
+        currentPos.current += step;
+
+        const newPosition = new Vector3(
+          currentPos.current,
+          position[1],
+          position[2]
+        );
+
+        rigidBodyRef.current.setTranslation(newPosition, true);
+        
+        // Add tilt effect during movement
+        const rotationAngle = Math.max(-0.2, Math.min(0.2, -step * 0.5));
+        const newRotation = new THREE.Quaternion().setFromEuler(
+          new THREE.Euler(0, 0, rotationAngle)
+        );
+        rigidBodyRef.current.setRotation(newRotation, true);
+        
+        lastUpdateTime.current = now;
+      } else if (isMoving.current) {
+        // Snap to exact position when very close
+        currentPos.current = targetPosition;
+        rigidBodyRef.current.setTranslation(
+          new Vector3(targetPosition, position[1], position[2]),
+          true
+        );
+        // Reset rotation when movement complete
+        rigidBodyRef.current.setRotation(new THREE.Quaternion(), true);
+        isMoving.current = false;
+        debugLog('Movement complete', { finalPosition: targetPosition });
+      }
+    } catch (error) {
+      console.error('Error during PlayerCar movement:', error);
+    }
+  });
+
+  return (
+    <RigidBody 
+      ref={rigidBodyRef} 
+      position={position} 
+      type="kinematicPosition"
+      colliders={false}
+      userData={{ type: 'PlayerCar', id: 'player' } as UserData}
+      onCollisionEnter={(event) => {
+        debugLog('PlayerCar collision raw event:', event);
+        
+        const otherCollider = event.other;
+        debugLog('PlayerCar collision detected with:', {
+          otherType: otherCollider.rigidBodyObject?.userData?.type,
+          playerPos: rigidBodyRef.current?.translation(),
+          otherPos: otherCollider.rigidBodyObject?.position,
+          hasRigidBody: !!otherCollider.rigidBodyObject,
+          hasUserData: !!otherCollider.rigidBodyObject?.userData
+        });
+      }}
+    >
+      <CuboidCollider 
+        args={[COLLISION_BOX.width / 2, COLLISION_BOX.height / 2, COLLISION_BOX.depth / 2]}
+        sensor={false} // Ensure sensor is false on collider
+        onCollisionEnter={(event) => {
+          debugLog('PlayerCar collider collision:', {
+            otherType: event.other.rigidBodyObject?.userData?.type,
+            otherData: event.other.rigidBodyObject?.userData
+          });
+          
+          if (event.other.rigidBodyObject?.userData?.type === 'Coin') {
+            const coinId = event.other.rigidBodyObject.userData.coinId;
+            debugLog('Coin collision detected:', { coinId });
+            handleCoinCollect(coinId);
+          }
+        }}
+      />
+      <group scale={[0.5, 0.5, 0.5]}>
+        {scene ? (
+          <primitive object={scene.clone()} />
+        ) : (
+          <mesh castShadow>
+            <boxGeometry args={[COLLISION_BOX.width, COLLISION_BOX.height, COLLISION_BOX.depth]} />
+            <meshStandardMaterial color="red" wireframe />
+          </mesh>
+        )}
+      </group>
+    </RigidBody>
+  );
+}
+
+// Define MovingLaneDividers component
+function MovingLaneDividers({ gameState }: { gameState: GameState }) {
+  const dividerRefs = useRef<Array<{ position: Vector3 }>>([]);
+  const spacing = 10;
+  const numMarkers = 20;
+
+  useFrame((state, delta) => {
+    const moveAmount = GAME_SPEED * gameState.multiplier * delta * 60;
+    
+    dividerRefs.current.forEach(marker => {
+      marker.position.z += moveAmount;
+      if (marker.position.z > 20) {
+        marker.position.z -= spacing * numMarkers;
+      }
+    });
+  });
+
+  return (
+    <>
+      {[-2, 2].map((x, laneIndex) => (
+        Array.from({ length: numMarkers }).map((_, index) => (
+          <mesh
+            key={`${laneIndex}-${index}`}
+            position={[x, 0.01, -spacing * index]}
+            rotation={[-Math.PI / 2, 0, 0]}
+            ref={(ref: any) => {
+              if (ref) {
+                if (!dividerRefs.current[laneIndex * numMarkers + index]) {
+                  dividerRefs.current[laneIndex * numMarkers + index] = ref;
+                }
+              }
+            }}
+          >
+            <planeGeometry args={[0.2, 3]} />
+            <meshStandardMaterial color="white" emissive="white" emissiveIntensity={0.5} />
+          </mesh>
+        ))
+      ))}
+    </>
+  );
+}
 
 export default function Game() {
   const [gameState, setGameState] = useState<GameState>({
@@ -37,7 +203,8 @@ export default function Game() {
     multiplier: 1,
     isGameOver: false,
     currentQuestion: null,
-    isMoving: true
+    isMoving: true,
+    coinsCollected: 0  // Correct initialization
   });
 
   const targetLanePosition = useRef(LANE_POSITIONS[1]);
@@ -161,18 +328,38 @@ export default function Game() {
   // Add debug logging for game state changes
   useEffect(() => {
     console.log('[Game Debug] Game state updated:', {
+      score: gameState.score, // Existing score log
+      coinsCollected: gameState.coinsCollected, // Added coinsCollected to debug logs
       multiplier: gameState.multiplier,
       currentLane: gameState.currentLane,
       timestamp: performance.now()
     });
-  }, [gameState.multiplier, gameState.currentLane]);
+  }, [gameState.score, gameState.multiplier, gameState.currentLane, gameState.coinsCollected]); // Added coinsCollected as dependency
 
-  const handleCoinCollect = () => {
-    setGameState(prev => ({
-      ...prev,
-      score: prev.score + 10, // Increment score by 10 for each coin
-    }));
-    debugLog('Coin collected, score updated', { score: gameState.score + 10 });
+  const handleCoinCollect = (id: number) => {
+    debugLog(`handleCoinCollect execution started:`, {
+      id,
+      currentState: {
+        score: gameState.score,
+        coinsCollected: gameState.coinsCollected
+      }
+    });
+    
+    // More direct state update
+    const newScore = gameState.score + 10;
+    const newCoinsCollected = gameState.coinsCollected + 1;
+    
+    setGameState({
+      ...gameState,
+      score: newScore,
+      coinsCollected: newCoinsCollected
+    });
+    
+    debugLog('State update completed:', {
+      newScore,
+      newCoinsCollected,
+      coinId: id
+    });
   };
 
   return (
@@ -184,7 +371,10 @@ export default function Game() {
           animate={{ opacity: 1, y: 0 }}
           className="bg-black/50 text-white p-4 rounded-lg"
         >
-          <p className="text-2xl">Score: {gameState.score}</p>
+          <div className="flex justify-between items-center">
+            <p className="text-2xl">Score: {gameState.score}</p>
+            <p className="text-2xl">Coins: {gameState.coinsCollected}</p>
+          </div>
           {gameState.currentQuestion && (
             <div className="mt-4">
               <p className="text-xl">{gameState.currentQuestion.text}</p>
@@ -217,11 +407,12 @@ export default function Game() {
         />
         <hemisphereLight color="#b1e1ff" groundColor="#000000" intensity={0.5} />
         
-        <Physics debug={false}>
+        <Physics gravity={[0, 0, 0]}>
           <Road />
           <PlayerCar 
             position={[LANE_POSITIONS[gameState.currentLane], 1.0, 0]}
             targetPosition={targetLanePosition.current}
+            handleCoinCollect={handleCoinCollect}
           />
           <MovingLaneDividers gameState={gameState} />
           
@@ -250,149 +441,7 @@ export default function Game() {
   );
 }
 
-function Road() {
-  return (
-    <mesh rotation={[-Math.PI / 2, 0, 0]} receiveShadow position={[0, 0, 0]}>
-      <planeGeometry args={[15, 200]} /> // Increased length from 100 to 200
-      <meshStandardMaterial color="#333333" />
-    </mesh>
-  );
-}
-
-function MovingLaneDividers({ gameState }: { gameState: GameState }) {
-  const dividerRefs = useRef<Array<{ position: Vector3 }>>([]);
-  const spacing = 10; // Space between markers
-  const numMarkers = 20; // Number of markers per lane
-
-  useFrame((state, delta) => {
-    const moveAmount = GAME_SPEED * gameState.multiplier * delta * 60;
-    
-    dividerRefs.current.forEach(marker => {
-      marker.position.z += moveAmount;
-      if (marker.position.z > 20) {
-        marker.position.z -= spacing * numMarkers;
-      }
-    });
-  });
-
-  return (
-    <>
-      {[-2, 2].map((x, laneIndex) => (
-        Array.from({ length: numMarkers }).map((_, index) => (
-          <mesh
-            key={`${laneIndex}-${index}`}
-            position={[x, 0.01, -spacing * index]}
-            rotation={[-Math.PI / 2, 0, 0]}
-            ref={(ref: any) => {
-              if (ref) {
-                if (!dividerRefs.current[laneIndex * numMarkers + index]) {
-                  dividerRefs.current[laneIndex * numMarkers + index] = ref;
-                }
-              }
-            }}
-          >
-            <planeGeometry args={[0.2, 3]} />
-            <meshStandardMaterial color="white" emissive="white" emissiveIntensity={0.5} />
-          </mesh>
-        ))
-      ))}
-    </>
-  );
-}
-
-function PlayerCar({ position, targetPosition }: { position: [number, number, number], targetPosition: number }) {
-  const { scene } = useGLTF('/models/car.glb');
-  const rigidBodyRef = useRef<any>(null);
-  const currentPos = useRef(position[0]);
-  const lastUpdateTime = useRef(0);
-  const isMoving = useRef(false);
-  const MIN_UPDATE_INTERVAL = 16;
-
-  useFrame((state, delta) => {
-    if (!rigidBodyRef.current) return;
-
-    const now = performance.now();
-    if (now - lastUpdateTime.current < MIN_UPDATE_INTERVAL) return;
-
-    try {
-      const targetDiff = targetPosition - currentPos.current;
-      const threshold = 0.01; // Small threshold to consider movement complete
-
-      // Only log when actually moving
-      if (Math.abs(targetDiff) > threshold) {
-        isMoving.current = true;
-        debugLog('Movement update', {
-          currentPos: currentPos.current,
-          targetPos: targetPosition,
-          diff: targetDiff
-        });
-
-        const maxStep = LANE_SWITCH_SPEED;
-        const step = Math.sign(targetDiff) * Math.min(Math.abs(targetDiff), maxStep);
-        currentPos.current += step;
-
-        const newPosition = new Vector3(
-          currentPos.current,
-          position[1],
-          position[2]
-        );
-
-        rigidBodyRef.current.setTranslation(newPosition, true);
-        
-        // Add tilt effect during movement
-        const rotationAngle = Math.max(-0.2, Math.min(0.2, -step * 0.5));
-        const newRotation = new THREE.Quaternion().setFromEuler(
-          new THREE.Euler(0, 0, rotationAngle)
-        );
-        rigidBodyRef.current.setRotation(newRotation, true);
-        
-        lastUpdateTime.current = now;
-      } else if (isMoving.current) {
-        // Snap to exact position when very close
-        currentPos.current = targetPosition;
-        rigidBodyRef.current.setTranslation(
-          new Vector3(targetPosition, position[1], position[2]),
-          true
-        );
-        // Reset rotation when movement complete
-        rigidBodyRef.current.setRotation(new THREE.Quaternion(), true);
-        isMoving.current = false;
-        debugLog('Movement complete', { finalPosition: targetPosition });
-      }
-    } catch (error) {
-      console.error('Physics update error:', error);
-    }
-  });
-
-  return (
-    <RigidBody 
-      ref={rigidBodyRef} 
-      position={position} 
-      type="kinematicPosition"
-      colliders="cuboid"
-      sensor={true}  // Add this
-      lockRotations={true}
-      enabledRotations={[false, false, true]}
-    >
-      <group scale={[0.5, 0.5, 0.5]}>
-        <CuboidCollider 
-          args={[1, 0.5, 2]}  // Add this - width, height, depth
-          sensor={true}
-        />
-        {scene ? (
-          <primitive object={scene.clone()} />
-        ) : (
-          <mesh castShadow>
-            <boxGeometry args={[2, 1, 4]} />
-            <meshStandardMaterial color="red" />
-          </mesh>
-        )}
-      </group>
-    </RigidBody>
-  );
-}
-
-// Update the MovingAnswerOptions component
+// Update the MovingAnswerOptions component accordingly
 function MovingAnswerOptions({ question, onCollision, gameState }: { 
   question: Question, 
   onCollision: (isCorrect: boolean) => void,
@@ -521,4 +570,3 @@ function MovingAnswerOptions({ question, onCollision, gameState }: {
     </group>
   );
 }
-

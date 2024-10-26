@@ -15,6 +15,7 @@ export interface GameState {
   isGameOver: boolean;
   currentQuestion: Question | null;
   isMoving: boolean;
+  coinsCollected: number; // Add this line
 }
 
 export interface PowerUp {
