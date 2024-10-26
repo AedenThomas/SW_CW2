@@ -244,23 +244,29 @@ export default function Game() {
           ...prev,
           score: prev.score + 100,
           currentQuestion: null,
-          multiplier: 1, // Changed from speedMultiplier to multiplier
+          multiplier: 1,
         };
         debugLog('New game state after correct answer', newState);
         return newState;
       });
       
-      // Add a small delay before showing next question
       setTimeout(() => {
         debugLog('Showing next question');
         showNextQuestion();
       }, 200);
     } else {
-      debugLog('Incorrect answer, increasing speed');
-      setGameState(prev => ({
-        ...prev,
-        multiplier: prev.multiplier + 0.2, // Changed from speedMultiplier to multiplier
-      }));
+      debugLog('Incorrect answer, reducing lives');
+      setGameState(prev => {
+        const newLives = prev.lives - 1;
+        const newState = {
+          ...prev,
+          lives: newLives,
+          multiplier: prev.multiplier + 0.2,
+          isGameOver: newLives <= 0 // Set game over when lives reach 0
+        };
+        debugLog('New game state after incorrect answer', newState);
+        return newState;
+      });
     }
   };
 
@@ -373,6 +379,13 @@ export default function Game() {
         >
           <div className="flex justify-between items-center">
             <p className="text-2xl">Score: {gameState.score}</p>
+            <div className="flex items-center gap-2">
+              <p className="text-2xl">Lives: </p>
+              {/* Display hearts based on remaining lives */}
+              {Array.from({ length: gameState.lives }).map((_, i) => (
+                <span key={i} className="text-2xl text-red-500">❤️</span>
+              ))}
+            </div>
             <p className="text-2xl">Coins: {gameState.coinsCollected}</p>
           </div>
           {gameState.currentQuestion && (
@@ -382,6 +395,42 @@ export default function Game() {
           )}
         </motion.div>
       </div>
+
+      {/* Game Over Screen */}
+      {gameState.isGameOver && (
+        <div className="absolute inset-0 flex items-center justify-center z-20 bg-black/80">
+          <motion.div 
+            initial={{ scale: 0.8, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            className="bg-white p-8 rounded-lg text-center"
+          >
+            <h2 className="text-3xl font-bold mb-4">Game Over!</h2>
+            <p className="text-xl mb-4">Final Score: {gameState.score}</p>
+            <p className="text-xl mb-6">Coins Collected: {gameState.coinsCollected}</p>
+            <button
+              onClick={() => {
+                // Reset game state
+                setGameState({
+                  currentLane: 1,
+                  score: 0,
+                  speed: 1,
+                  lives: 3,
+                  combo: 0,
+                  multiplier: 1,
+                  isGameOver: false,
+                  currentQuestion: null,
+                  isMoving: true,
+                  coinsCollected: 0
+                });
+                showNextQuestion();
+              }}
+              className="bg-blue-500 hover:bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold transition-colors"
+            >
+              Play Again
+            </button>
+          </motion.div>
+        </div>
+      )}
 
       {/* 3D Game Scene */}
       <Canvas shadows>
