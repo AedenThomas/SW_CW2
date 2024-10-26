@@ -17,7 +17,6 @@ import { UserData } from '../types/userData';
 const DEBUG = true;
 const debugLog = (message: string, data?: any) => {
   if (DEBUG) {
-    console.log(`[Game Debug] ${message}`, data || '');
   }
 };
 
@@ -310,11 +309,26 @@ export default function Game() {
   };
 
   const handleCollision = (isCorrect: boolean) => {
+    debugLog('Collision detected:', {
+      isCorrect,
+      currentMode: gameState.oracleMode ? 'Oracle' : 'Normal',
+      currentScore: gameState.score,
+      currentQuestion: gameState.currentQuestion
+    });
+
     if (gameState.oracleMode) {
       const currentQuestion = gameState.currentQuestion;
-      if (!currentQuestion) return;
+      if (!currentQuestion) {
+        debugLog('No current question found in Oracle mode');
+        return;
+      }
 
       if (isCorrect) {
+        debugLog('Correct answer in Oracle mode', {
+          previousScore: gameState.score,
+          newScore: gameState.score + 100
+        });
+
         setGameState(prev => ({
           ...prev,
           score: prev.score + 100,
@@ -326,6 +340,11 @@ export default function Game() {
         }));
       } else {
         const wrongOption = gameState.currentLane;
+        debugLog('Wrong answer in Oracle mode', {
+          wrongOption,
+          feedback: currentQuestion.oracleHelp.wrongAnswerFeedback[wrongOption]
+        });
+
         setGameState(prev => ({
           ...prev,
           mistakeCount: prev.mistakeCount + 1,
@@ -339,6 +358,7 @@ export default function Game() {
 
       // Clear feedback after delay
       setTimeout(() => {
+        debugLog('Clearing Oracle feedback');
         setGameState(prev => ({
           ...prev,
           oracleFeedback: null
@@ -346,8 +366,13 @@ export default function Game() {
         showNextQuestion();
       }, 4000);
     } else {
-      // Original non-oracle mode logic
+      // Original non-oracle mode logic with debugging
       if (isCorrect) {
+        debugLog('Correct answer in normal mode', {
+          previousScore: gameState.score,
+          newScore: gameState.score + 100
+        });
+
         setGameState(prev => ({
           ...prev,
           score: prev.score + 100,
@@ -355,6 +380,11 @@ export default function Game() {
         }));
         setTimeout(showNextQuestion, 200);
       } else {
+        debugLog('Wrong answer in normal mode', {
+          currentLives: gameState.lives,
+          newLives: gameState.lives - 1
+        });
+
         setGameState(prev => {
           const newLives = prev.lives - 1;
           return {
@@ -453,37 +483,35 @@ export default function Game() {
 
   // Add debug logging for game state changes
   useEffect(() => {
-    console.log('[Game Debug] Game state updated:', {
-      score: gameState.score, // Existing score log
-      coinsCollected: gameState.coinsCollected, // Added coinsCollected to debug logs
+    debugLog('Game state updated:', {
+      score: gameState.score,
+      coinsCollected: gameState.coinsCollected,
       multiplier: gameState.multiplier,
       currentLane: gameState.currentLane,
+      updateType: 'state-change',
       timestamp: performance.now()
     });
-  }, [gameState.score, gameState.multiplier, gameState.currentLane, gameState.coinsCollected]); // Added coinsCollected as dependency
+  }, [gameState.score, gameState.multiplier, gameState.currentLane, gameState.coinsCollected]);
 
   const handleCoinCollect = (id: number) => {
     debugLog(`handleCoinCollect execution started:`, {
       id,
       currentState: {
-        score: gameState.score,
-        coinsCollected: gameState.coinsCollected
+        coinsCollected: gameState.coinsCollected,
+        score: gameState.score // Add score to debug output
       }
     });
     
-    // More direct state update
-    const newScore = gameState.score + 10;
-    const newCoinsCollected = gameState.coinsCollected + 1;
+    // Update ONLY coinsCollected, remove any score changes
+    setGameState(prev => ({
+      ...prev,
+      coinsCollected: prev.coinsCollected + 1,
+      // Do NOT modify score here
+    }));
     
-    setGameState({
-      ...gameState,
-      score: newScore,
-      coinsCollected: newCoinsCollected
-    });
-    
-    debugLog('State update completed:', {
-      newScore,
-      newCoinsCollected,
+    debugLog('Coin collection completed:', {
+      newCoinsCollected: gameState.coinsCollected + 1,
+      score: gameState.score, // Add score to verify it's unchanged
       coinId: id
     });
   };

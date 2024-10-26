@@ -20,7 +20,6 @@ interface CustomCollisionEvent {
 const DEBUG = true;
 function debugLog(message: string, data?: any) {
   if (DEBUG) {
-    console.log(`[Coins Debug] ${message}`, data || '');
   }
 }
 
@@ -71,7 +70,8 @@ const Coins: React.FC<CoinsProps> = ({ lane, gameState, onCollect }) => {
               coinId: coin.id,
               lane,
               playerLane: gameState.currentLane,
-              coinZ: currentPosition.z
+              coinZ: currentPosition.z,
+              currentScore: gameState.score // Add score to debug output
             });
             handleCollect(coin.id);
           }

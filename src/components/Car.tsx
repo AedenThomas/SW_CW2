@@ -21,7 +21,6 @@ export function CarModel() {
         child.receiveShadow = true;
       }
     });
-    console.log('[Car Debug] Car model loaded and collider set up');
   }, [scene]);
 
   return (

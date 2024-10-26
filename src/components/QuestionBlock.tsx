@@ -11,14 +11,10 @@ const QuestionBlock = ({ question, position }: QuestionBlockProps) => {
   const blockRef = useRef<THREE.Group>(null);
 
   // Add at the start of the component
-  console.log('QuestionBlock rendered at position:', position);
 
   const handleAnswerSubmit = (selectedAnswer: string) => {
-    console.log('Selected answer:', selectedAnswer);
-    console.log('Correct answer:', question.correctAnswer);
     
     if (selectedAnswer === question.correctAnswer.toString()) {
-      console.log('Answer is correct! Calling onCorrectAnswer');
       // Handle answer selection
     }
   };

@@ -65,8 +65,8 @@ export function EnvironmentDecorations({ gameState }: { gameState: GameState }) 
 
     // Optional: Remove debug logs for performance
     // if (Math.random() < 0.01) {
-    //   console.log('[Environment Debug] First tree position:', treePositions[0]);
-    //   console.log('[Environment Debug] First rock position:', rockPositions[0]);
+    
+    
     // }
   });
 
