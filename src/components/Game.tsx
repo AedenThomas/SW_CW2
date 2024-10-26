@@ -193,10 +193,11 @@ function MovingLaneDividers({ gameState }: { gameState: GameState }) {
   );
 }
 
-// Add this new component for Oracle feedback
-function OraclePresence({ feedback, onRequestHint }: { 
+// Update the OraclePresence component
+function OraclePresence({ feedback, onRequestHint, currentQuestion }: { 
   feedback: GameState['oracleFeedback'], 
-  onRequestHint: () => void 
+  onRequestHint: () => void,
+  currentQuestion: Question | null // Add this prop
 }) {
   return (
     <motion.div 
@@ -205,16 +206,28 @@ function OraclePresence({ feedback, onRequestHint }: {
       exit={{ opacity: 0, scale: 0.9 }}
       className="fixed bottom-10 right-10 z-50"
     >
-      {/* Oracle's Permanent Presence */}
-      <div className="flex items-end gap-4">
-        <motion.button
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-          onClick={onRequestHint}
-          className="bg-purple-600/90 p-4 rounded-full shadow-lg hover:bg-purple-500/90 transition-colors"
-        >
-          <span className="text-2xl">🔮</span>
-        </motion.button>
+      <div className="flex flex-col items-end gap-4">
+        {/* Always show the current hint if there's a question */}
+        {currentQuestion && (
+          <motion.div
+            initial={{ opacity: 0, x: 50 }}
+            animate={{ opacity: 1, x: 0 }}
+            className="max-w-md p-6 rounded-lg shadow-xl backdrop-blur-sm bg-blue-600/90 border border-blue-400/30 text-white"
+          >
+            <div className="flex items-start gap-4">
+              <div className="flex-grow">
+                <h3 className="text-xl font-semibold mb-2">Oracle's Hint</h3>
+                <motion.p
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className="text-lg"
+                >
+                  {currentQuestion.oracleHelp.hint}
+                </motion.p>
+              </div>
+            </div>
+          </motion.div>
+        )}
         
         {/* Feedback Display */}
         {feedback && feedback.shown && (
@@ -688,6 +701,7 @@ export default function Game() {
         <OraclePresence 
           feedback={gameState.oracleFeedback}
           onRequestHint={handleHintRequest}
+          currentQuestion={gameState.currentQuestion} // Pass the current question
         />
       )}
     </div>
