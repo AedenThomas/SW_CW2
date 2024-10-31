@@ -20,7 +20,7 @@ export const questions: Omit<Question, 'id'>[] = [
     }
   },
   {
-    text: "What does this sign indicate you should do?",
+    text: "What does this sign indicate?",
     signPath: process.env.PUBLIC_URL + "/signs/warning-signs-jpg/1/503.jpg",
     options: [
       "Prepare to yield to other vehicles in 50 yards",

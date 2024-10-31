@@ -1,32 +1,43 @@
-import { useGLTF } from '@react-three/drei';
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { RigidBody, CuboidCollider } from '@react-three/rapier';
 import { useLoader } from '@react-three/fiber';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader';
+import * as THREE from 'three';
 
 export function CarModel() {
-  // Updated loader with error handling and PUBLIC_URL
-  const { scene } = useLoader(GLTFLoader, `${process.env.PUBLIC_URL}/models/car.glb`, (loader: GLTFLoader) => {
-    loader.manager.onError = (url: string) => {
-      console.error(`Error loading ${url}`);
-    };
-  });
-
+  const [modelLoaded, setModelLoaded] = useState(false);
+  const [model, setModel] = useState<THREE.Group | null>(null);
   const carRef = useRef<any>(null);
 
+  const gltf = useLoader(GLTFLoader, `${process.env.PUBLIC_URL}/models/car.glb`, undefined, (error) => {
+    console.error('Error loading car model:', error);
+    setModelLoaded(false);
+  });
+
   useEffect(() => {
-    scene.traverse((child: any) => {
-      if (child.isMesh) {
-        child.castShadow = true;
-        child.receiveShadow = true;
-      }
-    });
-  }, [scene]);
+    if (gltf) {
+      gltf.scene.traverse((child: any) => {
+        if (child.isMesh) {
+          child.castShadow = true;
+          child.receiveShadow = true;
+        }
+      });
+      setModelLoaded(true);
+    }
+  }, [gltf]);
 
   return (
     <RigidBody ref={carRef} type="dynamic" colliders="cuboid">
       <CuboidCollider args={[1, 1, 2]} />
-      <primitive object={scene} />
+      {modelLoaded && model ? (
+        <primitive object={model} />
+      ) : (
+        // Fallback car representation
+        <mesh castShadow>
+          <boxGeometry args={[2, 1, 4]} />
+          <meshStandardMaterial color="red" />
+        </mesh>
+      )}
     </RigidBody>
   );
 }
