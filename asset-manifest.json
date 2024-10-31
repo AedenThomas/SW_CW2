@@ -1,15 +1,15 @@
 {
   "files": {
-    "main.css": "/SW_CW2/static/css/main.a8f2785d.css",
-    "main.js": "/SW_CW2/static/js/main.d8f60654.js",
-    "static/js/453.69f3745b.chunk.js": "/SW_CW2/static/js/453.69f3745b.chunk.js",
-    "index.html": "/SW_CW2/index.html",
-    "main.a8f2785d.css.map": "/SW_CW2/static/css/main.a8f2785d.css.map",
-    "main.d8f60654.js.map": "/SW_CW2/static/js/main.d8f60654.js.map",
-    "453.69f3745b.chunk.js.map": "/SW_CW2/static/js/453.69f3745b.chunk.js.map"
+    "main.css": "https://aedenthomas.github.io/SW_CW2/static/css/main.a8f2785d.css",
+    "main.js": "https://aedenthomas.github.io/SW_CW2/static/js/main.6d82f0be.js",
+    "static/js/453.69f3745b.chunk.js": "https://aedenthomas.github.io/SW_CW2/static/js/453.69f3745b.chunk.js",
+    "index.html": "https://aedenthomas.github.io/SW_CW2/index.html",
+    "main.a8f2785d.css.map": "https://aedenthomas.github.io/SW_CW2/static/css/main.a8f2785d.css.map",
+    "main.6d82f0be.js.map": "https://aedenthomas.github.io/SW_CW2/static/js/main.6d82f0be.js.map",
+    "453.69f3745b.chunk.js.map": "https://aedenthomas.github.io/SW_CW2/static/js/453.69f3745b.chunk.js.map"
   },
   "entrypoints": [
     "static/css/main.a8f2785d.css",
-    "static/js/main.d8f60654.js"
+    "static/js/main.6d82f0be.js"
   ]
 }
