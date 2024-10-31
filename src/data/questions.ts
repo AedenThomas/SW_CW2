@@ -74,7 +74,7 @@ export const questions: Omit<Question, 'id'>[] = [
     }
   },
   {
-    text: "What does this warning sign mean?",
+    text: "What does this warning sign indicate?",
     signPath: "/signs/warning-signs-jpg/1/504.1L.jpg",
     options: [
       "Junction on the left",
