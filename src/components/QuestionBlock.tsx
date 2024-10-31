@@ -47,6 +47,18 @@ const QuestionBlock = ({ question, position }: QuestionBlockProps) => {
     }
   }, [signTexture]);
 
+  useEffect(() => {
+    // Test image loading
+    const img = new Image();
+    img.onload = () => {
+      console.log('Image loaded successfully:', question.signPath);
+    };
+    img.onerror = (err) => {
+      console.error('Error loading image:', question.signPath, err);
+    };
+    img.src = question.signPath;
+  }, [question.signPath]);
+
   const handleAnswerSubmit = (selectedAnswer: string) => {
     
     if (selectedAnswer === question.correctAnswer.toString()) {

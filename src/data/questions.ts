@@ -3,7 +3,7 @@ import { Question } from '../types/game';
 export const questions: Omit<Question, 'id'>[] = [
   {
     text: "What does this warning sign mean?",
-    signPath: "/signs/warning-signs-jpg/1/504.1.jpg",
+    signPath: process.env.PUBLIC_URL + "/signs/warning-signs-jpg/1/504.1.jpg",
     options: [
       "Junction ahead",
       "Road narrows", 
@@ -21,7 +21,7 @@ export const questions: Omit<Question, 'id'>[] = [
   },
   {
     text: "What does this sign indicate you should do?",
-    signPath: "/signs/warning-signs-jpg/1/503.jpg",
+    signPath: process.env.PUBLIC_URL + "/signs/warning-signs-jpg/1/503.jpg",
     options: [
       "Prepare to yield to other vehicles in 50 yards",
       "Stop immediately",
@@ -39,7 +39,7 @@ export const questions: Omit<Question, 'id'>[] = [
   },
   {
     text: "What does this traffic sign indicate?",
-    signPath: "/signs/warning-signs-jpg/1/502.jpg",
+    signPath: process.env.PUBLIC_URL + "/signs/warning-signs-jpg/1/502.jpg",
     options: [
       "Stop sign is 100 yards ahead.",
       "Speed limit is 100 yards per hour.",
@@ -57,7 +57,7 @@ export const questions: Omit<Question, 'id'>[] = [
   },
   {
     text: "What does this traffic sign mean?",
-    signPath: "/signs/warning-signs-jpg/1/501.jpg",
+    signPath: process.env.PUBLIC_URL + "/signs/warning-signs-jpg/1/501.jpg",
     options: [
       "Yield",
       "Stop",
@@ -75,7 +75,7 @@ export const questions: Omit<Question, 'id'>[] = [
   },
   {
     text: "What does this warning sign indicate?",
-    signPath: "/signs/warning-signs-jpg/1/504.1L.jpg",
+    signPath: process.env.PUBLIC_URL + "/signs/warning-signs-jpg/1/504.1L.jpg",
     options: [
       "Junction on the left",
       "No left turn",

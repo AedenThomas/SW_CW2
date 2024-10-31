@@ -37,7 +37,9 @@ function PlayerCar({ position, targetPosition, handleCoinCollect }: {
   targetPosition: number,
   handleCoinCollect: (id: number) => void 
 }) {
-  const { scene } = useGLTF('/models/car.glb');
+
+  const { scene } = useGLTF(`${process.env.PUBLIC_URL}/models/car.glb`)
+
   const rigidBodyRef = useRef<RapierRigidBody>(null);
   const currentPos = useRef(position[0]);
   const lastUpdateTime = useRef(0);
