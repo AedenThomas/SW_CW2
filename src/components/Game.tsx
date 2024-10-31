@@ -21,6 +21,10 @@ const debugLog = (message: string, data?: any) => {
   }
 };
 
+// Add these constants at the top of the file
+const SWIPE_THRESHOLD = 50; // Minimum swipe distance to trigger lane change
+const SWIPE_TIMEOUT = 300; // Maximum time in ms for a swipe
+
 // Define Road component at the top level
 function Road() {
   return (
@@ -267,6 +271,7 @@ function OraclePresence({ feedback, onRequestHint, currentQuestion }: {
   );
 }
 
+// Inside the Game component, add touch handling
 export default function Game() {
   const [gameState, setGameState] = useState<GameState>({
     currentLane: 1,
@@ -290,6 +295,11 @@ export default function Game() {
   const questionTimer = useRef<NodeJS.Timeout | null>(null);
   const lastLaneSwitch = useRef(0);
   const questionIdCounter = useRef(1);
+
+  // Add these refs for touch handling
+  const touchStartX = useRef<number | null>(null);
+  const touchStartY = useRef<number | null>(null);
+  const touchStartTime = useRef<number>(0);
 
   // Initialize first question
   useEffect(() => {
@@ -475,9 +485,18 @@ export default function Game() {
       }
     };
 
+    // Create wrapper functions for touch events
+    const touchStartHandler = (e: globalThis.TouchEvent) => handleTouchStart(e);
+    const touchEndHandler = (e: globalThis.TouchEvent) => handleTouchEnd(e);
+
     window.addEventListener('keydown', handleKeyPress);
+    window.addEventListener('touchstart', touchStartHandler);
+    window.addEventListener('touchend', touchEndHandler);
+
     return () => {
-      window.removeEventListener('keydown', handleKeyPress);
+      window.addEventListener('keydown', handleKeyPress);
+      window.removeEventListener('touchstart', touchStartHandler);
+      window.removeEventListener('touchend', touchEndHandler);
       if (questionTimer.current) {
         clearTimeout(questionTimer.current);
       }
@@ -534,8 +553,76 @@ export default function Game() {
     showNextQuestion();
   };
 
+  // Update the touch handler types
+  const handleTouchStart = (e: globalThis.TouchEvent) => {
+    touchStartX.current = e.touches[0].clientX;
+    touchStartY.current = e.touches[0].clientY;
+    touchStartTime.current = performance.now();
+  };
+
+  const handleTouchEnd = (e: globalThis.TouchEvent) => {
+    if (
+      touchStartX.current === null || 
+      touchStartY.current === null || 
+      gameState.isGameOver
+    ) {
+      return;
+    }
+
+    const touchEndX = e.changedTouches[0].clientX;
+    const touchEndY = e.changedTouches[0].clientY;
+    const touchEndTime = performance.now();
+
+    // Calculate swipe distance and angle
+    const deltaX = touchEndX - touchStartX.current;
+    const deltaY = touchEndY - touchStartY.current;
+    const swipeTime = touchEndTime - touchStartTime.current;
+
+    // Only process quick swipes (within SWIPE_TIMEOUT)
+    if (swipeTime > SWIPE_TIMEOUT) {
+      return;
+    }
+
+    // Check if horizontal swipe (more horizontal than vertical movement)
+    if (Math.abs(deltaX) > Math.abs(deltaY)) {
+      // Check if swipe is long enough
+      if (Math.abs(deltaX) >= SWIPE_THRESHOLD) {
+        const now = performance.now();
+        const timeSinceLastSwitch = now - lastLaneSwitch.current;
+
+        if (timeSinceLastSwitch < LANE_SWITCH_COOLDOWN) {
+          return;
+        }
+
+        let newLane = gameState.currentLane;
+
+        if (deltaX > 0 && gameState.currentLane < 2) {
+          // Swipe right
+          newLane = gameState.currentLane + 1;
+        } else if (deltaX < 0 && gameState.currentLane > 0) {
+          // Swipe left
+          newLane = gameState.currentLane - 1;
+        }
+
+        if (newLane !== gameState.currentLane) {
+          lastLaneSwitch.current = now;
+          setGameState(prev => ({
+            ...prev,
+            currentLane: newLane,
+          }));
+          targetLanePosition.current = LANE_POSITIONS[newLane];
+        }
+      }
+    }
+
+    // Reset touch tracking
+    touchStartX.current = null;
+    touchStartY.current = null;
+  };
+
   return (
-    <div className="w-full h-screen">
+    // Add touch-action CSS to prevent default touch behaviors
+    <div className="w-full h-screen" style={{ touchAction: 'none' }} onTouchStart={(e: React.TouchEvent) => handleTouchStart(e.nativeEvent)} onTouchEnd={(e: React.TouchEvent) => handleTouchEnd(e.nativeEvent)}>
       {/* Game Menu */}
       {!gameState.isPlaying && (
         <div className="absolute inset-0 flex items-center justify-center z-30 bg-black/80">
