@@ -2,43 +2,93 @@ import { Question } from '../types/game';
 
 export const questions: Omit<Question, 'id'>[] = [
   {
-    text: "What should you do at a red traffic light?",
-    options: ["Keep driving", "Stop completely", "Slow down"],
-    correctAnswer: 1,
-    oracleHelp: {
-      hint: "Think about the universal meaning of red in traffic signals...",
-      wrongAnswerFeedback: {
-        0: "Continuing through a red light puts everyone at risk. Red means danger!",
-        2: "Slowing down isn't enough - red lights require a complete stop to ensure safety."
-      },
-      correctAnswerInsight: "Perfect! Red means stop - this is a universal rule that keeps everyone safe at intersections."
-    }
-  },
-  {
-    text: "What's the speed limit in a school zone?",
-    options: ["30 km/h", "50 km/h", "60 km/h"],
+    text: "What does this warning sign mean?",
+    signPath: "/signs/warning-signs-jpg/1/504.1.jpg",
+    options: [
+      "Junction ahead",
+      "Road narrows", 
+      "No entry"
+    ],
     correctAnswer: 0,
     oracleHelp: {
-      hint: "Consider the presence of children and the need for extra reaction time...",
+      hint: "This sign alerts you to a potential merging situation.",
       wrongAnswerFeedback: {
-        1: "50 km/h is too fast for a school zone - children may appear suddenly!",
-        2: "60 km/h poses a serious risk in areas where children are present."
+        "1": "Road narrows signs typically have two converging lines.",
+        "2": "No entry signs are usually circular and red with a white horizontal line."
       },
-      correctAnswerInsight: "Excellent! 30 km/h gives you crucial extra seconds to react to unexpected situations with children."
+      correctAnswerInsight: "The sign indicates a junction is coming up, alerting drivers to prepare for possible merging traffic."
     }
   },
   {
-    text: "When should you use your turn signals?",
-    options: ["Never", "Sometimes", "Always before turning"],
-    correctAnswer: 2,
+    text: "What does this sign indicate you should do?",
+    signPath: "/signs/warning-signs-jpg/1/503.jpg",
+    options: [
+      "Prepare to yield to other vehicles in 50 yards",
+      "Stop immediately",
+      "Drive faster to clear the area"
+    ],
+    correctAnswer: 0,
     oracleHelp: {
-      hint: "Consider how turn signals help communicate your intentions to other drivers...",
+      hint: "Think about what 'Give Way' usually means on the road.",
       wrongAnswerFeedback: {
-        0: "Never using turn signals leaves other drivers guessing - very dangerous!",
-        1: "Sometimes isn't enough - other drivers always need to know your intentions."
+        "1": "Stopping immediately might cause accidents unless it's a stop sign.",
+        "2": "Speeding up could be dangerous if you're supposed to yield."
       },
-      correctAnswerInsight: "Correct! Always using turn signals is crucial for communicating with other drivers."
+      correctAnswerInsight: "The sign warns you to yield in 50 yards, allowing others to proceed first."
     }
   },
-  // Add more questions as needed
+  {
+    text: "What does this traffic sign indicate?",
+    signPath: "/signs/warning-signs-jpg/1/502.jpg",
+    options: [
+      "Stop sign is 100 yards ahead.",
+      "Speed limit is 100 yards per hour.",
+      "Pedestrian crossing in 100 yards."
+    ],
+    correctAnswer: 0,
+    oracleHelp: {
+      hint: "Consider the meaning of the word 'STOP' and the distance indicated.",
+      wrongAnswerFeedback: {
+        1: "Speed limits are typically given in miles or kilometers per hour, not yards.",
+        2: "There's no pedestrian crossing symbol or mention in the sign."
+      },
+      correctAnswerInsight: "The sign is warning that a stop sign is 100 yards ahead, allowing drivers to prepare to stop."
+    }
+  },
+  {
+    text: "What does this traffic sign mean?",
+    signPath: "/signs/warning-signs-jpg/1/501.jpg",
+    options: [
+      "Yield",
+      "Stop",
+      "Do Not Enter"
+    ],
+    correctAnswer: 0,
+    oracleHelp: {
+      hint: "This sign indicates that you must allow others the right of way.",
+      wrongAnswerFeedback: {
+        "1": "This sign does not indicate a complete stop is required.",
+        "2": "This sign is not indicating a prohibition of entry."
+      },
+      correctAnswerInsight: "The inverted red triangle is a universal symbol for yielding to other traffic."
+    }
+  },
+  {
+    text: "What does this warning sign mean?",
+    signPath: "/signs/warning-signs-jpg/1/504.1L.jpg",
+    options: [
+      "Junction on the left",
+      "No left turn",
+      "Left lane ends"
+    ],
+    correctAnswer: 0,
+    oracleHelp: {
+      hint: "This sign alerts drivers to potential crossings or turns ahead.",
+      wrongAnswerFeedback: {
+        "1": "This sign does not prohibit turning; it alerts to an upcoming junction.",
+        "2": "The sign does not indicate lane changes; it's about road layout."
+      },
+      correctAnswerInsight: "This triangular warning sign indicates there is a junction on the left."
+    }
+  }
 ];

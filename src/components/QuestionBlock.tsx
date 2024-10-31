@@ -1,7 +1,9 @@
-import { useRef } from 'react';
+import { useRef, useEffect } from 'react';
 import { Text } from '@react-three/drei';
 import { Question } from '../types/game';
 import * as THREE from 'three';
+import { useLoader } from '@react-three/fiber';
+
 interface QuestionBlockProps {
   question: Question;
   position: [number, number, number];
@@ -9,8 +11,41 @@ interface QuestionBlockProps {
 
 const QuestionBlock = ({ question, position }: QuestionBlockProps) => {
   const blockRef = useRef<THREE.Group>(null);
+  
+  // Debug log for question props
+  useEffect(() => {
+    console.log('Question props:', {
+      text: question.text,
+      signPath: question.signPath,
+      options: question.options
+    });
+  }, [question]);
 
-  // Add at the start of the component
+  // Load and debug sign texture
+  let signTexture: THREE.Texture | null = null;
+  try {
+    signTexture = useLoader(THREE.TextureLoader, question.signPath);
+    console.log('Sign texture loaded successfully:', question.signPath);
+  } catch (error) {
+    console.error('Error loading sign texture:', {
+      path: question.signPath,
+      error: error
+    });
+  }
+
+  // Debug log for texture loading
+  useEffect(() => {
+    if (signTexture) {
+      console.log('Texture details:', {
+        isLoaded: signTexture instanceof THREE.Texture,
+        image: signTexture.image,
+        size: {
+          width: signTexture.image?.width,
+          height: signTexture.image?.height
+        }
+      });
+    }
+  }, [signTexture]);
 
   const handleAnswerSubmit = (selectedAnswer: string) => {
     
@@ -21,6 +56,34 @@ const QuestionBlock = ({ question, position }: QuestionBlockProps) => {
 
   return (
     <group ref={blockRef} position={position}>
+      {/* Sign display with debug information */}
+      {signTexture ? (
+        <mesh position={[0, 3, 0]}>
+          <planeGeometry args={[2, 2]} />
+          <meshBasicMaterial 
+            map={signTexture} 
+            transparent
+            onBeforeCompile={() => {
+              console.log('Material compiled with texture');
+            }}
+          />
+        </mesh>
+      ) : (
+        <mesh position={[0, 3, 0]}>
+          <planeGeometry args={[2, 2]} />
+          <meshBasicMaterial color="red" />
+          <Text
+            position={[0, 0, 0.1]}
+            fontSize={0.2}
+            color="white"
+            anchorX="center"
+            anchorY="middle"
+          >
+            Loading Sign...
+          </Text>
+        </mesh>
+      )}
+      
       <Text
         position={[0, 2, 0]}
         fontSize={0.5}

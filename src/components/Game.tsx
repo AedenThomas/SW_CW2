@@ -10,8 +10,9 @@ import * as THREE from 'three';
 import { EnvironmentDecorations } from './Environment';
 import { GAME_SPEED, LANE_POSITIONS, LANE_SWITCH_SPEED, LANE_SWITCH_COOLDOWN } from '../constants/game';
 import { GameState, Question } from '../types/game'; // Import Question type
-import Coins from './Coins'; // Ensure Coins component is imported
+// import Coins from './Coins'; // Ensure Coins component is imported
 import { UserData } from '../types/userData';
+import { useLoader } from '@react-three/fiber';
 
 // Add debug logging utility
 const DEBUG = true;
@@ -129,11 +130,13 @@ function PlayerCar({ position, targetPosition, handleCoinCollect }: {
             otherData: event.other.rigidBodyObject?.userData
           });
           
+          /* Comment out coin collision handling
           if (event.other.rigidBodyObject?.userData?.type === 'Coin') {
             const coinId = event.other.rigidBodyObject.userData.coinId;
             debugLog('Coin collision detected:', { coinId });
             handleCoinCollect(coinId);
           }
+          */
         }}
       />
       <group scale={[0.5, 0.5, 0.5]}>
@@ -157,6 +160,8 @@ function MovingLaneDividers({ gameState }: { gameState: GameState }) {
   const numMarkers = 20;
 
   useFrame((state, delta) => {
+    if (!gameState.isPlaying) return; // Stop movement if game not playing
+    
     const moveAmount = GAME_SPEED * gameState.multiplier * delta * 60;
     
     dividerRefs.current.forEach(marker => {
@@ -292,14 +297,10 @@ export default function Game() {
   const showNextQuestion = () => {
     const baseQuestion = questions[Math.floor(Math.random() * questions.length)];
     
-    // Add id to question
+    // Add id to question while maintaining all properties including signPath
     const question: Question = {
-      id: questionIdCounter.current++,
-      text: baseQuestion.text,
-      options: [...baseQuestion.options],
-      correctAnswer: baseQuestion.correctAnswer,
-      explanation: baseQuestion.explanation,
-      oracleHelp: baseQuestion.oracleHelp
+      ...baseQuestion,
+      id: questionIdCounter.current++
     };
     
     setGameState(prev => ({
@@ -516,6 +517,21 @@ export default function Game() {
     });
   };
 
+  // Add new function to handle game start
+  const startGame = () => {
+    setGameState(prev => ({ 
+      ...prev, 
+      isPlaying: true,
+      currentLane: 1,
+      score: 0,
+      lives: 3,
+      coinsCollected: 0,
+      mistakeCount: 0,
+      hintsUsed: 0
+    }));
+    showNextQuestion();
+  };
+
   return (
     <div className="w-full h-screen">
       {/* Game Menu */}
@@ -559,10 +575,7 @@ export default function Game() {
             </div>
 
             <button
-              onClick={() => {
-                setGameState(prev => ({ ...prev, isPlaying: true }));
-                showNextQuestion();
-              }}
+              onClick={startGame}
               className="bg-blue-500 hover:bg-blue-600 text-white px-6 py-3 
                        rounded-lg font-semibold transition-colors"
             >
@@ -607,7 +620,7 @@ export default function Game() {
         <motion.div 
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-black/50 text-white p-4 rounded-lg"
+          className="bg-black/50 text-white p-4 rounded-lg max-w-4xl mx-auto"
         >
           <div className="flex justify-between items-center">
             <p className="text-2xl">Score: {gameState.score}</p>
@@ -618,11 +631,34 @@ export default function Game() {
                 <span key={i} className="text-2xl text-red-500">❤️</span>
               ))}
             </div>
-            <p className="text-2xl">Coins: {gameState.coinsCollected}</p>
           </div>
           {gameState.currentQuestion && (
-            <div className="mt-4">
-              <p className="text-xl">{gameState.currentQuestion.text}</p>
+            <div className="mt-4 flex flex-col items-center">
+              <p className="text-xl mb-4 text-center max-w-2xl"> {/* Added max-width and center alignment */}
+                {gameState.currentQuestion.text}
+              </p>
+              {/* Ensure sign image is displayed with proper styling */}
+              {gameState.currentQuestion.signPath && (
+                <div className="bg-white/10 rounded-lg p-4 mb-4">
+                  <img 
+                    src={gameState.currentQuestion.signPath} 
+                    alt="Traffic Sign"
+                    className="w-40 h-40 object-contain"
+                    style={{ imageRendering: 'crisp-edges' }}
+                  />
+                </div>
+              )}
+              {/* Add option preview */}
+              <div className="grid grid-cols-3 gap-4 w-full mt-4">
+                {gameState.currentQuestion.options.map((option, index) => (
+                  <div 
+                    key={index}
+                    className="bg-blue-500/50 p-3 rounded text-sm text-center break-words"
+                  >
+                    {option}
+                  </div>
+                ))}
+              </div>
             </div>
           )}
         </motion.div>
@@ -638,7 +674,8 @@ export default function Game() {
           >
             <h2 className="text-3xl font-bold mb-4">Game Over!</h2>
             <p className="text-xl mb-4">Final Score: {gameState.score}</p>
-            <p className="text-xl mb-6">Coins Collected: {gameState.coinsCollected}</p>
+            {/* Comment out coins display */}
+            {/* <p className="text-xl mb-6">Coins Collected: {gameState.coinsCollected}</p> */}
             <button
               onClick={() => {
                 // Reset game state
@@ -693,34 +730,26 @@ export default function Game() {
         />
         <hemisphereLight color="#b1e1ff" groundColor="#000000" intensity={0.5} />
         
-        <Physics gravity={[0, 0, 0]}>
+        <Physics paused={!gameState.isPlaying}>
           <Road />
-          <PlayerCar 
-            position={[LANE_POSITIONS[gameState.currentLane], 1.0, 0]}
-            targetPosition={targetLanePosition.current}
-            handleCoinCollect={handleCoinCollect}
-          />
-          <MovingLaneDividers gameState={gameState} />
-          
-          {/* Pass isMoving to EnvironmentDecorations */}
-          <EnvironmentDecorations gameState={gameState} />
-          
-          {gameState.currentQuestion && (
-            <MovingAnswerOptions 
-              question={gameState.currentQuestion}
-              onCollision={handleCollision}
-              gameState={gameState}
-            />
+          {gameState.isPlaying && (
+            <>
+              <PlayerCar 
+                position={[LANE_POSITIONS[gameState.currentLane], 1.0, 0]}
+                targetPosition={targetLanePosition.current}
+                handleCoinCollect={handleCoinCollect}
+              />
+              <MovingLaneDividers gameState={gameState} />
+              <EnvironmentDecorations gameState={gameState} />
+              {gameState.currentQuestion && (
+                <MovingAnswerOptions 
+                  question={gameState.currentQuestion}
+                  onCollision={handleCollision}
+                  gameState={gameState}
+                />
+              )}
+            </>
           )}
-          {/* Add Coins component for each lane */}
-          {LANE_POSITIONS.map((_, index) => (
-            <Coins
-              key={`coins-lane-${index}`}
-              lane={index}
-              gameState={gameState}
-              onCollect={handleCoinCollect}
-            />
-          ))}
         </Physics>
       </Canvas>
 
@@ -736,7 +765,7 @@ export default function Game() {
   );
 }
 
-// Update the MovingAnswerOptions component accordingly
+// Update the MovingAnswerOptions component
 function MovingAnswerOptions({ question, onCollision, gameState }: { 
   question: Question, 
   onCollision: (isCorrect: boolean) => void,
@@ -748,6 +777,8 @@ function MovingAnswerOptions({ question, onCollision, gameState }: {
   const initialZ = -180;
 
   useFrame((state, delta) => {
+    if (!gameState.isPlaying) return; // Stop movement if game not playing
+    
     if (!optionsGroupRef.current || resetPosition.current) return;
 
     const currentZ = optionsGroupRef.current.position.z;
@@ -768,7 +799,7 @@ function MovingAnswerOptions({ question, onCollision, gameState }: {
     }
 
     // Move options forward
-    optionsGroupRef.current.position.z += GAME_SPEED * gameState.multiplier; // Changed from speedMultiplier to multiplier
+    optionsGroupRef.current.position.z += GAME_SPEED * gameState.multiplier;
     
     if (currentZ > -5 && currentZ < 5) {
       debugLog('Options near player', {
@@ -794,13 +825,6 @@ function MovingAnswerOptions({ question, onCollision, gameState }: {
   });
 
   const handleCollision = (index: number) => {
-    debugLog('Collision handler called', {
-      index,
-      hasCollided: hasCollided.current,
-      resetPosition: resetPosition.current,
-      correctAnswer: question.correctAnswer
-    });
-
     if (!hasCollided.current && !resetPosition.current) {
       hasCollided.current = true;
       const isCorrect = index === question.correctAnswer;
@@ -843,19 +867,23 @@ function MovingAnswerOptions({ question, onCollision, gameState }: {
             sensor={true}
           >
             <CuboidCollider 
-              args={[1.5, 1, 0.5]}  // Width, height, depth
+              args={[2, 1.5, 0.5]} // Increased width and height
               sensor={true}
             />
             <mesh>
-              <boxGeometry args={[3, 2, 1]} />
+              <boxGeometry args={[4, 3, 1]} /> {/* Increased width and height */}
               <meshStandardMaterial color="#4a90e2" />
             </mesh>
             <Text
               position={[0, 0, 0.6]}
-              fontSize={0.5}
+              fontSize={0.3} // Reduced font size
               color="white"
               anchorX="center"
               anchorY="middle"
+              maxWidth={3.5} // Add max width
+              textAlign="center" // Center align text
+              lineHeight={1.2} // Add line height
+              overflowWrap="break-word" // Break words when necessary
             >
               {option}
             </Text>
@@ -865,3 +893,4 @@ function MovingAnswerOptions({ question, onCollision, gameState }: {
     </group>
   );
 }
+

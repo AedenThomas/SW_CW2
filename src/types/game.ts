@@ -1,6 +1,7 @@
 export interface Question {
   id: number;
   text: string;
+  signPath: string;  // Changed from optional to required since we're using signs
   options: string[];
   correctAnswer: number;
   explanation?: string;
