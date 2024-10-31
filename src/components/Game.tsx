@@ -8,11 +8,10 @@ import { questions } from '../data/questions';
 import { lerp } from 'three/src/math/MathUtils';
 import * as THREE from 'three';
 import { EnvironmentDecorations } from './Environment';
-import { GAME_SPEED, LANE_POSITIONS, LANE_SWITCH_SPEED, LANE_SWITCH_COOLDOWN } from '../constants/game';
+import { GAME_SPEED, LANE_SWITCH_SPEED, LANE_SWITCH_COOLDOWN } from '../constants/game';
 import { GameState, Question } from '../types/game'; // Import Question type
-// import Coins from './Coins'; // Ensure Coins component is imported
 import { UserData } from '../types/userData';
-import { useLoader } from '@react-three/fiber';
+
 
 // Add debug logging utility
 const DEBUG = true;
@@ -24,6 +23,9 @@ const debugLog = (message: string, data?: any) => {
 // Add these constants at the top of the file
 const SWIPE_THRESHOLD = 50; // Minimum swipe distance to trigger lane change
 const SWIPE_TIMEOUT = 300; // Maximum time in ms for a swipe
+
+// Update these constants at the top of the file
+const LANE_POSITIONS = [-5, 0, 5]; // Make sure these match your desired positions
 
 // Define Road component at the top level
 function Road() {
@@ -55,24 +57,23 @@ function PlayerCar({ position, targetPosition, handleCoinCollect }: {
   useFrame((state, delta) => {
     if (!rigidBodyRef.current) return;
 
-    const now = performance.now();
-    if (now - lastUpdateTime.current < MIN_UPDATE_INTERVAL) return;
-
     try {
       const targetDiff = targetPosition - currentPos.current;
-      const threshold = 0.01; // Small threshold to consider movement complete
+      
+      if (Math.abs(targetDiff) > 0.01) {
+        if (!isMoving.current) {
+          console.log('Starting car movement:', {
+            currentPosition: currentPos.current,
+            targetPosition,
+            difference: targetDiff,
+            time: new Date().toISOString()
+          });
+          isMoving.current = true;
+        }
 
-      if (Math.abs(targetDiff) > threshold) {
-        isMoving.current = true;
-        debugLog('Movement update', {
-          currentPos: currentPos.current,
-          targetPos: targetPosition,
-          diff: targetDiff
-        });
-
-        const maxStep = LANE_SWITCH_SPEED;
-        const step = Math.sign(targetDiff) * Math.min(Math.abs(targetDiff), maxStep);
-        currentPos.current += step;
+        // Use a smaller lerp factor for smoother movement
+        const lerpFactor = 0.08;
+        currentPos.current = lerp(currentPos.current, targetPosition, lerpFactor);
 
         const newPosition = new Vector3(
           currentPos.current,
@@ -82,28 +83,30 @@ function PlayerCar({ position, targetPosition, handleCoinCollect }: {
 
         rigidBodyRef.current.setTranslation(newPosition, true);
         
-        // Add tilt effect during movement
-        const rotationAngle = Math.max(-0.2, Math.min(0.2, -step * 0.5));
+        // Smoother tilt effect
+        const tiltAmount = Math.min(Math.max(targetDiff * -0.1, -0.15), 0.15);
         const newRotation = new THREE.Quaternion().setFromEuler(
-          new THREE.Euler(0, 0, rotationAngle)
+          new THREE.Euler(0, 0, tiltAmount)
         );
         rigidBodyRef.current.setRotation(newRotation, true);
-        
-        lastUpdateTime.current = now;
       } else if (isMoving.current) {
-        // Snap to exact position when very close
+        console.log('Finished car movement:', {
+          finalPosition: currentPos.current,
+          targetReached: targetPosition,
+          time: new Date().toISOString()
+        });
+        
+        // Snap to exact position
         currentPos.current = targetPosition;
         rigidBodyRef.current.setTranslation(
           new Vector3(targetPosition, position[1], position[2]),
           true
         );
-        // Reset rotation when movement complete
         rigidBodyRef.current.setRotation(new THREE.Quaternion(), true);
         isMoving.current = false;
-        debugLog('Movement complete', { finalPosition: targetPosition });
       }
     } catch (error) {
-      console.error('Error during PlayerCar movement:', error);
+      console.error('Car movement error:', error);
     }
   });
 
@@ -433,56 +436,51 @@ export default function Game() {
     }, 3000);
   };
 
-  // Update keyboard controls with debuggingYes
+  // Update keyboard controls with debugging
   useEffect(() => {
     const handleKeyPress = (e: KeyboardEvent) => {
-      if (gameState.isGameOver) {
-        debugLog('Key press ignored - game over');
-        return;
-      }
+      if (gameState.isGameOver || !gameState.isPlaying) return;
 
       const now = performance.now();
       const timeSinceLastSwitch = now - lastLaneSwitch.current;
       
-      if (timeSinceLastSwitch < LANE_SWITCH_COOLDOWN) {
-        debugLog('Key press ignored - cooldown active', {
-          timeSinceLastSwitch,
-          cooldown: LANE_SWITCH_COOLDOWN
-        });
-        return;
-      }
+      if (timeSinceLastSwitch < LANE_SWITCH_COOLDOWN) return;
 
-      let newLane = gameState.currentLane;
-      
-      switch (e.key) {
-        case 'ArrowLeft':
-          if (gameState.currentLane > 0) {
-            newLane = gameState.currentLane - 1;
-            debugLog('Left arrow pressed', { from: gameState.currentLane, to: newLane });
-          }
-          break;
-        case 'ArrowRight':
-          if (gameState.currentLane < 2) {
-            newLane = gameState.currentLane + 1;
-            debugLog('Right arrow pressed', { from: gameState.currentLane, to: newLane });
-          }
-          break;
-        default:
-          return;
-      }
+      setGameState((prev) => { // Use functional update
+        let newLane = prev.currentLane;
 
-      if (newLane !== gameState.currentLane) {
-        lastLaneSwitch.current = now;
-        setGameState(prev => ({
-          ...prev,
-          currentLane: newLane,
-        }));
-        targetLanePosition.current = LANE_POSITIONS[newLane];
-        debugLog('Lane change initiated', {
-          newLane,
-          targetPosition: LANE_POSITIONS[newLane]
-        });
-      }
+        switch (e.key) {
+          case 'ArrowLeft':
+            if (prev.currentLane > 0) {
+              newLane = prev.currentLane - 1;
+              lastLaneSwitch.current = now;
+              targetLanePosition.current = LANE_POSITIONS[newLane];
+              console.log('Moving left:', {
+                fromLane: prev.currentLane,
+                toLane: newLane,
+                newPosition: targetLanePosition.current
+              });
+            }
+            break;
+          case 'ArrowRight':
+            if (prev.currentLane < 2) {
+              newLane = prev.currentLane + 1;
+              lastLaneSwitch.current = now;
+              targetLanePosition.current = LANE_POSITIONS[newLane];
+              console.log('Moving right:', {
+                fromLane: prev.currentLane,
+                toLane: newLane,
+                newPosition: targetLanePosition.current
+              });
+            }
+            break;
+        }
+
+        if (newLane !== prev.currentLane) {
+          return { ...prev, currentLane: newLane, isMoving: true };
+        }
+        return prev;
+      });
     };
 
     // Create wrapper functions for touch events
@@ -501,7 +499,7 @@ export default function Game() {
         clearTimeout(questionTimer.current);
       }
     };
-  }, [gameState.isGameOver, gameState.currentLane]); // Added currentLane as dependency
+  }, [gameState.isGameOver, gameState.isPlaying]); // Remove currentLane from dependencies
 
   // Add debug logging for game state changes
   useEffect(() => {
@@ -723,31 +721,10 @@ export default function Game() {
           </div>
           {gameState.currentQuestion && (
             <div className="mt-4 flex flex-col items-center">
-              <p className="text-xl mb-4 text-center max-w-2xl"> {/* Added max-width and center alignment */}
+              <p className="text-xl mb-4 text-center max-w-2xl">
                 {gameState.currentQuestion.text}
               </p>
-              {/* Ensure sign image is displayed with proper styling */}
-              {gameState.currentQuestion.signPath && (
-                <div className="bg-white/10 rounded-lg p-4 mb-4">
-                  <img 
-                    src={gameState.currentQuestion.signPath} 
-                    alt="Traffic Sign"
-                    className="w-40 h-40 object-contain"
-                    style={{ imageRendering: 'crisp-edges' }}
-                  />
-                </div>
-              )}
-              {/* Add option preview */}
-              <div className="grid grid-cols-3 gap-4 w-full mt-4">
-                {gameState.currentQuestion.options.map((option, index) => (
-                  <div 
-                    key={index}
-                    className="bg-blue-500/50 p-3 rounded text-sm text-center break-words"
-                  >
-                    {option}
-                  </div>
-                ))}
-              </div>
+              {/* Remove sign image and options preview sections */}
             </div>
           )}
         </motion.div>
@@ -960,22 +937,13 @@ function MovingAnswerOptions({ question, onCollision, gameState }: {
               sensor={true}
             />
             <mesh>
-              <boxGeometry args={[4, 3, 1]} /> {/* Increased width and height */}
-              <meshStandardMaterial color="#4a90e2" />
+              <planeGeometry args={[4, 3]} /> {/* Use planeGeometry for images */}
+              <meshStandardMaterial 
+                map={new THREE.TextureLoader().load(option)} 
+                transparent={true}
+              />
             </mesh>
-            <Text
-              position={[0, 0, 0.6]}
-              fontSize={0.3} // Reduced font size
-              color="white"
-              anchorX="center"
-              anchorY="middle"
-              maxWidth={3.5} // Add max width
-              textAlign="center" // Center align text
-              lineHeight={1.2} // Add line height
-              overflowWrap="break-word" // Break words when necessary
-            >
-              {option}
-            </Text>
+            {/* Remove Text component and use image */}
           </RigidBody>
         );
       })}

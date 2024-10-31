@@ -2,12 +2,12 @@ import { Question } from '../types/game';
 
 export const questions: Omit<Question, 'id'>[] = [
   {
-    text: "What does this warning sign mean?",
+    text: "Select the correct warning sign indicating a junction ahead.",
     signPath: process.env.PUBLIC_URL + "/signs/warning-signs-jpg/1/504.1.jpg",
     options: [
-      "Junction ahead",
-      "Road narrows", 
-      "No entry"
+      process.env.PUBLIC_URL + "/signs/warning-signs-jpg/1/504.1.jpg", // Correct Answer
+      process.env.PUBLIC_URL + "/signs/warning-signs-jpg/1/502.jpg",
+      process.env.PUBLIC_URL + "/signs/warning-signs-jpg/1/503.jpg"
     ],
     correctAnswer: 0,
     oracleHelp: {
@@ -20,12 +20,12 @@ export const questions: Omit<Question, 'id'>[] = [
     }
   },
   {
-    text: "What does this sign indicate?",
+    text: "Select the correct sign indicating to yield in 50 yards.",
     signPath: process.env.PUBLIC_URL + "/signs/warning-signs-jpg/1/503.jpg",
     options: [
-      "Prepare to yield to other vehicles in 50 yards",
-      "Stop immediately",
-      "Drive faster to clear the area"
+      process.env.PUBLIC_URL + "/signs/warning-signs-jpg/1/503.jpg", // Correct Answer
+      process.env.PUBLIC_URL + "/signs/warning-signs-jpg/1/504.1.jpg",
+      process.env.PUBLIC_URL + "/signs/warning-signs-jpg/1/502.jpg"
     ],
     correctAnswer: 0,
     oracleHelp: {
@@ -38,30 +38,30 @@ export const questions: Omit<Question, 'id'>[] = [
     }
   },
   {
-    text: "What does this traffic sign indicate?",
+    text: "Select the correct sign indicating a stop sign is 100 yards ahead.",
     signPath: process.env.PUBLIC_URL + "/signs/warning-signs-jpg/1/502.jpg",
     options: [
-      "Stop sign is 100 yards ahead.",
-      "Speed limit is 100 yards per hour.",
-      "Pedestrian crossing in 100 yards."
+      process.env.PUBLIC_URL + "/signs/warning-signs-jpg/1/502.jpg", // Correct Answer
+      process.env.PUBLIC_URL + "/signs/warning-signs-jpg/1/503.jpg",
+      process.env.PUBLIC_URL + "/signs/warning-signs-jpg/1/504.1.jpg"
     ],
     correctAnswer: 0,
     oracleHelp: {
       hint: "Consider the meaning of the word 'STOP' and the distance indicated.",
       wrongAnswerFeedback: {
-        1: "Speed limits are typically given in miles or kilometers per hour, not yards.",
-        2: "There's no pedestrian crossing symbol or mention in the sign."
+         1: "Speed limits are typically given in miles or kilometers per hour, not yards.",
+         2: "There's no pedestrian crossing symbol or mention in the sign."
       },
       correctAnswerInsight: "The sign is warning that a stop sign is 100 yards ahead, allowing drivers to prepare to stop."
     }
   },
   {
-    text: "What does this traffic sign mean?",
+    text: "Select the correct sign indicating to yield.",
     signPath: process.env.PUBLIC_URL + "/signs/warning-signs-jpg/1/501.jpg",
     options: [
-      "Yield",
-      "Stop",
-      "Do Not Enter"
+      process.env.PUBLIC_URL + "/signs/warning-signs-jpg/1/501.jpg", // Correct Answer
+      process.env.PUBLIC_URL + "/signs/warning-signs-jpg/1/502.jpg",
+      process.env.PUBLIC_URL + "/signs/warning-signs-jpg/1/503.jpg"
     ],
     correctAnswer: 0,
     oracleHelp: {
@@ -74,12 +74,12 @@ export const questions: Omit<Question, 'id'>[] = [
     }
   },
   {
-    text: "What does this warning sign indicate?",
+    text: "Select the correct warning sign indicating a junction on the left.",
     signPath: process.env.PUBLIC_URL + "/signs/warning-signs-jpg/1/504.1L.jpg",
     options: [
-      "Junction on the left",
-      "No left turn",
-      "Left lane ends"
+      process.env.PUBLIC_URL + "/signs/warning-signs-jpg/1/504.1L.jpg", // Correct Answer
+      process.env.PUBLIC_URL + "/signs/warning-signs-jpg/1/502.jpg",
+      process.env.PUBLIC_URL + "/signs/warning-signs-jpg/1/503.jpg"
     ],
     correctAnswer: 0,
     oracleHelp: {
