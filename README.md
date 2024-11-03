@@ -183,19 +183,6 @@ npm test
 - Framer Motion
 - Tailwind CSS
 
-## 🤝 Contributing
-1. Fork the repository
-2. Create your feature branch
-3. Commit your changes
-4. Push to the branch
-5. Create a Pull Request
-
-
-## 🙏 Acknowledgments
-- Three.js community
-- React Three Fiber team
-- Contributors and testers
-
 ## 🐛 Known Issues
 - Performance optimization needed
 - Some texture loading delays on slow connections
