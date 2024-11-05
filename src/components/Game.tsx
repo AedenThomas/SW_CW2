@@ -148,7 +148,7 @@ function PlayerCar({ position, targetPosition, handleCoinCollect }: {
           */
         }}
       />
-      <group scale={[0.5, 0.5, 0.5]} rotation={[0, Math.PI, 0]}>
+      <group scale={[0.99, 0.99, 0.99]} rotation={[0, Math.PI, 0]}>
         {scene ? (
           <primitive object={scene.clone()} />
         ) : (
@@ -271,6 +271,53 @@ function OraclePresence({ feedback, onRequestHint, currentQuestion }: {
         )}
       </div>
     </motion.div>
+  );
+}
+
+// Add this new component near the top of the file, after the Road component
+function QuestionTruss() {
+  return (
+    <group position={[0, 4.5, 0]}>
+      {/* Main horizontal beams */}
+      <mesh position={[0, 0, 0]}>
+        <boxGeometry args={[30, 0.2, 0.2]} />
+        <meshStandardMaterial color="#666666" metalness={0.8} roughness={0.2} />
+      </mesh>
+      <mesh position={[0, -0.8, 0]}>
+        <boxGeometry args={[30, 0.2, 0.2]} />
+        <meshStandardMaterial color="#666666" metalness={0.8} roughness={0.2} />
+      </mesh>
+
+      {/* Diagonal cross members */}
+      {Array.from({ length: 15 }).map((_, i) => {
+        const xPos = -14.5 + i * 2;
+        return (
+          <group key={i} position={[xPos, -0.4, 0]}>
+            {/* Diagonal from top-left to bottom-right */}
+            <mesh rotation={[0, 0, Math.PI / 4]}>
+              <boxGeometry args={[1.2, 0.1, 0.1]} />
+              <meshStandardMaterial color="#666666" metalness={0.8} roughness={0.2} />
+            </mesh>
+            {/* Diagonal from top-right to bottom-left */}
+            <mesh rotation={[0, 0, -Math.PI / 4]}>
+              <boxGeometry args={[1.2, 0.1, 0.1]} />
+              <meshStandardMaterial color="#666666" metalness={0.8} roughness={0.2} />
+            </mesh>
+          </group>
+        );
+      })}
+
+      {/* Vertical supports */}
+      {Array.from({ length: 16 }).map((_, i) => {
+        const xPos = -15 + i * 2;
+        return (
+          <mesh key={i} position={[xPos, -0.4, 0]}>
+            <boxGeometry args={[0.1, 1, 0.1]} />
+            <meshStandardMaterial color="#666666" metalness={0.8} roughness={0.2} />
+          </mesh>
+        );
+      })}
+    </group>
   );
 }
 
@@ -731,15 +778,69 @@ export default function Game() {
           </div>
         </div>
 
-        {/* Question display with background */}
+        {/* Question display with background and truss */}
         {gameState.currentQuestion && (
-          <div className="bg-[#3B50A1] border-4 border-white text-white p-4 rounded-lg max-w-4xl mx-auto">
-            <div className="mt-4 flex flex-col items-center">
-              <p className="text-xl mb-4 text-center max-w-2xl">
-                {gameState.currentQuestion.text}
-              </p>
+          <>
+            <div className="relative max-w-4xl mx-auto">
+              <div className="bg-[#3B50A1] border-4 border-white text-white p-4 rounded-lg">
+                <div className="mt-4 flex flex-col items-center">
+                  <p className="text-xl mb-4 text-center max-w-2xl">
+                    {gameState.currentQuestion.text}
+                  </p>
+                </div>
+              </div>
             </div>
-          </div>
+            {/* Full-width truss pattern with connecting vertical lines */}
+            <div className="absolute left-0 right-0 h-16"> {/* Increased height to accommodate vertical lines */}
+              <svg 
+                className="w-full h-full"
+                viewBox="0 0 1920 64" // Increased viewBox height
+                preserveAspectRatio="none"
+              >
+                {/* Vertical connecting lines - we'll add 4 evenly spaced lines */}
+                <line x1="480" y1="0" x2="480" y2="16" stroke="#666" strokeWidth="3"/>
+                <line x1="800" y1="0" x2="800" y2="16" stroke="#666" strokeWidth="3"/>
+                <line x1="1120" y1="0" x2="1120" y2="16" stroke="#666" strokeWidth="3"/>
+                <line x1="1440" y1="0" x2="1440" y2="16" stroke="#666" strokeWidth="3"/>
+
+                {/* Truss pattern - moved down by 16 units */}
+                <g transform="translate(0, 16)">
+                  {/* Top horizontal line */}
+                  <line x1="0" y1="0" x2="1920" y2="0" stroke="#666" strokeWidth="3"/>
+                  {/* Bottom horizontal line */}
+                  <line x1="0" y1="48" x2="1920" y2="48" stroke="#666" strokeWidth="3"/>
+                  
+                  {/* Generate zigzag pattern */}
+                  {Array.from({ length: 24 }).map((_, i) => {
+                    const x = i * 80;
+                    return (
+                      <g key={i}>
+                        <line 
+                          x1={x} y1="48" 
+                          x2={x + 40} y2="0" 
+                          stroke="#666" 
+                          strokeWidth="3"
+                        />
+                        <line 
+                          x1={x + 40} y1="0" 
+                          x2={x + 80} y2="48" 
+                          stroke="#666" 
+                          strokeWidth="3"
+                        />
+                        <line 
+                          x1={x} y1="0" 
+                          x2={x} y2="48" 
+                          stroke="#666" 
+                          strokeWidth="3"
+                        />
+                      </g>
+                    );
+                  })}
+                  <line x1="1920" y1="0" x2="1920" y2="48" stroke="#666" strokeWidth="3"/>
+                </g>
+              </svg>
+            </div>
+          </>
         )}
       </div>
 
