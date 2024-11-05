@@ -96,8 +96,16 @@ const QuestionBlock = ({ question, position }: QuestionBlockProps) => {
         </mesh>
       )}
       
+      <mesh position={[0, 2, 0.05]}>
+        <planeGeometry args={[5.2, 2.2]} />
+        <meshBasicMaterial color="white" />
+      </mesh>
+      <mesh position={[0, 2, 0.1]}>
+        <planeGeometry args={[5, 2]} />
+        <meshBasicMaterial color="#3B50A1" />
+      </mesh>
       <Text
-        position={[0, 2, 0]}
+        position={[0, 2, 0.15]}
         fontSize={0.5}
         color="white"
         anchorX="center"

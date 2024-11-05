@@ -148,7 +148,7 @@ function PlayerCar({ position, targetPosition, handleCoinCollect }: {
           */
         }}
       />
-      <group scale={[0.5, 0.5, 0.5]}>
+      <group scale={[0.5, 0.5, 0.5]} rotation={[0, Math.PI, 0]}>
         {scene ? (
           <primitive object={scene.clone()} />
         ) : (
@@ -704,30 +704,29 @@ export default function Game() {
 
       {/* Game UI Overlay */}
       <div className="absolute top-0 left-0 w-full p-4 z-10">
-        <motion.div 
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="bg-black/50 text-white p-4 rounded-lg max-w-4xl mx-auto"
-        >
-          <div className="flex justify-between items-center">
-            <p className="text-2xl">Score: {gameState.score}</p>
-            <div className="flex items-center gap-2">
-              <p className="text-2xl">Lives: </p>
-              {/* Display hearts based on remaining lives */}
-              {Array.from({ length: gameState.lives }).map((_, i) => (
-                <span key={i} className="text-2xl text-red-500">❤️</span>
-              ))}
-            </div>
+        {/* Fuel display with text */}
+        <div className="absolute top-4 left-4">
+          <div className="flex items-center gap-2">
+            <span className="text-black text-2xl">Fuel:</span>
+            {Array.from({ length: 3 }).map((_, i) => (
+              <FuelIcon 
+                key={i} 
+                depleted={i >= gameState.lives}
+              />
+            ))}
           </div>
-          {gameState.currentQuestion && (
+        </div>
+
+        {/* Question display with background */}
+        {gameState.currentQuestion && (
+          <div className="bg-[#3B50A1] border-4 border-white text-white p-4 rounded-lg max-w-4xl mx-auto">
             <div className="mt-4 flex flex-col items-center">
               <p className="text-xl mb-4 text-center max-w-2xl">
                 {gameState.currentQuestion.text}
               </p>
-              {/* Remove sign image and options preview sections */}
             </div>
-          )}
-        </motion.div>
+          </div>
+        )}
       </div>
 
       {/* Game Over Screen */}
@@ -806,7 +805,7 @@ export default function Game() {
                 handleCoinCollect={handleCoinCollect}
               />
               <MovingLaneDividers gameState={gameState} />
-              <EnvironmentDecorations gameState={gameState} />
+              {/* <EnvironmentDecorations gameState={gameState} /> */}
               {gameState.currentQuestion && (
                 <MovingAnswerOptions 
                   question={gameState.currentQuestion}
@@ -948,6 +947,26 @@ function MovingAnswerOptions({ question, onCollision, gameState }: {
         );
       })}
     </group>
+  );
+}
+
+// First, add this SVG component at the top level of the file
+function FuelIcon({ depleted }: { depleted?: boolean }) {
+  return (
+    <svg 
+      width="24" 
+      height="24" 
+      viewBox="0 0 24 24" 
+      fill="currentColor" 
+      xmlns="http://www.w3.org/2000/svg"
+      className={`transition-opacity duration-300 ${
+        depleted 
+          ? 'text-red-400 opacity-30' // Depleted fuel appears faded
+          : 'text-red-500 opacity-100' // Active fuel is fully visible
+      }`}
+    >
+      <path d="M19.77 7.23l.01-.01-3.72-3.72L15 4.56l2.11 2.11c-.94.36-1.61 1.26-1.61 2.33 0 1.38 1.12 2.5 2.5 2.5.36 0 .69-.08 1-.21v7.21c0 .55-.45 1-1 1s-1-.45-1-1V14c0-1.1-.9-2-2-2h-1V5c0-1.1-.9-2-2-2H6c-1.1 0-2 .9-2 2v16h10v-7.5h1.5v5c0 1.38 1.12 2.5 2.5 2.5s2.5-1.12 2.5-2.5V9c0-.69-.28-1.32-.73-1.77zM12 10H6V5h6v5zm6 0c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1z"/>
+    </svg>
   );
 }
 
