@@ -752,7 +752,7 @@ export default function Game() {
             className="bg-white p-8 rounded-lg text-center"
           >
             <h2 className="text-3xl font-bold mb-4">Game Over!</h2>
-            <p className="text-xl mb-4">Final Score: {gameState.score}</p>
+            {/* <p className="text-xl mb-4">Final Score: {gameState.score}</p> */}
             {/* Comment out coins display */}
             {/* <p className="text-xl mb-6">Coins Collected: {gameState.coinsCollected}</p> */}
             <button
