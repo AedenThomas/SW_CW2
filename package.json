@@ -16,6 +16,7 @@
         "@types/three": "^0.169.0",
         "autoprefixer": "^10.4.20",
         "framer-motion": "^11.11.9",
+        "maath": "^0.10.8",
         "postcss": "^8.4.47",
         "react": "^18.3.1",
         "react-dom": "^18.3.1",
@@ -26,12 +27,12 @@
         "web-vitals": "^2.1.4"
     },
     "scripts": {
-      "predeploy": "npm run build",
-      "deploy": "gh-pages -d build",
-      "start": "react-scripts start",
-      "build": "react-scripts build && cp public/.htaccess build/ && cp public/_headers build/",
-      "test": "react-scripts test",
-      "eject": "react-scripts eject"
+        "predeploy": "npm run build",
+        "deploy": "gh-pages -d build",
+        "start": "react-scripts start",
+        "build": "react-scripts build && cp public/.htaccess build/ && cp public/_headers build/",
+        "test": "react-scripts test",
+        "eject": "react-scripts eject"
     },
     "eslintConfig": {
         "extends": [

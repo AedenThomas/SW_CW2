@@ -670,28 +670,32 @@ export default function Game() {
     <div className="w-full h-screen" style={{ touchAction: 'none' }} onTouchStart={(e: React.TouchEvent) => handleTouchStart(e.nativeEvent)} onTouchEnd={(e: React.TouchEvent) => handleTouchEnd(e.nativeEvent)}>
       {/* Game Menu */}
       {!gameState.isPlaying && (
-        <div className="absolute inset-0 flex items-center justify-center z-30 bg-[#4CAF50]">
-          <motion.div 
-            initial={{ scale: 0.8, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            className="flex flex-col items-center"
-          >
-            {/* Combined Car Icon and Start Game Button */}
+        <div 
+          className="absolute inset-0 flex items-center justify-center z-30"
+          style={{
+            backgroundImage: `url(${process.env.PUBLIC_URL}/images/background.jpg)`,
+            backgroundSize: 'cover',
+            backgroundPosition: 'center'
+          }}
+        >
+          <div className="flex flex-col items-center gap-8">
+            {/* Title */}
+            <div className="bg-[#4A63B4] px-12 py-6 rounded-lg shadow-lg border-2 border-white">
+              <h1 className="text-4xl font-bold text-white">Road Sign Rush</h1>
+            </div>
+            
+            {/* Start Game Button */}
             <button
               onClick={startGame}
               className="bg-[#333333] hover:bg-[#444444] text-white px-8 py-3 
-                       font-bold text-xl transition-colors flex items-center gap-4
-                       relative"
-              style={{
-                clipPath: 'polygon(10px 0, calc(100% - 10px) 0, 100% 10px, 100% calc(100% - 10px), calc(100% - 10px) 100%, 10px 100%, 0 calc(100% - 10px), 0 10px)'
-              }}
+                       rounded-lg font-bold text-xl transition-colors flex items-center gap-4
+                       shadow-lg"
             >
               <svg 
-                width="48" 
-                height="48" 
+                width="24" 
+                height="24" 
                 viewBox="0 0 24 24" 
                 fill="white"
-                className="transform scale-150"
               >
                 <path d="M18.92 6.01C18.72 5.42 18.16 5 17.5 5h-11c-.66 0-1.21.42-1.42 1.01L3 12v8c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1h12v1c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-8l-2.08-5.99zM6.85 7h10.29l1.08 3.11H5.77L6.85 7zM19 17H5v-5h14v5z"/>
                 <circle cx="7.5" cy="14.5" r="1.5"/>
@@ -699,37 +703,7 @@ export default function Game() {
               </svg>
               Start Game
             </button>
-
-            {/* Oracle Mode Toggle - moved below start button and styled to be less prominent */}
-            {/* <div className="mt-6 flex items-center justify-center gap-3">
-              <label className="relative inline-flex items-center cursor-pointer">
-                <input
-                  type="checkbox"
-                  className="sr-only peer"
-                  checked={gameState.oracleMode}
-                  onChange={(e) => setGameState(prev => ({
-                    ...prev,
-                    oracleMode: e.target.checked
-                  }))}
-                />
-                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 
-                              peer-focus:ring-blue-300 rounded-full peer 
-                              peer-checked:after:translate-x-full peer-checked:after:border-white 
-                              after:content-[''] after:absolute after:top-[2px] after:left-[2px] 
-                              after:bg-white after:border-gray-300 after:border after:rounded-full 
-                              after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600">
-                </div>
-                <span className="ml-3 text-sm font-medium text-white">Oracle Mode</span>
-              </label>
-              <div className="group relative">
-                <span className="cursor-help text-white">ⓘ</span>
-                <div className="invisible group-hover:visible absolute left-6 top-0 w-64 p-2 
-                              bg-gray-800 text-white text-xs rounded shadow-lg">
-                  Oracle Mode provides detailed feedback when you answer incorrectly
-                </div>
-              </div>
-            </div> */}
-          </motion.div>
+          </div>
         </div>
       )}
 
