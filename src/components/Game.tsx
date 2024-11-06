@@ -4,7 +4,7 @@ import { motion } from 'framer-motion';
 import { Physics, RigidBody, CuboidCollider, RapierRigidBody } from '@react-three/rapier';
 import { Environment, PerspectiveCamera, useGLTF, Text, Sky, Stars } from '@react-three/drei';
 import { Vector3 } from 'three';
-import { questions } from '../data/questions';
+import { questions, getOptionsForQuestion } from '../data/questions';
 import { lerp } from 'three/src/math/MathUtils';
 import * as THREE from 'three';
 import { EnvironmentDecorations } from './Environment';
@@ -358,12 +358,24 @@ export default function Game() {
   }, []);
 
   const showNextQuestion = () => {
-    const baseQuestion = questions[Math.floor(Math.random() * questions.length)];
+    // Select a random sign group
+    const signGroup = questions[Math.floor(Math.random() * questions.length)];
     
-    // Add id to question while maintaining all properties including signPath
+    // Select a random question from that sign's questions
+    const questionIndex = Math.floor(Math.random() * signGroup.questions.length);
+    const baseQuestion = signGroup.questions[questionIndex];
+    
+    // Get options with correct answer first
+    const options = getOptionsForQuestion(signGroup.signPath);
+    
+    // Create the full question object
     const question: Question = {
       ...baseQuestion,
-      id: questionIdCounter.current++
+      id: questionIdCounter.current++,
+      signPath: signGroup.signPath,
+      options: options,
+      correctAnswer: 0, // Always 0 since correct answer is first in options
+      oracleHelp: signGroup.oracleHelp
     };
     
     setGameState(prev => ({
@@ -764,8 +776,14 @@ export default function Game() {
 
       {/* Game UI Overlay */}
       <div className="absolute top-0 left-0 w-full p-4 z-10">
-        {/* Fuel display with text */}
-        <div className="absolute top-4 left-4">
+        {/* Score display */}
+        <div className="absolute top-4 left-4 flex flex-col gap-2">
+          {/* Score text */}
+          <div className="flex items-center gap-2">
+            <span className="text-black text-2xl font-semibold">Score: {gameState.score}</span>
+          </div>
+          
+          {/* Fuel display with text */}
           <div className="flex items-center gap-2">
             <span className="text-black text-2xl">Fuel:</span>
             {Array.from({ length: 3 }).map((_, i) => (

@@ -1,94 +1,136 @@
-import { Question } from '../types/game';
+import { SignQuestions } from '../types/game';
 
-export const questions: Omit<Question, 'id'>[] = [
+// Helper function to get random signs excluding the current one
+const getRandomSigns = (currentSign: string, count: number = 2): string[] => {
+  const allSigns = [
+    '501.jpg', '502.jpg', '503.jpg', '504.1.jpg', '504.1L.jpg'
+  ];
+  
+  const otherSigns = allSigns.filter(sign => !currentSign.includes(sign));
+  const randomSigns = [...otherSigns]
+    .sort(() => Math.random() - 0.5)
+    .slice(0, count)
+    .map(sign => process.env.PUBLIC_URL + "/signs/warning-signs-jpg/1/" + sign);
+    
+  return randomSigns;
+};
+
+export const questions: SignQuestions[] = [
   {
-    text: "Select the correct warning sign indicating a junction ahead.",
-    signPath: process.env.PUBLIC_URL + "/signs/warning-signs-jpg/1/504.1.jpg",
-    options: [
-      process.env.PUBLIC_URL + "/signs/warning-signs-jpg/1/504.1.jpg", // Correct Answer
-      process.env.PUBLIC_URL + "/signs/warning-signs-jpg/1/502.jpg",
-      process.env.PUBLIC_URL + "/signs/warning-signs-jpg/1/503.jpg"
-    ],
-    correctAnswer: 0,
-    oracleHelp: {
-      hint: "This sign alerts you to a potential merging situation.",
-      wrongAnswerFeedback: {
-        "1": "Road narrows signs typically have two converging lines.",
-        "2": "No entry signs are usually circular and red with a white horizontal line."
-      },
-      correctAnswerInsight: "The sign indicates a junction is coming up, alerting drivers to prepare for possible merging traffic."
-    }
-  },
-  {
-    text: "Select the correct sign indicating to yield in 50 yards.",
-    signPath: process.env.PUBLIC_URL + "/signs/warning-signs-jpg/1/503.jpg",
-    options: [
-      process.env.PUBLIC_URL + "/signs/warning-signs-jpg/1/503.jpg", // Correct Answer
-      process.env.PUBLIC_URL + "/signs/warning-signs-jpg/1/504.1.jpg",
-      process.env.PUBLIC_URL + "/signs/warning-signs-jpg/1/502.jpg"
-    ],
-    correctAnswer: 0,
-    oracleHelp: {
-      hint: "Think about what 'Give Way' usually means on the road.",
-      wrongAnswerFeedback: {
-        "1": "Stopping immediately might cause accidents unless it's a stop sign.",
-        "2": "Speeding up could be dangerous if you're supposed to yield."
-      },
-      correctAnswerInsight: "The sign warns you to yield in 50 yards, allowing others to proceed first."
-    }
-  },
-  {
-    text: "Select the correct sign indicating a stop sign is 100 yards ahead.",
-    signPath: process.env.PUBLIC_URL + "/signs/warning-signs-jpg/1/502.jpg",
-    options: [
-      process.env.PUBLIC_URL + "/signs/warning-signs-jpg/1/502.jpg", // Correct Answer
-      process.env.PUBLIC_URL + "/signs/warning-signs-jpg/1/503.jpg",
-      process.env.PUBLIC_URL + "/signs/warning-signs-jpg/1/504.1.jpg"
-    ],
-    correctAnswer: 0,
-    oracleHelp: {
-      hint: "Consider the meaning of the word 'STOP' and the distance indicated.",
-      wrongAnswerFeedback: {
-         1: "Speed limits are typically given in miles or kilometers per hour, not yards.",
-         2: "There's no pedestrian crossing symbol or mention in the sign."
-      },
-      correctAnswerInsight: "The sign is warning that a stop sign is 100 yards ahead, allowing drivers to prepare to stop."
-    }
-  },
-  {
-    text: "Select the correct sign indicating to yield.",
-    signPath: process.env.PUBLIC_URL + "/signs/warning-signs-jpg/1/501.jpg",
-    options: [
-      process.env.PUBLIC_URL + "/signs/warning-signs-jpg/1/501.jpg", // Correct Answer
-      process.env.PUBLIC_URL + "/signs/warning-signs-jpg/1/502.jpg",
-      process.env.PUBLIC_URL + "/signs/warning-signs-jpg/1/503.jpg"
-    ],
-    correctAnswer: 0,
-    oracleHelp: {
-      hint: "This sign indicates that you must allow others the right of way.",
-      wrongAnswerFeedback: {
-        "1": "This sign does not indicate a complete stop is required.",
-        "2": "This sign is not indicating a prohibition of entry."
-      },
-      correctAnswerInsight: "The inverted red triangle is a universal symbol for yielding to other traffic."
-    }
-  },
-  {
-    text: "Select the correct warning sign indicating a junction on the left.",
     signPath: process.env.PUBLIC_URL + "/signs/warning-signs-jpg/1/504.1L.jpg",
-    options: [
-      process.env.PUBLIC_URL + "/signs/warning-signs-jpg/1/504.1L.jpg", // Correct Answer
-      process.env.PUBLIC_URL + "/signs/warning-signs-jpg/1/502.jpg",
-      process.env.PUBLIC_URL + "/signs/warning-signs-jpg/1/503.jpg"
-    ],
-    correctAnswer: 0,
-    oracleHelp: {
-      hint: "This sign alerts drivers to potential crossings or turns ahead.",
-      wrongAnswerFeedback: {
-        "1": "This sign does not prohibit turning; it alerts to an upcoming junction.",
-        "2": "The sign does not indicate lane changes; it's about road layout."
+    questions: [
+      {
+        text: "Which UK warning road sign features a black cross-shaped symbol with an arrow pointing to the left within a red triangular border?"
       },
-      correctAnswerInsight: "This triangular warning sign indicates there is a junction on the left."
+      {
+        text: "What traffic sign would warn drivers that they are approaching a junction where traffic from the left has priority?"
+      },
+      {
+        text: "In the UK Highway Code, which warning sign indicates a crossroads ahead where vehicles must give way to traffic approaching from the left?"
+      }
+    ],
+    oracleHelp: {
+      hint: "Look for the distinctive cross shape with a left-pointing arrow - this indicates a junction where traffic from the left has priority.",
+      wrongAnswerFeedback: {
+        "1": "That sign doesn't indicate a junction with left priority - look for the cross shape with left arrow.",
+        "2": "This isn't the correct sign for a left priority junction - the correct sign has a distinctive cross shape."
+      },
+      correctAnswerInsight: "This sign warns drivers of an upcoming junction where vehicles must give way to traffic approaching from the left, shown by the cross shape with left-pointing arrow."
+    }
+  },
+  {
+    signPath: process.env.PUBLIC_URL + "/signs/warning-signs-jpg/1/504.1.jpg",
+    questions: [
+      {
+        text: "Which warning sign shows a black cross-shaped symbol indicating a crossroads ahead?"
+      },
+      {
+        text: "What road sign would you expect to see before approaching an intersection where all roads have equal priority?"
+      },
+      {
+        text: "In the UK Highway Code, which triangular warning sign features a symmetrical cross pattern indicating a four-way junction ahead?"
+      }
+    ],
+    oracleHelp: {
+      hint: "Look for the symmetrical cross pattern - this indicates a crossroads where all approaches have equal priority.",
+      wrongAnswerFeedback: {
+        "1": "That's not the crossroads sign - look for the symmetrical cross pattern.",
+        "2": "This sign doesn't indicate a four-way junction - the correct sign has a distinctive cross shape."
+      },
+      correctAnswerInsight: "This sign warns drivers of an upcoming crossroads where all approaches have equal priority, shown by the symmetrical cross pattern."
+    }
+  },
+  {
+    signPath: process.env.PUBLIC_URL + "/signs/warning-signs-jpg/1/503.jpg",
+    questions: [
+      {
+        text: "Which warning sign indicates that drivers must yield to traffic in 50 yards?"
+      },
+      {
+        text: "What triangular sign features the text '50 yds' below a 'Give Way' symbol?"
+      },
+      {
+        text: "Which advance warning sign tells drivers they will need to give way ahead?"
+      }
+    ],
+    oracleHelp: {
+      hint: "This sign combines the 'Give Way' symbol with a distance indicator - warning drivers to prepare to yield ahead.",
+      wrongAnswerFeedback: {
+        "1": "That's not the advance yield warning - look for the sign with the distance marker.",
+        "2": "This sign doesn't show the correct yield warning - check for the '50 yds' indicator."
+      },
+      correctAnswerInsight: "This sign gives drivers advance notice of an upcoming yield situation, allowing them to prepare to give way safely."
+    }
+  },
+  {
+    signPath: process.env.PUBLIC_URL + "/signs/warning-signs-jpg/1/502.jpg",
+    questions: [
+      {
+        text: "Which sign warns drivers of a STOP sign 100 yards ahead?"
+      },
+      {
+        text: "What advance warning sign features the word 'STOP' with a distance indicator?"
+      },
+      {
+        text: "Which triangular warning sign tells drivers they will need to make a complete stop ahead?"
+      }
+    ],
+    oracleHelp: {
+      hint: "Look for the word 'STOP' with the distance indicator - this gives advance warning of a stop requirement ahead.",
+      wrongAnswerFeedback: {
+        "1": "That's not the advance stop warning - look for the sign with 'STOP' text.",
+        "2": "This sign doesn't indicate an upcoming stop - check for the distance marker."
+      },
+      correctAnswerInsight: "This sign provides crucial advance warning of a stop requirement, allowing drivers to prepare to come to a complete stop safely."
+    }
+  },
+  {
+    signPath: process.env.PUBLIC_URL + "/signs/warning-signs-jpg/1/501.jpg",
+    questions: [
+      {
+        text: "Which triangular warning sign shows the standard 'Give Way' symbol?"
+      },
+      {
+        text: "What sign indicates that drivers must yield to other traffic at an upcoming junction?"
+      },
+      {
+        text: "Which red and white triangular sign warns drivers they must give way ahead?"
+      }
+    ],
+    oracleHelp: {
+      hint: "Look for the inverted triangle symbol - this is the universal indication for yielding to other traffic.",
+      wrongAnswerFeedback: {
+        "1": "That's not the yield sign - look for the inverted triangle symbol.",
+        "2": "This sign doesn't indicate yielding - check for the distinctive triangular shape."
+      },
+      correctAnswerInsight: "This sign uses the universal inverted triangle symbol to clearly indicate where drivers must yield to other traffic."
     }
   }
 ];
+
+// Update this function to always put the correct answer first
+export const getOptionsForQuestion = (signPath: string): string[] => {
+  const randomSigns = getRandomSigns(signPath, 2);
+  // Always put the correct answer first, then shuffle the wrong answers
+  return [signPath, ...randomSigns];
+};

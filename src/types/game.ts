@@ -1,13 +1,29 @@
-export interface Question {
-  id: number;
+export interface SignQuestion {
   text: string;
+}
+
+export interface SignQuestions {
+  signPath: string;
+  questions: SignQuestion[];
+  oracleHelp: {
+    hint: string;
+    wrongAnswerFeedback: {
+      [key: string]: string;
+    };
+    correctAnswerInsight: string;
+  };
+}
+
+export interface Question extends SignQuestion {
+  id: number;
   signPath: string;
   options: string[];
   correctAnswer: number;
-  explanation?: string;
   oracleHelp: {
     hint: string;
-    wrongAnswerFeedback: Record<string, string>;
+    wrongAnswerFeedback: {
+      [key: string]: string;
+    };
     correctAnswerInsight: string;
   };
 }
