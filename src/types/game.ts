@@ -1,13 +1,13 @@
 export interface Question {
   id: number;
   text: string;
-  signPath: string;  // Changed from optional to required since we're using signs
+  signPath: string;
   options: string[];
   correctAnswer: number;
   explanation?: string;
   oracleHelp: {
     hint: string;
-    wrongAnswerFeedback: Record<number, string>; // Specific feedback for each wrong option
+    wrongAnswerFeedback: Record<string, string>;
     correctAnswerInsight: string;
   };
 }

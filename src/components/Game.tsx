@@ -11,6 +11,7 @@ import { EnvironmentDecorations } from './Environment';
 import { GAME_SPEED, LANE_SWITCH_SPEED, LANE_SWITCH_COOLDOWN } from '../constants/game';
 import { GameState, Question } from '../types/game'; // Import Question type
 import { UserData } from '../types/userData';
+import { OracleButton, OracleModal } from './Oracle';
 
 
 // Add debug logging utility
@@ -372,12 +373,11 @@ export default function Game() {
   };
 
   const handleCollision = (isCorrect: boolean) => {
-    debugLog('Collision detected:', {
-      isCorrect,
-      currentMode: gameState.oracleMode ? 'Oracle' : 'Normal',
-      currentScore: gameState.score,
-      currentQuestion: gameState.currentQuestion
-    });
+    // Store the previous question and answer before updating state
+    if (gameState.currentQuestion) {
+      setPreviousQuestion(gameState.currentQuestion);
+      setPreviousAnswer(gameState.currentLane);
+    }
 
     if (gameState.oracleMode) {
       const currentQuestion = gameState.currentQuestion;
@@ -429,7 +429,6 @@ export default function Game() {
         showNextQuestion();
       }, 4000);
     } else {
-      // Original non-oracle mode logic with debugging
       if (isCorrect) {
         debugLog('Correct answer in normal mode', {
           previousScore: gameState.score,
@@ -664,6 +663,32 @@ export default function Game() {
     touchStartX.current = null;
     touchStartY.current = null;
   };
+
+  const [isOracleActive, setIsOracleActive] = useState(false);
+  const [previousQuestion, setPreviousQuestion] = useState<Question | null>(null);
+  const [previousAnswer, setPreviousAnswer] = useState<number | undefined>();
+
+  const toggleOracle = () => {
+    if (gameState.isPlaying || isOracleActive) {
+      setIsOracleActive(!isOracleActive);
+      setGameState(prev => ({ 
+        ...prev, 
+        isPlaying: isOracleActive // Resume game if closing Oracle, pause if opening
+      }));
+    }
+  };
+
+  useEffect(() => {
+    const handleKeyPress = (e: KeyboardEvent) => {
+      if (e.code === 'Space') {
+        e.preventDefault(); // Prevent space from scrolling
+        toggleOracle();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyPress);
+    return () => window.removeEventListener('keydown', handleKeyPress);
+  }, [isOracleActive]); // Add isOracleActive to dependencies
 
   return (
     // Add touch-action CSS to prevent default touch behaviors
@@ -907,14 +932,19 @@ export default function Game() {
         </Physics>
       </Canvas>
 
-      {/* Add Oracle Presence when Oracle Mode is enabled */}
-      {gameState.oracleMode && (
-        <OraclePresence 
-          feedback={gameState.oracleFeedback}
-          onRequestHint={handleHintRequest}
-          currentQuestion={gameState.currentQuestion} // Pass the current question
-        />
-      )}
+      {/* Add Oracle Button */}
+      <OracleButton 
+        onClick={toggleOracle}
+        isActive={isOracleActive}
+      />
+
+      {/* Add Oracle Modal */}
+      <OracleModal
+        isOpen={isOracleActive}
+        onClose={toggleOracle}
+        question={previousQuestion}
+        previousAnswer={previousAnswer}
+      />
     </div>
   );
 }
