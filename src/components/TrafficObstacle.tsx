@@ -1,5 +1,5 @@
 import { useGLTF } from '@react-three/drei';
-import { RigidBody, CuboidCollider } from '@react-three/rapier';
+import { RigidBody } from '@react-three/rapier';
 import { useRef, useEffect } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { Vector3 } from 'three';
@@ -44,12 +44,14 @@ export function TrafficObstacle({
   // Use a ref to store the current Z position
   const currentZ = useRef<number>(initialZ + (index * SPAWN_INTERVAL));
 
+  // Add collision state ref
+  const hasCollided = useRef(false);
+
   useEffect(() => {
     if (obstacleRef.current) {
       obstacleRef.current.setTranslation(
         new Vector3(LANE_POSITIONS[lane.current], 0, initialZ + (index * SPAWN_INTERVAL))
       );
-      console.log(`[TrafficObstacle] Initialized at lane ${lane.current}, Z=${initialZ + (index * SPAWN_INTERVAL)}`);
     }
   }, [initialZ, index]);
 
@@ -71,19 +73,32 @@ export function TrafficObstacle({
     // Update currentZ ref
     currentZ.current = newZ;
 
-    // Log obstacle's current position only when near the player
-    if (newZ >= -PROXIMITY_Z && newZ <= PROXIMITY_Z) {
-      console.log(`[TrafficObstacle] Moving obstacle to Z=${newZ.toFixed(3)}`);
+    // Check for collision based on position
+    if (newZ > -2 && newZ < 2 && !hasCollided.current) {  // Collision zone
+      if (gameState.currentLane === lane.current) {
+        console.log('[Obstacle] Position-based collision detected', {
+          obstacleLane: lane.current,
+          playerLane: gameState.currentLane,
+          obstacleZ: newZ,
+          time: Date.now()
+        });
+        
+        hasCollided.current = true;
+        setGameState(prev => ({
+          ...prev,
+          lives: prev.lives - 1,
+          isGameOver: prev.lives <= 1
+        }));
+      }
     }
 
     // Reset position when passed player
     if (newZ > 15) {
-      console.log(`[TrafficObstacle] Obstacle passed player. Resetting position.`);
+      hasCollided.current = false;
       lane.current = Math.floor(Math.random() * 3);
       // Ensure new lane is different from player's current lane
       while (lane.current === gameState.currentLane) {
         lane.current = Math.floor(Math.random() * 3);
-        console.log(`[TrafficObstacle] Reassigned to new lane ${lane.current} to avoid collision.`);
       }
       modelIndex.current = Math.floor(Math.random() * OBSTACLE_MODELS.length);
       
@@ -92,7 +107,6 @@ export function TrafficObstacle({
       obstacleRef.current.setTranslation(
         new Vector3(LANE_POSITIONS[lane.current], 0, repositionedZ)
       );
-      console.log(`[TrafficObstacle] Obstacle repositioned to lane ${lane.current}, Z=${repositionedZ}`);
       onRespawn();
     }
   });
@@ -101,55 +115,24 @@ export function TrafficObstacle({
     <RigidBody
       ref={obstacleRef}
       type="kinematicPosition"
-      colliders="cuboid"
+      colliders={false}
       position={[LANE_POSITIONS[lane.current], 0, initialZ + (index * SPAWN_INTERVAL)]}
-      userData={{ type: 'Obstacle', lane: lane.current }}
     >
-      <CuboidCollider 
-        args={[1, 1, 1]} 
-        sensor
-        onIntersectionEnter={() => {
-          console.log(`[TrafficObstacle] Collision detected on lane ${lane.current}. Player lane: ${gameState.currentLane}`);
-          if (gameState.currentLane === lane.current) {
-            console.log(`[TrafficObstacle] Player collided with obstacle on the same lane. Decrementing lives.`);
-            setGameState(prev => {
-              const updatedLives = prev.lives - 1;
-              const gameOver = updatedLives <= 0;
-              console.log(`[TrafficObstacle] Lives: ${prev.lives} -> ${updatedLives}. Game Over: ${gameOver}`);
-              return {
-                ...prev,
-                lives: updatedLives,
-                isGameOver: gameOver
-              };
-            });
-          } else {
-            console.log(`[TrafficObstacle] Collision occurred, but player is on a different lane. No action taken.`);
-          }
-        }}
-      />
-      
-      {/* Visualizing the Collider */}
-      {Math.abs(currentZ.current) <= PROXIMITY_Z && (
-        <mesh>
-          <boxGeometry args={[2, 2, 2]} />
-          <meshBasicMaterial color="yellow" wireframe />
-        </mesh>
-      )}
-      
+      {/* Remove CuboidCollider since we're using position-based detection */}
       <primitive 
         object={scene.clone()} 
         scale={
-          modelIndex.current === 3 ? [2.8, 2.8, 2.8] : // Traffic4.glb (40% bigger than 2.0)
-          modelIndex.current === 2 ? [2.1, 2.1, 2.1] : // Traffic3.glb (40% bigger than 1.5)
-          modelIndex.current === 1 ? [2.1, 2.1, 2.1] : // Traffic2.glb (40% bigger than 1.5)
-          [1.12, 1.12, 1.12] // Default scale (40% bigger than 0.8)
+          modelIndex.current === 3 ? [2.8, 2.8, 2.8] :
+          modelIndex.current === 2 ? [2.1, 2.1, 2.1] :
+          modelIndex.current === 1 ? [2.1, 2.1, 2.1] :
+          [1.12, 1.12, 1.12]
         }
         position={[0, 0, 0]}
         rotation={
-          modelIndex.current === 2 ? [0, Math.PI / 2, 0] : // Traffic3.glb: rotated 90 degrees sideways
-          [0, Math.PI, 0] // Default rotation
+          modelIndex.current === 2 ? [0, Math.PI / 2, 0] :
+          [0, Math.PI, 0]
         }
       />
     </RigidBody>
   );
-} 
+}

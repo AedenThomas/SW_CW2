@@ -3,7 +3,7 @@ import { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { Physics, RigidBody, CuboidCollider, RapierRigidBody } from '@react-three/rapier';
 import { Environment, PerspectiveCamera, useGLTF, Text, Sky, Stars } from '@react-three/drei';
-import { Vector3 } from 'three';
+import { Vector3, Quaternion, Euler } from 'three';
 import { questions, getOptionsForQuestion } from '../data/questions';
 import { lerp } from 'three/src/math/MathUtils';
 import * as THREE from 'three';
@@ -107,48 +107,36 @@ function PlayerCar({ position, targetPosition, handleCoinCollect }: {
       position={position} 
       type="kinematicPosition"
       colliders={false}
-      userData={{ type: 'PlayerCar', id: 'player' } as UserData}
-      onCollisionEnter={(event) => {
-        console.log(`[PlayerCar] Collision detected with collider:`, event);
-        
-        const otherCollider = event.other;
-        debugLog('PlayerCar collision detected with:', {
-          otherType: otherCollider.rigidBodyObject?.userData?.type,
-          playerPos: rigidBodyRef.current?.translation(),
-          otherPos: otherCollider.rigidBodyObject?.position,
-          hasRigidBody: !!otherCollider.rigidBodyObject,
-          hasUserData: !!otherCollider.rigidBodyObject?.userData
-        });
-      }}
+      userData={{ type: 'PlayerCar' }}
     >
       <CuboidCollider 
-        args={[COLLISION_BOX.width / 2, COLLISION_BOX.height / 2, COLLISION_BOX.depth / 2]}
-        sensor={false} // Ensure sensor is false on collider
-        onCollisionEnter={(event) => {
-          console.log(`[PlayerCar] Collider collision detected with:`, event);
+        args={[1, 1, 2]} // Adjust size to match car's visible size
+        sensor
+        onIntersectionEnter={(e) => {
+          const otherBody = e.other.rigidBody;
+          const otherType = e.other.rigidBodyObject?.userData?.type;
           
-          const otherType = event.other.rigidBodyObject?.userData?.type;
-          debugLog('PlayerCar collider collision:', {
+          console.log('[PlayerCar] Collision detected:', {
             otherType,
-            otherData: event.other.rigidBodyObject?.userData
+            playerLane: currentPos.current,
+            otherPos: otherBody?.translation(),
+            time: Date.now()
           });
           
-          /* Comment out coin collision handling
-          if (event.other.rigidBodyObject?.userData?.type === 'Coin') {
-            const coinId = event.other.rigidBodyObject.userData.coinId;
-            debugLog('Coin collision detected:', { coinId });
-            handleCoinCollect(coinId);
+          if (otherType === 'Obstacle') {
+            // Handle obstacle collision directly here
+            console.log('[PlayerCar] Hit obstacle!');
           }
-          */
         }}
       />
-      
-      {/* Visualizing the Collider */}
-      <mesh>
-        <boxGeometry args={[COLLISION_BOX.width, COLLISION_BOX.height, COLLISION_BOX.depth]} />
+
+      {/* Remove debugging visualization in production */}
+      {/* <mesh scale={[2, 2, 4]}>
+        <boxGeometry />
         <meshBasicMaterial color="blue" wireframe />
-      </mesh>
-      
+      </mesh> */}
+
+      {/* Rest of the car model rendering */}
       <group scale={[0.99, 0.99, 0.99]} rotation={[0, Math.PI, 0]}>
         {scene ? (
           <primitive object={scene.clone()} />
