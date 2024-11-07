@@ -48,6 +48,7 @@ export interface GameState {
   isPlaying: boolean;
   mistakeCount: number; // Track mistakes in Oracle mode
   hintsUsed: number;
+  consecutiveCorrect: number;
 }
 
 export interface PowerUp {

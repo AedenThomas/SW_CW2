@@ -12,6 +12,7 @@ import { GAME_SPEED, LANE_SWITCH_SPEED, LANE_SWITCH_COOLDOWN } from '../constant
 import { GameState, Question } from '../types/game'; // Import Question type
 import { UserData } from '../types/userData';
 import { OracleButton, OracleModal } from './Oracle';
+import { TrafficObstacle, NUM_OBSTACLES } from './TrafficObstacle';
 
 
 // Add debug logging utility
@@ -26,7 +27,7 @@ const SWIPE_THRESHOLD = 50; // Minimum swipe distance to trigger lane change
 const SWIPE_TIMEOUT = 300; // Maximum time in ms for a swipe
 
 // Update these constants at the top of the file
-const LANE_POSITIONS = [-5, 0, 5]; // Make sure these match your desired positions
+export const LANE_POSITIONS = [-5, 0, 5]; // Make sure these match your desired positions
 
 // Define Road component at the top level
 function Road() {
@@ -63,12 +64,6 @@ function PlayerCar({ position, targetPosition, handleCoinCollect }: {
       
       if (Math.abs(targetDiff) > 0.01) {
         if (!isMoving.current) {
-          console.log('Starting car movement:', {
-            currentPosition: currentPos.current,
-            targetPosition,
-            difference: targetDiff,
-            time: new Date().toISOString()
-          });
           isMoving.current = true;
         }
 
@@ -91,11 +86,6 @@ function PlayerCar({ position, targetPosition, handleCoinCollect }: {
         );
         rigidBodyRef.current.setRotation(newRotation, true);
       } else if (isMoving.current) {
-        console.log('Finished car movement:', {
-          finalPosition: currentPos.current,
-          targetReached: targetPosition,
-          time: new Date().toISOString()
-        });
         
         // Snap to exact position
         currentPos.current = targetPosition;
@@ -119,7 +109,7 @@ function PlayerCar({ position, targetPosition, handleCoinCollect }: {
       colliders={false}
       userData={{ type: 'PlayerCar', id: 'player' } as UserData}
       onCollisionEnter={(event) => {
-        debugLog('PlayerCar collision raw event:', event);
+        console.log(`[PlayerCar] Collision detected with collider:`, event);
         
         const otherCollider = event.other;
         debugLog('PlayerCar collision detected with:', {
@@ -135,8 +125,11 @@ function PlayerCar({ position, targetPosition, handleCoinCollect }: {
         args={[COLLISION_BOX.width / 2, COLLISION_BOX.height / 2, COLLISION_BOX.depth / 2]}
         sensor={false} // Ensure sensor is false on collider
         onCollisionEnter={(event) => {
+          console.log(`[PlayerCar] Collider collision detected with:`, event);
+          
+          const otherType = event.other.rigidBodyObject?.userData?.type;
           debugLog('PlayerCar collider collision:', {
-            otherType: event.other.rigidBodyObject?.userData?.type,
+            otherType,
             otherData: event.other.rigidBodyObject?.userData
           });
           
@@ -149,6 +142,13 @@ function PlayerCar({ position, targetPosition, handleCoinCollect }: {
           */
         }}
       />
+      
+      {/* Visualizing the Collider */}
+      <mesh>
+        <boxGeometry args={[COLLISION_BOX.width, COLLISION_BOX.height, COLLISION_BOX.depth]} />
+        <meshBasicMaterial color="blue" wireframe />
+      </mesh>
+      
       <group scale={[0.99, 0.99, 0.99]} rotation={[0, Math.PI, 0]}>
         {scene ? (
           <primitive object={scene.clone()} />
@@ -338,8 +338,9 @@ export default function Game() {
     oracleMode: false,
     oracleFeedback: null,
     isPlaying: false,
-    mistakeCount: 0,    // Add this
-    hintsUsed: 0        // Add this
+    mistakeCount: 0,
+    hintsUsed: 0,
+    consecutiveCorrect: 0
   });
 
   const targetLanePosition = useRef(LANE_POSITIONS[1]);
@@ -447,11 +448,19 @@ export default function Game() {
           newScore: gameState.score + 100
         });
 
-        setGameState(prev => ({
-          ...prev,
-          score: prev.score + 100,
-          currentQuestion: null,
-        }));
+        setGameState(prev => {
+          const newConsecutiveCorrect = prev.consecutiveCorrect + 1;
+          const speedIncrease = Math.floor(newConsecutiveCorrect / 3);
+          const newSpeed = 1 + (speedIncrease * 0.5); // Increase speed by 0.5 for every 3 correct answers
+
+          return {
+            ...prev,
+            score: prev.score + 100,
+            currentQuestion: null,
+            consecutiveCorrect: newConsecutiveCorrect,
+            speed: newSpeed
+          };
+        });
         setTimeout(showNextQuestion, 200);
       } else {
         debugLog('Wrong answer in normal mode', {
@@ -465,6 +474,8 @@ export default function Game() {
             ...prev,
             lives: newLives,
             isGameOver: newLives <= 0,
+            consecutiveCorrect: 0, // Reset consecutive correct answers
+            speed: 1 // Reset speed to initial value
           };
         });
       }
@@ -513,11 +524,6 @@ export default function Game() {
               newLane = prev.currentLane - 1;
               lastLaneSwitch.current = now;
               targetLanePosition.current = LANE_POSITIONS[newLane];
-              console.log('Moving left:', {
-                fromLane: prev.currentLane,
-                toLane: newLane,
-                newPosition: targetLanePosition.current
-              });
             }
             break;
           case 'ArrowRight':
@@ -525,11 +531,6 @@ export default function Game() {
               newLane = prev.currentLane + 1;
               lastLaneSwitch.current = now;
               targetLanePosition.current = LANE_POSITIONS[newLane];
-              console.log('Moving right:', {
-                fromLane: prev.currentLane,
-                toLane: newLane,
-                newPosition: targetLanePosition.current
-              });
             }
             break;
         }
@@ -604,7 +605,9 @@ export default function Game() {
       lives: 3,
       coinsCollected: 0,
       mistakeCount: 0,
-      hintsUsed: 0
+      hintsUsed: 0,
+      consecutiveCorrect: 0, // Reset consecutive correct
+      speed: 1 // Reset speed
     }));
     showNextQuestion();
   };
@@ -701,6 +704,12 @@ export default function Game() {
     window.addEventListener('keydown', handleKeyPress);
     return () => window.removeEventListener('keydown', handleKeyPress);
   }, [isOracleActive]); // Add isOracleActive to dependencies
+
+  // Update the SPAWN_INTERVAL to ensure obstacles spawn sufficiently far from options
+  const SPAWN_INTERVAL = 50; // Increased from 40 to 50 to provide more spacing
+
+  // Adjust initialZ to position obstacles away from options
+  const obstacleInitialZ = -200; // Increased from -100 for better spacing
 
   return (
     // Add touch-action CSS to prevent default touch behaviors
@@ -890,8 +899,9 @@ export default function Game() {
                   oracleMode: false,
                   oracleFeedback: null,
                   isPlaying: true,
-                  mistakeCount: 0,    // Add this
-                  hintsUsed: 0        // Add this
+                  mistakeCount: 0,
+                  hintsUsed: 0,
+                  consecutiveCorrect: 0
                 });
                 showNextQuestion();
               }}
@@ -937,7 +947,18 @@ export default function Game() {
                 handleCoinCollect={handleCoinCollect}
               />
               <MovingLaneDividers gameState={gameState} />
-              {/* <EnvironmentDecorations gameState={gameState} /> */}
+              {/* Replace single obstacle with array of obstacles */}
+              {Array.from({ length: NUM_OBSTACLES }).map((_, index) => (
+                <TrafficObstacle 
+                  key={index}
+                  index={index}
+                  gameState={gameState}
+                  setGameState={setGameState}
+                  onRespawn={() => {
+                  }}
+                  initialZ={obstacleInitialZ} // Pass adjusted initialZ
+                />
+              ))}
               {gameState.currentQuestion && (
                 <MovingAnswerOptions 
                   question={gameState.currentQuestion}
@@ -1001,7 +1022,7 @@ function MovingAnswerOptions({ question, onCollision, gameState }: {
     }
 
     // Move options forward
-    optionsGroupRef.current.position.z += GAME_SPEED * gameState.multiplier;
+    optionsGroupRef.current.position.z += GAME_SPEED * gameState.speed * gameState.multiplier;
     
     if (currentZ > -5 && currentZ < 5) {
       debugLog('Options near player', {

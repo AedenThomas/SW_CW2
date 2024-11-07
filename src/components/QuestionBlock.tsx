@@ -14,18 +14,12 @@ const QuestionBlock = ({ question, position }: QuestionBlockProps) => {
   
   // Debug log for question props
   useEffect(() => {
-    console.log('Question props:', {
-      text: question.text,
-      signPath: question.signPath,
-      options: question.options
-    });
   }, [question]);
 
   // Load and debug sign texture
   let signTexture: THREE.Texture | null = null;
   try {
     signTexture = useLoader(THREE.TextureLoader, question.signPath);
-    console.log('Sign texture loaded successfully:', question.signPath);
   } catch (error) {
     console.error('Error loading sign texture:', {
       path: question.signPath,
@@ -36,14 +30,6 @@ const QuestionBlock = ({ question, position }: QuestionBlockProps) => {
   // Debug log for texture loading
   useEffect(() => {
     if (signTexture) {
-      console.log('Texture details:', {
-        isLoaded: signTexture instanceof THREE.Texture,
-        image: signTexture.image,
-        size: {
-          width: signTexture.image?.width,
-          height: signTexture.image?.height
-        }
-      });
     }
   }, [signTexture]);
 
@@ -51,7 +37,6 @@ const QuestionBlock = ({ question, position }: QuestionBlockProps) => {
     // Test image loading
     const img = new Image();
     img.onload = () => {
-      console.log('Image loaded successfully:', question.signPath);
     };
     img.onerror = (err) => {
       console.error('Error loading image:', question.signPath, err);
@@ -76,7 +61,6 @@ const QuestionBlock = ({ question, position }: QuestionBlockProps) => {
             map={signTexture} 
             transparent
             onBeforeCompile={() => {
-              console.log('Material compiled with texture');
             }}
           />
         </mesh>
