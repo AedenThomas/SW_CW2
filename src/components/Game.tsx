@@ -158,7 +158,7 @@ function MovingLaneDividers({ gameState }: { gameState: GameState }) {
   const numMarkers = 20;
 
   useFrame((state, delta) => {
-    if (!gameState.isPlaying) return; // Stop movement if game not playing
+    if (!gameState.isPlaying || gameState.isPaused) return; // Add pause check
     
     const moveAmount = GAME_SPEED * gameState.multiplier * delta * 60;
     
@@ -265,27 +265,53 @@ function OraclePresence({ feedback, onRequestHint, currentQuestion }: {
 
 // Add this new component near the top of the file, after the Road component
 
+// Add PauseButton component near other UI components
+function PauseButton({ isPaused, onClick }: { isPaused: boolean, onClick: () => void }) {
+  return (
+    <button
+      onClick={onClick}
+      className="fixed top-4 right-20 z-50 bg-white/80 hover:bg-white/90 p-2 rounded-full shadow-lg transition-all duration-200 backdrop-blur-sm"
+      aria-label={isPaused ? "Resume game" : "Pause game"}
+    >
+      {isPaused ? (
+        // Play icon
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M8 5v14l11-7z"/>
+        </svg>
+      ) : (
+        // Pause icon
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>
+        </svg>
+      )}
+    </button>
+  );
+}
+
 // Inside the Game component, add touch handling
+const initialGameState: GameState = {
+  currentLane: 1,
+  score: 0,
+  speed: 1,
+  lives: 3,
+  combo: 0,
+  multiplier: 1,
+  isGameOver: false,
+  currentQuestion: null,
+  isMoving: true,
+  coinsCollected: 0,
+  oracleMode: false,
+  oracleFeedback: null,
+  isPlaying: false,
+  mistakeCount: 0,
+  hintsUsed: 0,
+  consecutiveCorrect: 0,
+  showingCorrectAnswer: false,
+  isPaused: false,
+};
+
 export default function Game() {
-  const [gameState, setGameState] = useState<GameState>({
-    currentLane: 1,
-    score: 0,
-    speed: 1,
-    lives: 3,
-    combo: 0,
-    multiplier: 1,
-    isGameOver: false,
-    currentQuestion: null,
-    isMoving: true,
-    coinsCollected: 0,
-    oracleMode: false,
-    oracleFeedback: null,
-    isPlaying: false,
-    mistakeCount: 0,
-    hintsUsed: 0,
-    consecutiveCorrect: 0,
-    showingCorrectAnswer: false
-  });
+  const [gameState, setGameState] = useState<GameState>(initialGameState);
 
   const targetLanePosition = useRef(LANE_POSITIONS[1]);
   const questionTimer = useRef<NodeJS.Timeout | null>(null);
@@ -558,20 +584,32 @@ export default function Game() {
 
   // Add new function to handle game start
   const startGame = () => {
-    setGameState(prev => ({ 
-      ...prev, 
+    setGameState({ 
+      ...initialGameState,
       isPlaying: true,
-      currentLane: 1,
-      score: 0,
-      lives: 3,
-      coinsCollected: 0,
-      mistakeCount: 0,
-      hintsUsed: 0,
-      consecutiveCorrect: 0, // Reset consecutive correct
-      speed: 1 // Reset speed
-    }));
+    });
     showNextQuestion();
   };
+
+  // Add toggle pause function
+  const togglePause = () => {
+    if (gameState.isPlaying && !gameState.isGameOver) {
+      setGameState(prev => ({ ...prev, isPaused: !prev.isPaused }));
+    }
+  };
+
+  // Update keyboard controls to handle pause
+  useEffect(() => {
+    const handleKeyPress = (e: KeyboardEvent) => {
+      if (e.code === 'Escape' && gameState.isPlaying && !gameState.isGameOver) {
+        togglePause();
+      }
+      // ...existing key handlers...
+    };
+
+    window.addEventListener('keydown', handleKeyPress);
+    return () => window.removeEventListener('keydown', handleKeyPress);
+  }, [gameState.isPlaying, gameState.isGameOver]);
 
   // Update the touch handler types
   const handleTouchStart = (e: globalThis.TouchEvent) => {
@@ -703,8 +741,8 @@ export default function Game() {
                 height="24" 
                 viewBox="0 0 24 24" 
                 fill="white"
-              >
-                <path d="M18.92 6.01C18.72 5.42 18.16 5 17.5 5h-11c-.66 0-1.21.42-1.42 1.01L3 12v8c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1h12v1c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-8l-2.08-5.99zM6.85 7h10.29l1.08 3.11H5.77L6.85 7zM19 17H5v-5h14v5z"/>
+              > 
+                <path d="M18.92 6.01C18.72 5.42 18.16 5 17.5 5h-11c-.66 0-1.21.42-1.42 1.01L3 12v8c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1h12v1c0 .55-.45 1-1 1h1c.55 0 1-.45 1-1v-8l-2.08-5.99zM6.85 7h10.29l1.08 3.11H5.77L6.85 7zM19 17H5v-5h14v5z"/>
                 <circle cx="7.5" cy="14.5" r="1.5"/>
                 <circle cx="16.5" cy="14.5" r="1.5"/>
               </svg>
@@ -851,36 +889,38 @@ export default function Game() {
             className="bg-white p-8 rounded-lg text-center"
           >
             <h2 className="text-3xl font-bold mb-4">Game Over!</h2>
-            {/* <p className="text-xl mb-4">Final Score: {gameState.score}</p> */}
-            {/* Comment out coins display */}
-            {/* <p className="text-xl mb-6">Coins Collected: {gameState.coinsCollected}</p> */}
             <button
               onClick={() => {
-                // Reset game state
+                // Reset game state - using initialGameState to ensure all properties are included
                 setGameState({
-                  currentLane: 1,
-                  score: 0,
-                  speed: 1,
-                  lives: 3,
-                  combo: 0,
-                  multiplier: 1,
-                  isGameOver: false,
-                  currentQuestion: null,
-                  isMoving: true,
-                  coinsCollected: 0,
-                  oracleMode: false,
-                  oracleFeedback: null,
+                  ...initialGameState,
                   isPlaying: true,
-                  mistakeCount: 0,
-                  hintsUsed: 0,
-                  consecutiveCorrect: 0,
-                  showingCorrectAnswer: false
+                  isPaused: false
                 });
                 showNextQuestion();
               }}
               className="bg-blue-500 hover:bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold transition-colors"
             >
               Play Again
+            </button>
+          </motion.div>
+        </div>
+      )}
+
+      {/* Add pause overlay */}
+      {gameState.isPaused && (
+        <div className="absolute inset-0 flex items-center justify-center z-20 bg-black/50">
+          <motion.div 
+            initial={{ scale: 0.8, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            className="bg-white p-8 rounded-lg text-center"
+          >
+            <h2 className="text-3xl font-bold mb-4">Game Paused</h2>
+            <button
+              onClick={togglePause}
+              className="bg-blue-500 hover:bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold transition-colors"
+            >
+              Resume Game
             </button>
           </motion.div>
         </div>
@@ -910,7 +950,7 @@ export default function Game() {
         />
         <hemisphereLight color="#b1e1ff" groundColor="#000000" intensity={0.5} />
         
-        <Physics paused={!gameState.isPlaying}>
+        <Physics paused={!gameState.isPlaying || gameState.isPaused}>
           <Road />
           {gameState.isPlaying && (
             <>
@@ -943,6 +983,14 @@ export default function Game() {
         </Physics>
       </Canvas>
 
+      {/* Add PauseButton next to Oracle button */}
+      {gameState.isPlaying && !gameState.isGameOver && (
+        <PauseButton 
+          isPaused={gameState.isPaused} 
+          onClick={togglePause}
+        />
+      )}
+
       {/* Add Oracle Button */}
       <OracleButton 
         onClick={toggleOracle}
@@ -972,7 +1020,7 @@ function MovingAnswerOptions({ question, onCollision, gameState }: {
   const initialZ = -180;
 
   useFrame((state, delta) => {
-    if (!gameState.isPlaying) return; // Stop movement if game not playing
+    if (!gameState.isPlaying || gameState.isPaused) return; // Add pause check
     
     if (!optionsGroupRef.current || resetPosition.current) return;
 

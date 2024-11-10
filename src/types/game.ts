@@ -50,6 +50,7 @@ export interface GameState {
   hintsUsed: number;
   consecutiveCorrect: number;
   showingCorrectAnswer: boolean; // Add this line
+  isPaused: boolean;
 }
 
 export interface PowerUp {
