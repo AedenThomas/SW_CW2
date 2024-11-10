@@ -69,7 +69,7 @@ function PlayerCar({ position, targetPosition, handleCoinCollect }: {
 
         // Use a smaller lerp factor for smoother movement
         const lerpFactor = 0.08;
-        currentPos.current = lerp(currentPos.current, targetPosition, lerpFactor);
+        currentPos.current = lerp(currentPos.current, targetPosition,  lerpFactor);
 
         const newPosition = new Vector3(
           currentPos.current,
@@ -264,51 +264,6 @@ function OraclePresence({ feedback, onRequestHint, currentQuestion }: {
 }
 
 // Add this new component near the top of the file, after the Road component
-function QuestionTruss() {
-  return (
-    <group position={[0, 4.5, 0]}>
-      {/* Main horizontal beams */}
-      <mesh position={[0, 0, 0]}>
-        <boxGeometry args={[30, 0.2, 0.2]} />
-        <meshStandardMaterial color="#666666" metalness={0.8} roughness={0.2} />
-      </mesh>
-      <mesh position={[0, -0.8, 0]}>
-        <boxGeometry args={[30, 0.2, 0.2]} />
-        <meshStandardMaterial color="#666666" metalness={0.8} roughness={0.2} />
-      </mesh>
-
-      {/* Diagonal cross members */}
-      {Array.from({ length: 15 }).map((_, i) => {
-        const xPos = -14.5 + i * 2;
-        return (
-          <group key={i} position={[xPos, -0.4, 0]}>
-            {/* Diagonal from top-left to bottom-right */}
-            <mesh rotation={[0, 0, Math.PI / 4]}>
-              <boxGeometry args={[1.2, 0.1, 0.1]} />
-              <meshStandardMaterial color="#666666" metalness={0.8} roughness={0.2} />
-            </mesh>
-            {/* Diagonal from top-right to bottom-left */}
-            <mesh rotation={[0, 0, -Math.PI / 4]}>
-              <boxGeometry args={[1.2, 0.1, 0.1]} />
-              <meshStandardMaterial color="#666666" metalness={0.8} roughness={0.2} />
-            </mesh>
-          </group>
-        );
-      })}
-
-      {/* Vertical supports */}
-      {Array.from({ length: 16 }).map((_, i) => {
-        const xPos = -15 + i * 2;
-        return (
-          <mesh key={i} position={[xPos, -0.4, 0]}>
-            <boxGeometry args={[0.1, 1, 0.1]} />
-            <meshStandardMaterial color="#666666" metalness={0.8} roughness={0.2} />
-          </mesh>
-        );
-      })}
-    </group>
-  );
-}
 
 // Inside the Game component, add touch handling
 export default function Game() {
@@ -328,7 +283,8 @@ export default function Game() {
     isPlaying: false,
     mistakeCount: 0,
     hintsUsed: 0,
-    consecutiveCorrect: 0
+    consecutiveCorrect: 0,
+    showingCorrectAnswer: false
   });
 
   const targetLanePosition = useRef(LANE_POSITIONS[1]);
@@ -440,10 +396,16 @@ export default function Game() {
           const newConsecutiveCorrect = prev.consecutiveCorrect + 1;
           const speedIncrease = Math.floor(newConsecutiveCorrect / 3);
           const newSpeed = 1 + (speedIncrease * 0.5); // Increase speed by 0.5 for every 3 correct answers
-
+          
+          // Calculate bonus based on speed level
+          const speedLevel = Math.floor((newConsecutiveCorrect - 1) / 3);
+          const baseScore = 100;
+          const bonus = speedLevel > 0 ? speedLevel * 10 : 0;
+          const scoreIncrease = baseScore + bonus;
+      
           return {
             ...prev,
-            score: prev.score + 100,
+            score: prev.score + scoreIncrease,
             currentQuestion: null,
             consecutiveCorrect: newConsecutiveCorrect,
             speed: newSpeed
@@ -456,16 +418,27 @@ export default function Game() {
           newLives: gameState.lives - 1
         });
 
+        // Show the correct answer
         setGameState(prev => {
           const newLives = prev.lives - 1;
           return {
             ...prev,
             lives: newLives,
             isGameOver: newLives <= 0,
-            consecutiveCorrect: 0, // Reset consecutive correct answers
-            speed: 1 // Reset speed to initial value
+            consecutiveCorrect: 0,
+            speed: 1,
+            showingCorrectAnswer: true
           };
         });
+
+        // Hide the correct answer and show next question after delay
+        setTimeout(() => {
+          setGameState(prev => ({
+            ...prev,
+            showingCorrectAnswer: false
+          }));
+          showNextQuestion();
+        }, 3000); // Show for 3 seconds
       }
     }
   };
@@ -793,14 +766,25 @@ export default function Game() {
         </div>
 
         {/* Question display with background and truss */}
-        {gameState.currentQuestion && (
+        {(gameState.currentQuestion || gameState.showingCorrectAnswer) && (
           <>
             <div className="relative max-w-4xl mx-auto">
               <div className="bg-[#3B50A1] border-4 border-white text-white p-4 rounded-lg">
                 <div className="mt-4 flex flex-col items-center">
-                  <p className="text-xl mb-4 text-center max-w-2xl">
-                    {gameState.currentQuestion.text}
-                  </p>
+                  {gameState.showingCorrectAnswer ? (
+                    <div className="flex flex-col items-center gap-4">
+                      <p className="text-xl text-center">The correct answer was:</p>
+                      <img 
+                        src={gameState.currentQuestion?.options[gameState.currentQuestion.correctAnswer]} 
+                        alt="Correct answer"
+                        className="w-32 h-32 object-contain border-2 border-white rounded-lg"
+                      />
+                    </div>
+                  ) : (
+                    <p className="text-xl mb-4 text-center max-w-2xl">
+                      {gameState.currentQuestion?.text}
+                    </p>
+                  )}
                 </div>
               </div>
             </div>
@@ -889,7 +873,8 @@ export default function Game() {
                   isPlaying: true,
                   mistakeCount: 0,
                   hintsUsed: 0,
-                  consecutiveCorrect: 0
+                  consecutiveCorrect: 0,
+                  showingCorrectAnswer: false
                 });
                 showNextQuestion();
               }}
@@ -935,19 +920,18 @@ export default function Game() {
                 handleCoinCollect={handleCoinCollect}
               />
               <MovingLaneDividers gameState={gameState} />
-              {/* Replace single obstacle with array of obstacles */}
               {Array.from({ length: NUM_OBSTACLES }).map((_, index) => (
                 <TrafficObstacle 
                   key={index}
                   index={index}
                   gameState={gameState}
                   setGameState={setGameState}
-                  onRespawn={() => {
-                  }}
-                  initialZ={obstacleInitialZ} // Pass adjusted initialZ
+                  onRespawn={() => {}}
+                  initialZ={obstacleInitialZ}
                 />
               ))}
-              {gameState.currentQuestion && (
+              {/* Only show options when not showing correct answer */}
+              {gameState.currentQuestion && !gameState.showingCorrectAnswer && (
                 <MovingAnswerOptions 
                   question={gameState.currentQuestion}
                   onCollision={handleCollision}
