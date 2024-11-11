@@ -1,8 +1,8 @@
 import { Canvas, useFrame } from '@react-three/fiber';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, Suspense } from 'react';
 import { motion } from 'framer-motion';
 import { Physics, RigidBody, CuboidCollider, RapierRigidBody } from '@react-three/rapier';
-import { Environment, PerspectiveCamera, useGLTF, Text, Sky, Stars } from '@react-three/drei';
+import { Environment, PerspectiveCamera, useGLTF, Text, Sky, Stars, Html } from '@react-three/drei';
 import { Vector3, Quaternion, Euler } from 'three';
 import { questions, getOptionsForQuestion } from '../data/questions';
 import { lerp } from 'three/src/math/MathUtils';
@@ -341,6 +341,12 @@ export default function Game() {
   // Initialize first question
   useEffect(() => {
     showNextQuestion();
+  }, []);
+
+  // Prefetch 3D assets
+  useEffect(() => {
+    useGLTF.preload(`${process.env.PUBLIC_URL}/models/car.glb`);
+    // Add more preload calls if there are additional models
   }, []);
 
   const showNextQuestion = () => {
@@ -725,6 +731,44 @@ export default function Game() {
   // Adjust initialZ to position obstacles away from options
   const obstacleInitialZ = -200; // Increased from -100 for better spacing
 
+  // Add LoadingScreen component
+  function LoadingScreen() {
+    return (
+      <Html center>
+        <div className="relative flex flex-col items-center justify-center p-8 rounded-xl bg-[#4A63B4]/90 border-2 border-white/30 backdrop-blur-md shadow-2xl">
+          {/* Animated car icon */}
+          <div className="relative mb-6">
+            <svg
+              className="w-16 h-16 text-white"
+              viewBox="0 0 24 24"
+              fill="currentColor"
+            >
+              <path d="M18.92 6.01C18.72 5.42 18.16 5 17.5 5h-11c-.66 0-1.21.42-1.42 1.01L3 12v8c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1h12v1c0 .55-.45 1-1 1h1c.55 0 1-.45 1-1v-8l-2.08-5.99zM6.85 7h10.29l1.08 3.11H5.77L6.85 7zM19 17H5v-5h14v5z"/>
+              <circle cx="7.5" cy="14.5" r="1.5"/>
+              <circle cx="16.5" cy="14.5" r="1.5"/>
+            </svg>
+            {/* Animated pulse circles */}
+            <div className="absolute inset-0 -z-10">
+              <div className="absolute inset-0 animate-ping rounded-full bg-white/20"></div>
+              <div className="absolute inset-0 animate-pulse rounded-full bg-white/10"></div>
+            </div>
+          </div>
+
+          {/* Loading text */}
+          <h2 className="text-2xl font-bold text-white mb-4">Loading Game</h2>
+          
+          {/* Progress bar */}
+          <div className="w-48 h-2 bg-white/20 rounded-full overflow-hidden">
+            <div className="h-full bg-white/80 rounded-full animate-loading-progress"></div>
+          </div>
+
+          {/* Loading message */}
+          <p className="mt-4 text-white/80 text-sm">Please wait while we prepare your driving experience...</p>
+        </div>
+      </Html>
+    );
+  }
+
   return (
     // Add touch-action CSS to prevent default touch behaviors
     <div className="w-full h-screen" style={{ touchAction: 'none' }} onTouchStart={(e: React.TouchEvent) => handleTouchStart(e.nativeEvent)} onTouchEnd={(e: React.TouchEvent) => handleTouchEnd(e.nativeEvent)}>
@@ -943,65 +987,65 @@ export default function Game() {
 
       {/* 3D Game Scene */}
       <Canvas shadows>
-        {/* Adjust camera position based on device type */}
-        <PerspectiveCamera 
-  makeDefault 
-  position={isMobile ? [0, 6, 22] : [0, 5, 10]} 
-  fov={isMobile ? 60 : 75}
-/>
-
-        
-        {/* Add Sky and Stars */}
-        <Sky 
-          distance={450000}
-          sunPosition={[0, 1, 0]}
-          inclination={0.5}
-          azimuth={0.25}
-        />
-        <Stars radius={100} depth={50} count={5000} factor={4} saturation={0} fade />
-        
-        {/* Enhanced lighting */}
-        <ambientLight intensity={0.3} />
-        <directionalLight
-          position={[10, 10, 5]}
-          intensity={1.5}
-          castShadow
-          shadow-mapSize-width={2048}
-          shadow-mapSize-height={2048}
-        />
-        <hemisphereLight color="#b1e1ff" groundColor="#000000" intensity={0.5} />
-        
-        <Physics paused={!gameState.isPlaying || gameState.isPaused}>
-          <Road />
-          {gameState.isPlaying && (
-            <>
-              <PlayerCar 
-                position={[LANE_POSITIONS[gameState.currentLane], 1.0, 0]}
-                targetPosition={targetLanePosition.current}
-                handleCoinCollect={handleCoinCollect}
-              />
-              <MovingLaneDividers gameState={gameState} />
-              {Array.from({ length: NUM_OBSTACLES }).map((_, index) => (
-                <TrafficObstacle 
-                  key={index}
-                  index={index}
-                  gameState={gameState}
-                  setGameState={setGameState}
-                  onRespawn={() => {}}
-                  initialZ={obstacleInitialZ}
+        <Suspense fallback={<LoadingScreen />}>
+          <PerspectiveCamera 
+            makeDefault 
+            position={isMobile ? [0, 6, 22] : [0, 5, 10]} 
+            fov={isMobile ? 60 : 75}
+          />
+          
+          {/* Add Sky and Stars */}
+          <Sky 
+            distance={450000}
+            sunPosition={[0, 1, 0]}
+            inclination={0.5}
+            azimuth={0.25}
+          />
+          <Stars radius={100} depth={50} count={5000} factor={4} saturation={0} fade />
+          
+          {/* Enhanced lighting */}
+          <ambientLight intensity={0.3} />
+          <directionalLight
+            position={[10, 10, 5]}
+            intensity={1.5}
+            castShadow
+            shadow-mapSize-width={2048}
+            shadow-mapSize-height={2048}
+          />
+          <hemisphereLight color="#b1e1ff" groundColor="#000000" intensity={0.5} />
+          
+          <Physics paused={!gameState.isPlaying || gameState.isPaused}>
+            <Road />
+            {gameState.isPlaying && (
+              <>
+                <PlayerCar 
+                  position={[LANE_POSITIONS[gameState.currentLane], 1.0, 0]}
+                  targetPosition={targetLanePosition.current}
+                  handleCoinCollect={handleCoinCollect}
                 />
-              ))}
-              {/* Only show options when not showing correct answer */}
-              {gameState.currentQuestion && !gameState.showingCorrectAnswer && (
-                <MovingAnswerOptions 
-                  question={gameState.currentQuestion}
-                  onCollision={handleCollision}
-                  gameState={gameState}
-                />
-              )}
-            </>
-          )}
-        </Physics>
+                <MovingLaneDividers gameState={gameState} />
+                {Array.from({ length: NUM_OBSTACLES }).map((_, index) => (
+                  <TrafficObstacle 
+                    key={index}
+                    index={index}
+                    gameState={gameState}
+                    setGameState={setGameState}
+                    onRespawn={() => {}}
+                    initialZ={obstacleInitialZ}
+                  />
+                ))}
+                {/* Only show options when not showing correct answer */}
+                {gameState.currentQuestion && !gameState.showingCorrectAnswer && (
+                  <MovingAnswerOptions 
+                    question={gameState.currentQuestion}
+                    onCollision={handleCollision}
+                    gameState={gameState}
+                  />
+                )}
+              </>
+            )}
+          </Physics>
+        </Suspense>
       </Canvas>
 
       {/* Add PauseButton next to Oracle button */}
