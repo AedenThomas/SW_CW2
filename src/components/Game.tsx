@@ -323,6 +323,21 @@ export default function Game() {
   const touchStartY = useRef<number | null>(null);
   const touchStartTime = useRef<number>(0);
 
+  // Add state for device type
+  const [isMobile, setIsMobile] = useState(false);
+
+  // Detect mobile devices
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth <= 768);
+    };
+    
+    handleResize();
+    
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   // Initialize first question
   useEffect(() => {
     showNextQuestion();
@@ -783,7 +798,7 @@ export default function Game() {
       )}
 
       {/* Game UI Overlay */}
-      <div className="absolute top-0 left-0 w-full p-4 z-10">
+      <div className={`absolute top-0 left-0 w-full p-4 z-10 ${isMobile ? 'pt-24' : ''}`}> {/* Added conditional padding-top for mobile */}
         {/* Score display */}
         <div className="absolute top-4 left-4 flex flex-col gap-2">
           {/* Score text */}
@@ -928,7 +943,13 @@ export default function Game() {
 
       {/* 3D Game Scene */}
       <Canvas shadows>
-        <PerspectiveCamera makeDefault position={[0, 5, 10]} />
+        {/* Adjust camera position based on device type */}
+        <PerspectiveCamera 
+  makeDefault 
+  position={isMobile ? [0, 6, 22] : [0, 5, 10]} 
+  fov={isMobile ? 60 : 75}
+/>
+
         
         {/* Add Sky and Stars */}
         <Sky 
