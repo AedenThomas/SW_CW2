@@ -52,9 +52,10 @@ const initialGameState: GameState = {
   consecutiveCorrect: 0,
   showingCorrectAnswer: false,
   isPaused: false,
-  gameMode: null as GameMode | null,
+  gameMode: null as GameMode | null,  // Explicitly type this as GameMode | null
   currentLevel: 0,
   levelQuestions: [], // Add this new property
+  askedQuestions: new Set<number>(), // Add this new property
 };
 
 export default function Game() {
@@ -97,35 +98,60 @@ export default function Game() {
   }, []);
 
   const showNextQuestion = () => {
-    let availableQuestions = gameState.gameMode === 'levels' 
+    // Create a local variable for the gameMode with proper type guard
+    const isLevelMode = gameState.gameMode === 'levels';
+    let availableQuestions = isLevelMode 
       ? gameState.levelQuestions 
       : questions;
-
-    if (availableQuestions.length === 0) return;
-
-    // Select a random sign group from available questions
+  
+    if (availableQuestions.length === 0) {
+      console.log('No questions available');
+      return;
+    }
+  
+    // Filter out sign groups that have all questions asked
+    availableQuestions = availableQuestions.filter(signGroup => 
+      signGroup.questions.some(q => !gameState.askedQuestions.has(q.id))
+    );
+  
+    if (availableQuestions.length === 0) {
+      if (isLevelMode) {
+        setGameState(prev => ({
+          ...prev,
+          isGameOver: true
+        }));
+        return;
+      }
+      setGameState(prev => ({
+        ...prev,
+        askedQuestions: new Set()
+      }));
+      availableQuestions = isLevelMode
+        ? gameState.levelQuestions 
+        : questions;
+    }
+  
     const signGroup = availableQuestions[Math.floor(Math.random() * availableQuestions.length)];
+    const availableSignQuestions = signGroup.questions.filter(q => 
+      !gameState.askedQuestions.has(q.id)
+    );
     
-    // Select a random question from that sign's questions
-    const questionIndex = Math.floor(Math.random() * signGroup.questions.length);
-    const baseQuestion = signGroup.questions[questionIndex];
-    
-    // Get options with correct answer first
+    const baseQuestion = availableSignQuestions[Math.floor(Math.random() * availableSignQuestions.length)];
     const options = getOptionsForQuestion(signGroup.signPath);
     
-    // Create the full question object
     const question: Question = {
       ...baseQuestion,
-      id: questionIdCounter.current++,
       signPath: signGroup.signPath,
       options: options,
-      correctAnswer: 0, // Always 0 since correct answer is first in options
+      correctAnswer: 0,
       oracleHelp: signGroup.oracleHelp
     };
     
+    // Use Array.from to convert Set to array before spreading
     setGameState(prev => ({
       ...prev,
-      currentQuestion: question
+      currentQuestion: question,
+      askedQuestions: new Set([...Array.from(prev.askedQuestions), question.id])
     }));
   };
 
@@ -471,8 +497,10 @@ export default function Game() {
 
   // Add level selection handler
   const handleLevelSelect = (levelId: number) => {
-    setShowLevelMap(false);
     const levelQuestions = getLevelQuestions(levelId);
+    console.log(`Selected level ${levelId}, got questions:`, levelQuestions); // Debug log
+    
+    setShowLevelMap(false);
     setGameState({
       ...initialGameState,
       isPlaying: true,
@@ -480,7 +508,12 @@ export default function Game() {
       currentLevel: levelId,
       levelQuestions: levelQuestions
     });
-    showNextQuestion();
+    
+    // Force showNextQuestion to run after state update
+    setTimeout(() => {
+      setGameState(prev => ({...prev}));
+      showNextQuestion();
+    }, 0);
   };
 
   return (

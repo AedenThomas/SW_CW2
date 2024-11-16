@@ -17,7 +17,9 @@ const getRandomSigns = (currentSign: string, count: number = 2): string[] => {
 
 // Add this new function
 export const getLevelQuestions = (levelId: number): SignQuestions[] => {
-  return questions.filter(q => q.levelId === levelId);
+  const levelQuestions = questions.filter(q => q.levelId === levelId);
+  console.log(`Getting questions for level ${levelId}:`, levelQuestions); // Debug log
+  return levelQuestions;
 };
 
 export const questions: SignQuestions[] = [
@@ -26,14 +28,17 @@ export const questions: SignQuestions[] = [
     levelId: 1,
     questions: [
       {
+        id: 1,
         text: "Which UK warning road sign features a black cross-shaped symbol with an arrow pointing to the left within a red triangular border?"
       },
-      {
-        text: "What traffic sign would warn drivers that they are approaching a junction where traffic from the left has priority?"
-      },
-      {
-        text: "In the UK Highway Code, which warning sign indicates a crossroads ahead where vehicles must give way to traffic approaching from the left?"
-      }
+      // {
+      //   id: 2,
+      //   text: "What traffic sign would warn drivers that they are approaching a junction where traffic from the left has priority?"
+      // },
+      // {
+      //   id: 3,
+      //   text: "In the UK Highway Code, which warning sign indicates a crossroads ahead where vehicles must give way to traffic approaching from the left?"
+      // }
     ],
     oracleHelp: {
       hint: "Look for the distinctive cross shape with a left-pointing arrow - this indicates a junction where traffic from the left has priority.",
@@ -49,14 +54,17 @@ export const questions: SignQuestions[] = [
     levelId: 1,
     questions: [
       {
+        id: 4,
         text: "Which warning sign shows a black cross-shaped symbol indicating a crossroads ahead?"
       },
-      {
-        text: "What road sign would you expect to see before approaching an intersection where all roads have equal priority?"
-      },
-      {
-        text: "In the UK Highway Code, which triangular warning sign features a symmetrical cross pattern indicating a four-way junction ahead?"
-      }
+      // {
+      //   id: 5,
+      //   text: "What road sign would you expect to see before approaching an intersection where all roads have equal priority?"
+      // },
+      // {
+      //   id: 6,
+      //   text: "In the UK Highway Code, which triangular warning sign features a symmetrical cross pattern indicating a four-way junction ahead?"
+      // }
     ],
     oracleHelp: {
       hint: "Look for the symmetrical cross pattern - this indicates a crossroads where all approaches have equal priority.",
@@ -72,12 +80,15 @@ export const questions: SignQuestions[] = [
     levelId: 2,
     questions: [
       {
+        id: 7,
         text: "Which warning sign indicates that drivers must yield to traffic in 50 yards?"
       },
       {
+        id: 8,
         text: "What triangular sign features the text '50 yds' below a 'Give Way' symbol?"
       },
       {
+        id: 9,
         text: "Which advance warning sign tells drivers they will need to give way ahead?"
       }
     ],
@@ -95,12 +106,15 @@ export const questions: SignQuestions[] = [
     levelId: 2,
     questions: [
       {
+        id: 10,
         text: "Which sign warns drivers of a STOP sign 100 yards ahead?"
       },
       {
+        id: 11,
         text: "What advance warning sign features the word 'STOP' with a distance indicator?"
       },
       {
+        id: 12,
         text: "Which triangular warning sign tells drivers they will need to make a complete stop ahead?"
       }
     ],
@@ -118,12 +132,15 @@ export const questions: SignQuestions[] = [
     levelId: 3,
     questions: [
       {
+        id: 13,
         text: "Which triangular warning sign shows the standard 'Give Way' symbol?"
       },
       {
+        id: 14,
         text: "What sign indicates that drivers must yield to other traffic at an upcoming junction?"
       },
       {
+        id: 15,
         text: "Which red and white triangular sign warns drivers they must give way ahead?"
       }
     ],

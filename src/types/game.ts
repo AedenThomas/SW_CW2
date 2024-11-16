@@ -1,4 +1,5 @@
 export interface SignQuestion {
+  id: number;  // Add this line
   text: string;
 }
 
@@ -57,6 +58,7 @@ export interface GameState {
   gameMode: GameMode | null;
   currentLevel: number;
   levelQuestions: SignQuestions[];
+  askedQuestions: Set<number>;
 }
 
 export interface PowerUp {
