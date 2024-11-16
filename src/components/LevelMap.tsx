@@ -154,15 +154,21 @@ export function LevelMap({ onSelectLevel, onBack }: {
     }, [isMobile]);
 
     useEffect(() => {
-        const handleEscape = (e: KeyboardEvent) => {
-            if (e.key === 'Escape') {
-                setSelectedLevel(null);
+        const handleKeydown = (e: KeyboardEvent) => {
+            if (selectedLevel) {
+                if (e.key === 'Escape') {
+                    setSelectedLevel(null);
+                } else if (e.key === 'ArrowRight') {
+                    handleNextSign();
+                } else if (e.key === 'ArrowLeft') {
+                    handlePrevSign();
+                }
             }
         };
 
-        window.addEventListener('keydown', handleEscape);
-        return () => window.removeEventListener('keydown', handleEscape);
-    }, []);
+        window.addEventListener('keydown', handleKeydown);
+        return () => window.removeEventListener('keydown', handleKeydown);
+    }, [selectedLevel, levelQuestions]); // Add levelQuestions to dependencies
 
     return (
         <div className="fixed inset-0 z-50 bg-gradient-to-b from-blue-100 to-green-100 overflow-hidden">
@@ -339,15 +345,17 @@ export function LevelMap({ onSelectLevel, onBack }: {
                                 <div className="text-sm text-gray-500">
                                     Sign {currentSignIndex + 1} of {levelQuestions.length}
                                 </div>
-                                <button
-                                    onClick={() => {
-                                        setSelectedLevel(null);
-                                        onSelectLevel(selectedLevel);
-                                    }}
-                                    className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
-                                >
-                                    Start Level
-                                </button>
+                                {currentSignIndex === levelQuestions.length - 1 && (
+                                    <button
+                                        onClick={() => {
+                                            setSelectedLevel(null);
+                                            onSelectLevel(selectedLevel);
+                                        }}
+                                        className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
+                                    >
+                                        Start Level
+                                    </button>
+                                )}
                             </div>
                         </div>
                     </div>
