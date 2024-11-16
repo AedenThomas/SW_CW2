@@ -69,10 +69,10 @@ function calculateCurvePoints(width: number, height: number, isMobile: boolean) 
         control2: { x: width - padding + 80, y: height * 0.65 * scaleFactor }, // Moved further right
         end: { x: width / 2, y: height * scaleFactor - padding }
     } : {
-        // 20% more pronounced horizontal S-curve for desktop
+        // 100% more pronounced horizontal S-curve for desktop
         start: { x: padding - offsetX, y: height / 2 },
-        control1: { x: (scaledWidth * 0.25) - offsetX, y: (height * 0.10) }, // Moved higher
-        control2: { x: (scaledWidth * 0.75) - offsetX, y: (height * 0.90) }, // Moved lower
+        control1: { x: (scaledWidth * 0.25) - offsetX, y: -(height * 0.2) }, // Much higher (was 0.05)
+        control2: { x: (scaledWidth * 0.75) - offsetX, y: (height * 1.2) },  // Much lower (was 0.95)
         end: { x: (scaledWidth - padding) - offsetX, y: height / 2 }
     };
 
