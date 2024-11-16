@@ -28,6 +28,8 @@ export interface Question extends SignQuestion {
   };
 }
 
+export type GameMode = 'infinite' | 'levels';
+
 export interface GameState {
   score: number;
   speed: number;
@@ -51,6 +53,8 @@ export interface GameState {
   consecutiveCorrect: number;
   showingCorrectAnswer: boolean; // Add this line
   isPaused: boolean;
+  gameMode: GameMode | null;
+  currentLevel: number;
 }
 
 export interface PowerUp {

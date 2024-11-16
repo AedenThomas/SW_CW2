@@ -9,7 +9,7 @@ import { lerp } from 'three/src/math/MathUtils';
 import * as THREE from 'three';
 import { EnvironmentDecorations } from './Environment';
 import { GAME_SPEED, LANE_SWITCH_SPEED, LANE_SWITCH_COOLDOWN } from '../constants/game';
-import { GameState, Question } from '../types/game'; // Import Question type
+import { GameState, Question, GameMode } from '../types/game'; // Import Question and GameMode types
 import { UserData } from '../types/userData';
 import { OracleButton, OracleModal } from './Oracle';
 import { TrafficObstacle, NUM_OBSTACLES } from './TrafficObstacle';
@@ -195,76 +195,6 @@ function MovingLaneDividers({ gameState }: { gameState: GameState }) {
   );
 }
 
-// Update the OraclePresence component
-function OraclePresence({ feedback, onRequestHint, currentQuestion }: { 
-  feedback: GameState['oracleFeedback'], 
-  onRequestHint: () => void,
-  currentQuestion: Question | null // Add this prop
-}) {
-  return (
-    <motion.div 
-      initial={{ opacity: 0, scale: 0.8 }}
-      animate={{ opacity: 1, scale: 1 }}
-      exit={{ opacity: 0, scale: 0.9 }}
-      className="fixed bottom-10 right-10 z-50"
-    >
-      <div className="flex flex-col items-end gap-4">
-        {/* Always show the current hint if there's a question */}
-        {currentQuestion && (
-          <motion.div
-            initial={{ opacity: 0, x: 50 }}
-            animate={{ opacity: 1, x: 0 }}
-            className="max-w-md p-6 rounded-lg shadow-xl backdrop-blur-sm bg-blue-600/90 border border-blue-400/30 text-white"
-          >
-            <div className="flex items-start gap-4">
-              <div className="flex-grow">
-                <h3 className="text-xl font-semibold mb-2">Oracle's Hint</h3>
-                <motion.p
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  className="text-lg"
-                >
-                  {currentQuestion.oracleHelp.hint}
-                </motion.p>
-              </div>
-            </div>
-          </motion.div>
-        )}
-        
-        {/* Feedback Display */}
-        {feedback && feedback.shown && (
-          <motion.div
-            initial={{ opacity: 0, x: 50 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: 50 }}
-            className={`
-              max-w-md p-6 rounded-lg shadow-xl backdrop-blur-sm
-              ${feedback.type === 'hint' ? 'bg-blue-600/90 border-blue-400/30' :
-                feedback.type === 'correction' ? 'bg-red-600/90 border-red-400/30' :
-                'bg-green-600/90 border-green-400/30'}
-              border text-white
-            `}
-          >
-            <div className="flex items-start gap-4">
-              <div className="flex-grow">
-                <motion.p
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  className="text-lg"
-                >
-                  {feedback.message}
-                </motion.p>
-              </div>
-            </div>
-          </motion.div>
-        )}
-      </div>
-    </motion.div>
-  );
-}
-
-// Add this new component near the top of the file, after the Road component
-
 // Add PauseButton component near other UI components
 function PauseButton({ isPaused, onClick }: { isPaused: boolean, onClick: () => void }) {
   return (
@@ -308,6 +238,8 @@ const initialGameState: GameState = {
   consecutiveCorrect: 0,
   showingCorrectAnswer: false,
   isPaused: false,
+  gameMode: null as GameMode | null,
+  currentLevel: 0,
 };
 
 export default function Game() {
@@ -604,12 +536,15 @@ export default function Game() {
   };
 
   // Add new function to handle game start
-  const startGame = () => {
+  const startGame = (mode: GameMode) => {
     setGameState({ 
       ...initialGameState,
       isPlaying: true,
+      gameMode: mode,
     });
-    showNextQuestion();
+    if (mode === 'infinite') {
+      showNextQuestion();
+    }
   };
 
   // Add toggle pause function
@@ -769,11 +704,27 @@ export default function Game() {
     );
   }
 
+  // Add new state for showing level map
+  const [showLevelMap, setShowLevelMap] = useState(false);
+
+  // Add level selection handler
+  const handleLevelSelect = (levelId: number) => {
+    setShowLevelMap(false);
+    setGameState({
+      ...initialGameState,
+      isPlaying: true,
+      gameMode: 'levels',
+      currentLevel: levelId,
+    });
+    // TODO: Load level-specific questions and configuration
+    showNextQuestion();
+  };
+
   return (
     // Add touch-action CSS to prevent default touch behaviors
     <div className="w-full h-screen" style={{ touchAction: 'none' }} onTouchStart={(e: React.TouchEvent) => handleTouchStart(e.nativeEvent)} onTouchEnd={(e: React.TouchEvent) => handleTouchEnd(e.nativeEvent)}>
       {/* Game Menu */}
-      {!gameState.isPlaying && (
+      {!gameState.isPlaying && !showLevelMap && (
         <div 
           className="absolute inset-0 flex items-center justify-center z-30"
           style={{
@@ -788,27 +739,43 @@ export default function Game() {
               <h1 className="text-4xl font-bold text-white">Road Sign Rush</h1>
             </div>
             
-            {/* Start Game Button */}
-            <button
-              onClick={startGame}
-              className="bg-[#333333] hover:bg-[#444444] text-white px-8 py-3 
-                       rounded-lg font-bold text-xl transition-colors flex items-center gap-4
-                       shadow-lg"
-            >
-              <svg 
-                width="24" 
-                height="24" 
-                viewBox="0 0 24 24" 
-                fill="white"
-              > 
-                <path d="M18.92 6.01C18.72 5.42 18.16 5 17.5 5h-11c-.66 0-1.21.42-1.42 1.01L3 12v8c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1h12v1c0 .55-.45 1-1 1h1c.55 0 1-.45 1-1v-8l-2.08-5.99zM6.85 7h10.29l1.08 3.11H5.77L6.85 7zM19 17H5v-5h14v5z"/>
-                <circle cx="7.5" cy="14.5" r="1.5"/>
-                <circle cx="16.5" cy="14.5" r="1.5"/>
-              </svg>
-              Start Game
-            </button>
+            {/* Game Mode Buttons */}
+            <div className="flex flex-col gap-4">
+              <button
+                onClick={() => startGame('infinite')}
+                className="bg-[#333333] hover:bg-[#444444] text-white px-8 py-3 
+                         rounded-lg font-bold text-xl transition-colors flex items-center gap-4
+                         shadow-lg"
+              >
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="white">
+                  <path d="M8 5v14l11-7z"/>
+                </svg>
+                Infinite Mode
+              </button>
+              
+              <button
+                onClick={() => setShowLevelMap(true)}
+                className="bg-[#4A63B4] hover:bg-[#5A73C4] text-white px-8 py-3 
+                         rounded-lg font-bold text-xl transition-colors flex items-center gap-4
+                         shadow-lg"
+              >
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="white">
+                  <path d="M3 5v14h18V5H3zm16 12H5V7h14v10z"/>
+                  <path d="M8.5 11.5l2.5 3 3.5-4.5 4.5 6H5z"/>
+                </svg>
+                Levels Mode
+              </button>
+            </div>
           </div>
         </div>
+      )}
+
+      {/* Level Selection Screen */}
+      {showLevelMap && (
+        <LevelMap
+          onSelectLevel={handleLevelSelect}
+          onBack={() => setShowLevelMap(false)}
+        />
       )}
 
       {/* Oracle Feedback Modal */}
@@ -1210,6 +1177,59 @@ function FuelIcon({ depleted }: { depleted?: boolean }) {
     >
       <path d="M19.77 7.23l.01-.01-3.72-3.72L15 4.56l2.11 2.11c-.94.36-1.61 1.26-1.61 2.33 0 1.38 1.12 2.5 2.5 2.5.36 0 .69-.08 1-.21v7.21c0 .55-.45 1-1 1s-1-.45-1-1V14c0-1.1-.9-2-2-2h-1V5c0-1.1-.9-2-2-2H6c-1.1 0-2 .9-2 2v16h10v-7.5h1.5v5c0 1.38 1.12 2.5 2.5 2.5s2.5-1.12 2.5-2.5V9c0-.69-.28-1.32-.73-1.77zM12 10H6V5h6v5zm6 0c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1z"/>
     </svg>
+  );
+}
+
+// Add new LevelMap component
+function LevelMap({ onSelectLevel, onBack }: { 
+  onSelectLevel: (level: number) => void,
+  onBack: () => void 
+}) {
+  const levels = [
+    { id: 1, name: "Basics of the Road", difficulty: "Easy" },
+    { id: 2, name: "Traffic Signs", difficulty: "Easy" },
+    { id: 3, name: "Speed Control", difficulty: "Medium" },
+    { id: 4, name: "Complex Intersections", difficulty: "Medium" },
+    { id: 5, name: "Advanced Navigation", difficulty: "Hard" },
+    // Add more levels as needed
+  ];
+
+  return (
+    <div className="absolute inset-0 flex items-center justify-center z-30 bg-black/80">
+      <div className="bg-white p-8 rounded-xl shadow-2xl max-w-4xl w-full mx-4">
+        <div className="flex justify-between items-center mb-6">
+          <h2 className="text-3xl font-bold text-gray-800">Select Level</h2>
+          <button
+            onClick={onBack}
+            className="text-gray-600 hover:text-gray-800 transition-colors"
+          >
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {levels.map((level) => (
+            <button
+              key={level.id}
+              onClick={() => onSelectLevel(level.id)}
+              className="relative group p-6 bg-gray-100 rounded-lg hover:bg-blue-50 transition-all duration-200"
+            >
+              <div className="absolute inset-0 bg-blue-500/0 group-hover:bg-blue-500/5 rounded-lg transition-colors" />
+              <h3 className="text-xl font-semibold mb-2 text-gray-800">{level.name}</h3>
+              <div className={`text-sm px-2 py-1 rounded-full inline-block
+                ${level.difficulty === 'Easy' ? 'bg-green-100 text-green-700' :
+                  level.difficulty === 'Medium' ? 'bg-yellow-100 text-yellow-700' :
+                  'bg-red-100 text-red-700'}`}
+              >
+                {level.difficulty}
+              </div>
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
   );
 }
 
