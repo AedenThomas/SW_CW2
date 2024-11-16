@@ -56,6 +56,7 @@ export interface GameState {
   isPaused: boolean;
   gameMode: GameMode | null;
   currentLevel: number;
+  levelQuestions: SignQuestions[];
 }
 
 export interface PowerUp {

@@ -15,6 +15,11 @@ const getRandomSigns = (currentSign: string, count: number = 2): string[] => {
   return randomSigns;
 };
 
+// Add this new function
+export const getLevelQuestions = (levelId: number): SignQuestions[] => {
+  return questions.filter(q => q.levelId === levelId);
+};
+
 export const questions: SignQuestions[] = [
   {
     signPath: process.env.PUBLIC_URL + "/signs/warning-signs-jpg/1/504.1L.jpg",

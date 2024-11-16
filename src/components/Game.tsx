@@ -3,7 +3,7 @@ import { useState, useEffect, useRef, Suspense } from 'react';
 import { motion } from 'framer-motion';
 import { Physics } from '@react-three/rapier';
 import { PerspectiveCamera, useGLTF, Sky, Stars } from '@react-three/drei';
-import { questions, getOptionsForQuestion } from '../data/questions';
+import { questions, getOptionsForQuestion, getLevelQuestions } from '../data/questions';
 import { LANE_SWITCH_COOLDOWN } from '../constants/game';
 import { GameState, Question, GameMode } from '../types/game'; // Import Question and GameMode types
 import { OracleButton, OracleModal } from './Oracle';
@@ -54,6 +54,7 @@ const initialGameState: GameState = {
   isPaused: false,
   gameMode: null as GameMode | null,
   currentLevel: 0,
+  levelQuestions: [], // Add this new property
 };
 
 export default function Game() {
@@ -96,8 +97,14 @@ export default function Game() {
   }, []);
 
   const showNextQuestion = () => {
-    // Select a random sign group
-    const signGroup = questions[Math.floor(Math.random() * questions.length)];
+    let availableQuestions = gameState.gameMode === 'levels' 
+      ? gameState.levelQuestions 
+      : questions;
+
+    if (availableQuestions.length === 0) return;
+
+    // Select a random sign group from available questions
+    const signGroup = availableQuestions[Math.floor(Math.random() * availableQuestions.length)];
     
     // Select a random question from that sign's questions
     const questionIndex = Math.floor(Math.random() * signGroup.questions.length);
@@ -465,13 +472,14 @@ export default function Game() {
   // Add level selection handler
   const handleLevelSelect = (levelId: number) => {
     setShowLevelMap(false);
+    const levelQuestions = getLevelQuestions(levelId);
     setGameState({
       ...initialGameState,
       isPlaying: true,
       gameMode: 'levels',
       currentLevel: levelId,
+      levelQuestions: levelQuestions
     });
-    // TODO: Load level-specific questions and configuration
     showNextQuestion();
   };
 
