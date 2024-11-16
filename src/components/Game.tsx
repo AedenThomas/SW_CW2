@@ -1,16 +1,11 @@
-import { Canvas, useFrame } from '@react-three/fiber';
+import { Canvas } from '@react-three/fiber';
 import { useState, useEffect, useRef, Suspense } from 'react';
 import { motion } from 'framer-motion';
-import { Physics, RigidBody, CuboidCollider, RapierRigidBody } from '@react-three/rapier';
-import { Environment, PerspectiveCamera, useGLTF, Text, Sky, Stars, Html } from '@react-three/drei';
-import { Vector3, Quaternion, Euler } from 'three';
+import { Physics } from '@react-three/rapier';
+import { PerspectiveCamera, useGLTF, Sky, Stars } from '@react-three/drei';
 import { questions, getOptionsForQuestion } from '../data/questions';
-import { lerp } from 'three/src/math/MathUtils';
-import * as THREE from 'three';
-import { EnvironmentDecorations } from './Environment';
-import { GAME_SPEED, LANE_SWITCH_SPEED, LANE_SWITCH_COOLDOWN } from '../constants/game';
+import { LANE_SWITCH_COOLDOWN } from '../constants/game';
 import { GameState, Question, GameMode } from '../types/game'; // Import Question and GameMode types
-import { UserData } from '../types/userData';
 import { OracleButton, OracleModal } from './Oracle';
 import { TrafficObstacle, NUM_OBSTACLES } from './TrafficObstacle';
 import { FuelIcon } from './FuelIcon';
@@ -20,7 +15,7 @@ import { PlayerCar } from './PlayerCar';
 import {MovingAnswerOptions} from './MovingAnswerOptions';
 import { MovingLaneDividers } from './MovingLaneDividers';
 import { PauseButton } from './PauseButton';
-
+import { LoadingScreen } from './LoadingScreen';
 
 // Add debug logging utility
 const DEBUG = true;
@@ -29,15 +24,15 @@ const debugLog = (message: string, data?: any) => {
   }
 };
 
-// Add these constants at the top of the file
+
 const SWIPE_THRESHOLD = 50; // Minimum swipe distance to trigger lane change
 const SWIPE_TIMEOUT = 300; // Maximum time in ms for a swipe
 
-// Update these constants at the top of the file
+
 export const LANE_POSITIONS = [-5, 0, 5]; // Make sure these match your desired positions
 
 
-// Inside the Game component, add touch handling
+
 const initialGameState: GameState = {
   currentLane: 1,
   score: 0,
@@ -241,28 +236,6 @@ export default function Game() {
     }
   };
 
-  // Add hint request handler
-  const handleHintRequest = () => {
-    if (!gameState.currentQuestion || !gameState.oracleMode) return;
-    
-    setGameState(prev => ({
-      ...prev,
-      hintsUsed: prev.hintsUsed + 1,
-      oracleFeedback: {
-        message: gameState.currentQuestion!.oracleHelp.hint,
-        type: 'hint',
-        shown: true
-      }
-    }));
-
-    // Clear hint after delay
-    setTimeout(() => {
-      setGameState(prev => ({
-        ...prev,
-        oracleFeedback: null
-      }));
-    }, 3000);
-  };
 
   // Update keyboard controls with debugging
   useEffect(() => {
@@ -485,43 +458,6 @@ export default function Game() {
   // Adjust initialZ to position obstacles away from options
   const obstacleInitialZ = -200; // Increased from -100 for better spacing
 
-  // Add LoadingScreen component
-  function LoadingScreen() {
-    return (
-      <Html center>
-        <div className="relative flex flex-col items-center justify-center p-8 rounded-xl bg-[#4A63B4]/90 border-2 border-white/30 backdrop-blur-md shadow-2xl">
-          {/* Animated car icon */}
-          <div className="relative mb-6">
-            <svg
-              className="w-16 h-16 text-white"
-              viewBox="0 0 24 24"
-              fill="currentColor"
-            >
-              <path d="M18.92 6.01C18.72 5.42 18.16 5 17.5 5h-11c-.66 0-1.21.42-1.42 1.01L3 12v8c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1h12v1c0 .55-.45 1-1 1h1c.55 0 1-.45 1-1v-8l-2.08-5.99zM6.85 7h10.29l1.08 3.11H5.77L6.85 7zM19 17H5v-5h14v5z"/>
-              <circle cx="7.5" cy="14.5" r="1.5"/>
-              <circle cx="16.5" cy="14.5" r="1.5"/>
-            </svg>
-            {/* Animated pulse circles */}
-            <div className="absolute inset-0 -z-10">
-              <div className="absolute inset-0 animate-ping rounded-full bg-white/20"></div>
-              <div className="absolute inset-0 animate-pulse rounded-full bg-white/10"></div>
-            </div>
-          </div>
-
-          {/* Loading text */}
-          <h2 className="text-2xl font-bold text-white mb-4">Loading Game</h2>
-          
-          {/* Progress bar */}
-          <div className="w-48 h-2 bg-white/20 rounded-full overflow-hidden">
-            <div className="h-full bg-white/80 rounded-full animate-loading-progress"></div>
-          </div>
-
-          {/* Loading message */}
-          <p className="mt-4 text-white/80 text-sm">Please wait while we prepare your driving experience...</p>
-        </div>
-      </Html>
-    );
-  }
 
   // Add new state for showing level map
   const [showLevelMap, setShowLevelMap] = useState(false);
