@@ -18,6 +18,7 @@ const getRandomSigns = (currentSign: string, count: number = 2): string[] => {
 export const questions: SignQuestions[] = [
   {
     signPath: process.env.PUBLIC_URL + "/signs/warning-signs-jpg/1/504.1L.jpg",
+    levelId: 1,
     questions: [
       {
         text: "Which UK warning road sign features a black cross-shaped symbol with an arrow pointing to the left within a red triangular border?"
@@ -40,6 +41,7 @@ export const questions: SignQuestions[] = [
   },
   {
     signPath: process.env.PUBLIC_URL + "/signs/warning-signs-jpg/1/504.1.jpg",
+    levelId: 1,
     questions: [
       {
         text: "Which warning sign shows a black cross-shaped symbol indicating a crossroads ahead?"
@@ -62,6 +64,7 @@ export const questions: SignQuestions[] = [
   },
   {
     signPath: process.env.PUBLIC_URL + "/signs/warning-signs-jpg/1/503.jpg",
+    levelId: 2,
     questions: [
       {
         text: "Which warning sign indicates that drivers must yield to traffic in 50 yards?"
@@ -84,6 +87,7 @@ export const questions: SignQuestions[] = [
   },
   {
     signPath: process.env.PUBLIC_URL + "/signs/warning-signs-jpg/1/502.jpg",
+    levelId: 2,
     questions: [
       {
         text: "Which sign warns drivers of a STOP sign 100 yards ahead?"
@@ -106,6 +110,7 @@ export const questions: SignQuestions[] = [
   },
   {
     signPath: process.env.PUBLIC_URL + "/signs/warning-signs-jpg/1/501.jpg",
+    levelId: 3,
     questions: [
       {
         text: "Which triangular warning sign shows the standard 'Give Way' symbol?"

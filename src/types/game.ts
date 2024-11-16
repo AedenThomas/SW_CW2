@@ -4,6 +4,7 @@ export interface SignQuestion {
 
 export interface SignQuestions {
   signPath: string;
+  levelId: number;  // Add this line
   questions: SignQuestion[];
   oracleHelp: {
     hint: string;
