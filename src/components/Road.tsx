@@ -1,6 +1,3 @@
-import { useTexture } from '@react-three/drei';
-import * as THREE from 'three';
-
 export function Road() {
   return (
     <mesh rotation={[-Math.PI / 2, 0, 0]} receiveShadow position={[0, 0, 0]}>

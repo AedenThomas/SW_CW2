@@ -16,6 +16,7 @@ import {MovingAnswerOptions} from './MovingAnswerOptions';
 import { MovingLaneDividers } from './MovingLaneDividers';
 import { PauseButton } from './PauseButton';
 import { LoadingScreen } from './LoadingScreen';
+import { saveLevelProgress } from '../utils/storage';
 
 // Add debug logging utility
 const DEBUG = true;
@@ -515,6 +516,18 @@ export default function Game() {
       showNextQuestion();
     }, 0);
   };
+
+  useEffect(() => {
+    if (gameState.isGameOver && gameState.gameMode === 'levels') {
+      // Save progress when game ends
+      saveLevelProgress(gameState.currentLevel, {
+        highScore: gameState.score,
+        remainingLives: gameState.lives,
+        completed: gameState.lives > 0, // Consider level completed if player didn't lose all lives
+        lastPlayed: new Date().toISOString()
+      });
+    }
+  }, [gameState.isGameOver]);
 
   return (
     // Add touch-action CSS to prevent default touch behaviors

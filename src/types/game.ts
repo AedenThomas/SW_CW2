@@ -66,3 +66,14 @@ export interface PowerUp {
   duration: number;
   active: boolean;
 }
+
+export interface LevelProgress {
+  highScore: number;
+  remainingLives: number;
+  completed: boolean;
+  lastPlayed: string;
+}
+
+export interface LevelProgressMap {
+  [levelId: number]: LevelProgress;
+}

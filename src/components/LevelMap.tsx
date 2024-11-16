@@ -3,6 +3,8 @@ import { motion } from 'framer-motion';
 import { useViewport } from '../hooks/useViewport';
 import { questions } from '../data/questions';
 import { useState } from 'react';
+import { getAllLevelProgress } from '../utils/storage';
+import { LevelProgressMap } from '../types/game';
 
 // Add these utility functions at the top of the component
 function getBezierPoint(t: number, p0: Point, p1: Point, p2: Point, p3: Point) {
@@ -96,6 +98,7 @@ export function LevelMap({ onSelectLevel, onBack }: {
     const { width, height, isMobile } = useViewport();
     const [selectedLevel, setSelectedLevel] = useState<number | null>(null);
     const [currentSignIndex, setCurrentSignIndex] = useState(0);
+    const [levelProgress, setLevelProgress] = useState<LevelProgressMap>({});
     
     const levels = [
         { id: 1, name: "First Steps", difficulty: "Easy", description: "Learn basic road safety" },
@@ -145,6 +148,10 @@ export function LevelMap({ onSelectLevel, onBack }: {
             setCurrentSignIndex(0);
         }
     }, [selectedLevel]);
+
+    useEffect(() => {
+        setLevelProgress(getAllLevelProgress());
+    }, []);
 
     // Calculate curve points using useMemo to prevent recalculation
     const { roadPoints, curvePoints } = useMemo(() => {
@@ -229,10 +236,12 @@ export function LevelMap({ onSelectLevel, onBack }: {
 
                         {/* Level Markers */}
                         {levels.map((level, index) => {
+                            const progress = levelProgress[level.id];
                             const curveLength = getCurveLength(curvePoints);
                             const spacing = curveLength / (levels.length - 1);
                             const distance = index * spacing;
                             const point = getPointAtDistance(curvePoints, distance);
+                            const levelInfoId = `level-info-${level.id}`;
 
                             return (
                                 <g key={level.id} transform={`translate(${point.x}, ${point.y})`}>
@@ -241,13 +250,29 @@ export function LevelMap({ onSelectLevel, onBack }: {
                                         animate={{ scale: 1 }}
                                         transition={{ delay: index * 0.1 }}
                                     >
-                                        {/* Clickable circle */}
+                                        {/* Single combined circle for both hover and click */}
                                         <circle
-                                            r={isMobile ? "32" : "45"} // 32 * 1.15 ≈ 37
+                                            r={isMobile ? "32" : "45"}
                                             fill={getDifficultyColor(level.difficulty)}
-                                            className="cursor-pointer transition-transform duration-200 hover:scale-110"
+                                            className={`transition-transform duration-200 hover:scale-110 cursor-pointer
+                                                ${progress?.completed ? 'stroke-2 stroke-yellow-400' : ''}`}
                                             onClick={() => handleLevelClick(level.id)}
+                                            onMouseEnter={() => {
+                                                const popup = document.getElementById(levelInfoId);
+                                                if (popup) {
+                                                    popup.classList.remove('opacity-0');
+                                                    popup.classList.add('opacity-100');
+                                                }
+                                            }}
+                                            onMouseLeave={() => {
+                                                const popup = document.getElementById(levelInfoId);
+                                                if (popup) {
+                                                    popup.classList.remove('opacity-100');
+                                                    popup.classList.add('opacity-0');
+                                                }
+                                            }}
                                         />
+                                        
                                         {/* Level number */}
                                         <text
                                             x="0"
@@ -258,17 +283,69 @@ export function LevelMap({ onSelectLevel, onBack }: {
                                         >
                                             {level.id}
                                         </text>
+
                                         {/* Level info popup */}
                                         <foreignObject
-                                            x="-96"
-                                            y="40"
-                                            width="192"
-                                            height="120"
-                                            className="opacity-0 hover:opacity-100 transition-opacity pointer-events-none"
+                                            id={levelInfoId}
+                                            x="-150"
+                                            y="45"
+                                            width="300"
+                                            height="220"
+                                            className="opacity-0 transition-opacity duration-300"
+                                            style={{ pointerEvents: 'none' }}
                                         >
-                                            <div className="bg-white p-3 rounded-lg shadow-xl">
-                                                <h3 className="font-semibold text-gray-900">{level.name}</h3>
-                                                <p className="text-xs text-gray-600 mt-1">{level.description}</p>
+                                            <div className="bg-white/95 backdrop-blur-sm p-5 rounded-xl shadow-xl border border-gray-100">
+                                                <div className="flex items-start justify-between mb-3">
+                                                    <div>
+                                                        <h3 className="font-bold text-lg text-gray-900">{level.name}</h3>
+                                                        <span 
+                                                            className="inline-block px-2 py-1 mt-1 text-xs rounded-full"
+                                                            style={{ 
+                                                                backgroundColor: `${getDifficultyColor(level.difficulty)}20`,
+                                                                color: getDifficultyColor(level.difficulty)
+                                                            }}
+                                                        >
+                                                            {level.difficulty}
+                                                        </span>
+                                                    </div>
+                                                    {progress?.completed && (
+                                                        <div className="flex items-center gap-1 bg-green-100 px-2 py-1 rounded-full">
+                                                            <svg className="w-4 h-4 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                                            </svg>
+                                                            <span className="text-xs font-medium text-green-600">Complete</span>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                                
+                                                <p className="text-sm text-gray-600 mb-3">{level.description}</p>
+                                                
+                                                {progress && (
+                                                    <div className="space-y-3">
+                                                        <div className="flex items-center justify-between bg-gray-50 px-3 py-2 rounded-lg">
+                                                            <span className="text-sm text-gray-600">High Score</span>
+                                                            <span className="font-semibold text-sm">
+                                                                {progress.highScore}
+                                                                <span className="text-yellow-500 ml-1">★</span>
+                                                            </span>
+                                                        </div>
+                                                        <div className="flex items-center justify-between">
+                                                            <span className="text-sm text-gray-600">Fuel Remaining</span>
+                                                            <div className="flex gap-1.5">
+                                                                {Array.from({ length: 3 }).map((_, i) => (
+                                                                    <div
+                                                                        key={i}
+                                                                        className={`w-5 h-2 rounded-full transition-colors ${
+                                                                            i < progress.remainingLives
+                                                                                ? 'bg-blue-500'
+                                                                                : 'bg-gray-200'
+                                                                        }`}
+                                                                    />
+                                                                ))}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                )}
                                             </div>
                                         </foreignObject>
                                     </motion.g>
@@ -353,7 +430,7 @@ export function LevelMap({ onSelectLevel, onBack }: {
                                         }}
                                         className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
                                     >
-                                        Start Level
+                                        {levelProgress[selectedLevel]?.completed ? 'Play Again' : 'Start Level'}
                                     </button>
                                 )}
                             </div>
