@@ -1,25 +1,24 @@
 import { useGLTF } from "@react-three/drei";
 import { useFrame } from "@react-three/fiber";
 import { RapierRigidBody, RigidBody, CuboidCollider } from "@react-three/rapier";
-import { useRef } from "react";
+import { useRef, useEffect } from "react";
 import { Vector3 } from "three";
 import { lerp } from "three/src/math/MathUtils";
 import * as THREE from 'three';
 
-export function PlayerCar({ position, targetPosition, handleCoinCollect }: { 
+export function PlayerCar({ position, targetPosition, handleCoinCollect, onLaneChangeComplete }: { 
     position: [number, number, number], 
     targetPosition: number,
-    handleCoinCollect: (id: number) => void 
+    handleCoinCollect: (id: number) => void,
+    onLaneChangeComplete: () => void
   }) {
   
     const { scene } = useGLTF(`${process.env.PUBLIC_URL}/models/car.glb`)
   
     const rigidBodyRef = useRef<RapierRigidBody>(null);
     const currentPos = useRef(position[0]);
-    const lastUpdateTime = useRef(0);
     const isMoving = useRef(false);
     
-    const MIN_UPDATE_INTERVAL = 16;
     const COLLISION_BOX = { width: 2, height: 1, depth: 4 };
   
     useFrame((state, delta) => {
@@ -31,6 +30,7 @@ export function PlayerCar({ position, targetPosition, handleCoinCollect }: {
         if (Math.abs(targetDiff) > 0.01) {
           if (!isMoving.current) {
             isMoving.current = true;
+            console.log(`Starting lane change to position: ${targetPosition}`); // Debug log
           }
   
           // Use a smaller lerp factor for smoother movement
@@ -61,6 +61,11 @@ export function PlayerCar({ position, targetPosition, handleCoinCollect }: {
           );
           rigidBodyRef.current.setRotation(new THREE.Quaternion(), true);
           isMoving.current = false;
+  
+          console.log(`Lane change to position ${targetPosition} completed.`); // Debug log
+  
+          // Invoke the callback to notify lane change completion
+          onLaneChangeComplete();
         }
       } catch (error) {
         console.error('Car movement error:', error);

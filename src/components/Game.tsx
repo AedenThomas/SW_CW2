@@ -62,7 +62,11 @@ const initialGameState: GameState = {
 export default function Game() {
   const [gameState, setGameState] = useState<GameState>(initialGameState);
 
-  const targetLanePosition = useRef(LANE_POSITIONS[1]);
+
+  const [targetLanePosition, setTargetLanePosition] = useState<number>(
+    LANE_POSITIONS[gameState.currentLane]
+  );
+
   const questionTimer = useRef<NodeJS.Timeout | null>(null);
   const lastLaneSwitch = useRef(0);
   const questionIdCounter = useRef(1);
@@ -272,6 +276,17 @@ export default function Game() {
 
 
   // Update keyboard controls with debugging
+  const [targetLane, setTargetLane] = useState<number | null>(null);
+
+  // Add a ref to keep track of the latest currentLane
+  const currentLaneRef = useRef<number>(gameState.currentLane);
+
+  // Update the ref whenever currentLane changes
+  useEffect(() => {
+    currentLaneRef.current = gameState.currentLane;
+    console.log(`Current Lane Updated: ${gameState.currentLane}`); // Debug log
+  }, [gameState.currentLane]);
+
   useEffect(() => {
     const handleKeyPress = (e: KeyboardEvent) => {
       if (gameState.isGameOver || !gameState.isPlaying) return;
@@ -281,50 +296,119 @@ export default function Game() {
       
       if (timeSinceLastSwitch < LANE_SWITCH_COOLDOWN) return;
 
-      setGameState((prev) => { // Use functional update
-        let newLane = prev.currentLane;
+      // Determine the base lane: use targetLane if a lane change is in progress
+      const baseLane = targetLane !== null ? targetLane : currentLaneRef.current;
 
-        switch (e.key) {
-          case 'ArrowLeft':
-            if (prev.currentLane > 0) {
-              newLane = prev.currentLane - 1;
-              lastLaneSwitch.current = now;
-              targetLanePosition.current = LANE_POSITIONS[newLane];
-            }
-            break;
-          case 'ArrowRight':
-            if (prev.currentLane < 2) {
-              newLane = prev.currentLane + 1;
-              lastLaneSwitch.current = now;
-              targetLanePosition.current = LANE_POSITIONS[newLane];
-            }
-            break;
-        }
-
-        if (newLane !== prev.currentLane) {
-          return { ...prev, currentLane: newLane, isMoving: true };
-        }
-        return prev;
-      });
+      switch (e.key) {
+        case 'ArrowLeft':
+          if (baseLane > 0) {
+            const newLane = baseLane - 1;
+            setTargetLane(newLane);
+            setTargetLanePosition(LANE_POSITIONS[newLane]); // Update targetLanePosition via state
+            lastLaneSwitch.current = now;
+            console.log(`Changing lane left to: ${newLane}`); // Debug log
+          }
+          break;
+        case 'ArrowRight':
+          if (baseLane < LANE_POSITIONS.length - 1) {
+            const newLane = baseLane + 1;
+            setTargetLane(newLane);
+            setTargetLanePosition(LANE_POSITIONS[newLane]); // Update targetLanePosition via state
+            lastLaneSwitch.current = now;
+            console.log(`Changing lane right to: ${newLane}`); // Debug log
+          }
+          break;
+      }
     };
 
-    // Create wrapper functions for touch events
-    const touchStartHandler = (e: globalThis.TouchEvent) => handleTouchStart(e);
-    const touchEndHandler = (e: globalThis.TouchEvent) => handleTouchEnd(e);
+    // Modify the touchEndHandler similarly
+    const handleTouchEnd = (e: globalThis.TouchEvent) => {
+      if (
+        touchStartX.current === null || 
+        touchStartY.current === null || 
+        gameState.isGameOver
+      ) {
+        return;
+      }
+
+      const touchEndX = e.changedTouches[0].clientX;
+      const touchEndY = e.changedTouches[0].clientY;
+      const touchEndTime = performance.now();
+
+      // Calculate swipe distance and angle
+      const deltaX = touchEndX - touchStartX.current;
+      const deltaY = touchEndY - touchStartY.current;
+      const swipeTime = touchEndTime - touchStartTime.current;
+
+      // Only process quick swipes (within SWIPE_TIMEOUT)
+      if (swipeTime > SWIPE_TIMEOUT) {
+        return;
+      }
+
+      // Check if horizontal swipe (more horizontal than vertical movement)
+      if (Math.abs(deltaX) > Math.abs(deltaY)) {
+        // Check if swipe is long enough
+        if (Math.abs(deltaX) >= SWIPE_THRESHOLD) {
+          const now = performance.now();
+          const timeSinceLastSwitch = now - lastLaneSwitch.current;
+
+          if (timeSinceLastSwitch < LANE_SWITCH_COOLDOWN) {
+            return;
+          }
+
+          // Determine the base lane: use targetLane if a lane change is in progress
+          const baseLane = targetLane !== null ? targetLane : currentLaneRef.current;
+
+          let newLane = baseLane;
+
+          if (deltaX > 0 && baseLane < 2) {
+            // Swipe right
+            newLane = baseLane + 1;
+          } else if (deltaX < 0 && baseLane > 0) {
+            // Swipe left
+            newLane = baseLane - 1;
+          }
+
+          if (newLane !== baseLane) {
+            setTargetLane(newLane);
+            setTargetLanePosition(LANE_POSITIONS[newLane]); // Update targetLanePosition via state
+            lastLaneSwitch.current = now;
+            console.log(`Swiping to lane: ${newLane}`); // Debug log
+          }
+        }
+      }
+
+      // Reset touch tracking
+      touchStartX.current = null;
+      touchStartY.current = null;
+    };
 
     window.addEventListener('keydown', handleKeyPress);
-    window.addEventListener('touchstart', touchStartHandler);
-    window.addEventListener('touchend', touchEndHandler);
+    window.addEventListener('touchstart', handleTouchStart);
+    window.addEventListener('touchend', handleTouchEnd);
 
     return () => {
-      window.addEventListener('keydown', handleKeyPress);
-      window.removeEventListener('touchstart', touchStartHandler);
-      window.removeEventListener('touchend', touchEndHandler);
+      window.removeEventListener('keydown', handleKeyPress);
+      window.removeEventListener('touchstart', handleTouchStart);
+      window.removeEventListener('touchend', handleTouchEnd);
       if (questionTimer.current) {
         clearTimeout(questionTimer.current);
       }
     };
-  }, [gameState.isGameOver, gameState.isPlaying]); // Remove currentLane from dependencies
+  }, [gameState.isGameOver, gameState.isPlaying, targetLane]); // Added targetLane to dependencies
+
+  // Define a callback for when lane change is complete
+  const onLaneChangeComplete = () => {
+    if (targetLane !== null) {
+      console.log(`Lane change complete. Setting currentLane to: ${targetLane}`); // Debug log
+      setGameState(prev => ({
+        ...prev,
+        currentLane: targetLane,
+        isMoving: false
+      }));
+      setTargetLane(null);
+    }
+  };
 
   // Add debug logging for game state changes
   useEffect(() => {
@@ -450,7 +534,7 @@ export default function Game() {
             ...prev,
             currentLane: newLane,
           }));
-          targetLanePosition.current = LANE_POSITIONS[newLane];
+          setTargetLanePosition(LANE_POSITIONS[newLane]);
         }
       }
     }
@@ -796,8 +880,9 @@ export default function Game() {
               <>
                 <PlayerCar 
                   position={[LANE_POSITIONS[gameState.currentLane], 1.0, 0]}
-                  targetPosition={targetLanePosition.current}
+                  targetPosition={targetLanePosition}
                   handleCoinCollect={handleCoinCollect}
+                  onLaneChangeComplete={onLaneChangeComplete} // Passed callback prop
                 />
                 <MovingLaneDividers gameState={gameState} />
                 {Array.from({ length: NUM_OBSTACLES }).map((_, index) => (
