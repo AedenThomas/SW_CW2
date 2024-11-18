@@ -79,20 +79,18 @@ export const SignIndex: React.FC<SignIndexProps> = ({ onBack }) => {
               {/* Signs Grid - Left Page */}
               <div className="grid grid-cols-2 gap-4">
                 {questions.slice(currentPage * ITEMS_PER_PAGE, (currentPage * ITEMS_PER_PAGE) + ITEMS_PER_PAGE).map((signGroup, index) => (
-                  <div key={index} className="bg-gray-50 rounded-lg p-3 shadow-md 
+                  <div key={index} className="bg-gray-50 rounded-lg p-4 shadow-md 
                                           hover:shadow-lg transition-shadow border border-gray-200">
                     <div className="flex flex-col items-center">
                       <img 
                         src={signGroup.signPath}
                         alt={`Traffic Sign ${index + 1}`}
-                        className="w-20 h-20 object-contain mb-2"
+                        className="w-20 h-20 object-contain mb-3"
                       />
                       <div className="text-center">
-                        {signGroup.questions.map((q, qIndex) => (
-                          <p key={qIndex} className="text-xs text-gray-700 mb-1 line-clamp-2">
-                            {q.text}
-                          </p>
-                        ))}
+                        <p className="text-sm text-gray-700 mb-1">
+                          {signGroup.oracleHelp.correctAnswerInsight}
+                        </p>
                       </div>
                     </div>
                   </div>
@@ -132,22 +130,20 @@ export const SignIndex: React.FC<SignIndexProps> = ({ onBack }) => {
               </div>
 
               {/* Signs Grid - Right Page */}
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 gap-4 mt-[68px]">
                 {questions.slice((currentPage * ITEMS_PER_PAGE) + ITEMS_PER_PAGE, (currentPage * ITEMS_PER_PAGE) + (ITEMS_PER_PAGE * 2)).map((signGroup, index) => (
-                  <div key={index} className="bg-gray-50 rounded-lg p-3 shadow-md 
+                  <div key={index} className="bg-gray-50 rounded-lg p-4 shadow-md 
                                           hover:shadow-lg transition-shadow border border-gray-200">
                     <div className="flex flex-col items-center">
                       <img 
                         src={signGroup.signPath}
                         alt={`Traffic Sign ${index + 1}`}
-                        className="w-20 h-20 object-contain mb-2"
+                        className="w-20 h-20 object-contain mb-3"
                       />
                       <div className="text-center">
-                        {signGroup.questions.map((q, qIndex) => (
-                          <p key={qIndex} className="text-xs text-gray-700 mb-1 line-clamp-2">
-                            {q.text}
-                          </p>
-                        ))}
+                        <p className="text-sm text-gray-700 mb-1">
+                          {signGroup.oracleHelp.correctAnswerInsight}
+                        </p>
                       </div>
                     </div>
                   </div>

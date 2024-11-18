@@ -711,6 +711,18 @@ export default function Game() {
             backgroundPosition: 'center'
           }}
         >
+          {/* Sign Index Button - Positioned absolutely in top left */}
+          <div className="absolute top-4 left-4">
+            <button
+              onClick={() => setShowSignIndex(true)}
+              className="bg-[#505050] hover:bg-[#505050] text-white px-4 py-2 
+                         rounded-lg transition-colors flex items-center gap-2 shadow-md"
+            >
+               📖 Sign Index 📖
+            </button>
+          </div>
+
+          {/* Centered Menu Content */}
           <div className="flex flex-col items-center gap-8">
             {/* Title */}
             <div className="bg-[#4A63B4] px-12 py-6 rounded-lg shadow-lg border-2 border-white">
@@ -719,19 +731,6 @@ export default function Game() {
             
             {/* Game Mode Buttons */}
             <div className="flex flex-col gap-4">
-              {/* Add Sign Index Button at the top */}
-              <button
-                onClick={() => setShowSignIndex(true)}
-                className="bg-[#3B50A1] hover:bg-[#4A63B4] text-white px-8 py-3 
-                         rounded-lg font-bold text-xl transition-colors flex items-center justify-center gap-4
-                         shadow-lg"
-              >
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M4 6H2v14c0 1.1.9 2 2 2h14v-2H4V6zm16-4H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H8V4h12v12z"/>
-                </svg>
-                Sign Index
-              </button>
-
               <button
                 onClick={() => startGame('infinite')}
                 className="bg-[#333333] hover:bg-[#444444] text-white px-8 py-3 
@@ -819,17 +818,7 @@ export default function Game() {
             ))}
           </div>
           
-          {/* Sign Index Button */}
-          <button
-            onClick={() => setShowSignIndex(true)}
-            className="bg-[#3B50A1] hover:bg-[#4A63B4] text-white px-4 py-2 
-                       rounded-lg transition-colors flex items-center gap-2 shadow-md"
-          >
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M4 6H2v14c0 1.1.9 2 2 2h14v-2H4V6zm16-4H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H8V4h12v12z"/>
-            </svg>
-            Sign Index
-          </button>
+         
         </div>
 
         {/* Question display with background and truss */}
