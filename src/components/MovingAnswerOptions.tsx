@@ -6,47 +6,46 @@ import { Question, GameState } from "../types/game";
 import { LANE_POSITIONS } from "./Game";
 import * as THREE from 'three';
 
-export function MovingAnswerOptions({ question, onCollision, gameState }: { 
-    question: Question, 
-    onCollision: (isCorrect: boolean) => void,
-    gameState: GameState 
-  }) {
+interface MovingAnswerOptionsProps {
+  question: Question;
+  onCollision: (isCorrect: boolean) => void;
+  gameState: GameState;
+  targetLane: number | null;
+}
+
+export function MovingAnswerOptions({ 
+  question, 
+  onCollision, 
+  gameState,
+  targetLane
+}: MovingAnswerOptionsProps) {
     const optionsGroupRef = useRef<THREE.Group>(null);
     const hasCollided = useRef(false);
     const resetPosition = useRef(false);
     const initialZ = -180;
   
     useFrame((state, delta) => {
-      if (!gameState.isPlaying || gameState.isPaused) return; // Add pause check
+      if (!gameState.isPlaying || gameState.isPaused) return;
       
       if (!optionsGroupRef.current || resetPosition.current) return;
   
       const currentZ = optionsGroupRef.current.position.z;
       
-      // Check for collision based on position
-      if (currentZ > -2 && currentZ < 2) {  // Collision zone
-        const playerLane = gameState.currentLane;
-        question.options.forEach((_, index) => {
-          if (index === playerLane && !hasCollided.current) {
-            // debugLog('Position-based collision detected', {
-            //   optionIndex: index,
-            //   playerLane,
-            //   optionZ: currentZ
-            // });
-            handleCollision(index);
-          }
-        });
+      // Enhanced collision detection logging
+      if (currentZ > -5 && currentZ < 5) {  // Expanded collision zone for debugging
       }
   
       // Move options forward
       optionsGroupRef.current.position.z += GAME_SPEED * gameState.speed * gameState.multiplier;
       
-    //   if (currentZ > -5 && currentZ < 5) {
-    //     debugLog('Options near player', {
-    //       optionsZ: currentZ,
-    //       playerLane: gameState.currentLane
-    //     });
-    //   }
+      // Position-based collision detection with enhanced logging
+      if (currentZ > -2 && currentZ < 2) {
+        const effectiveLane = targetLane !== null ? targetLane : gameState.currentLane;
+
+        if (!hasCollided.current) {
+          handleCollision(effectiveLane);
+        }
+      }
       
       // Reset if passed the player
       if (currentZ > 10) {
@@ -64,24 +63,18 @@ export function MovingAnswerOptions({ question, onCollision, gameState }: {
       }
     });
   
-    const handleCollision = (index: number) => {
-      if (!hasCollided.current && !resetPosition.current) {
-        hasCollided.current = true;
-        const isCorrect = index === question.correctAnswer;
-        
-        // debugLog('Processing collision', {
-        //   isCorrect,
-        //   index,
-        //   correctAnswer: question.correctAnswer
-        // });
-        
-        if (isCorrect && optionsGroupRef.current) {
-          resetPosition.current = true;
-          optionsGroupRef.current.visible = false;
-        }
-        
-        onCollision(isCorrect);
+    const handleCollision = (lane: number) => {
+      if (hasCollided.current) return;
+
+      hasCollided.current = true;
+      const isCorrect = lane === question.correctAnswer;
+      
+      if (isCorrect && optionsGroupRef.current) {
+        resetPosition.current = true;
+        optionsGroupRef.current.visible = false;
       }
+      
+      onCollision(isCorrect);
     };
   
     // Reset refs when question changes

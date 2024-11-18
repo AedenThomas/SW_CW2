@@ -113,7 +113,6 @@ export default function Game() {
       : [...questions];
 
     if (availableQuestions.length === 0) {
-      console.log('No questions available');
       return;
     }
 
@@ -142,7 +141,6 @@ export default function Game() {
     }
 
     // Log available questions for debugging
-    console.log('Available questions after filtering:', availableQuestions);
 
     // Select a random sign group from available questions
     const signGroup = availableQuestions[Math.floor(Math.random() * availableQuestions.length)];
@@ -151,8 +149,6 @@ export default function Game() {
     const availableSignQuestions = signGroup.questions.filter(q => 
       !gameState.askedQuestions.has(q.id)
     );
-
-    console.log('Available sign questions:', availableSignQuestions);
     
     const baseQuestion = availableSignQuestions[Math.floor(Math.random() * availableSignQuestions.length)];
     const options = getOptionsForQuestion(signGroup.signPath);
@@ -164,8 +160,6 @@ export default function Game() {
       correctAnswer: 0,
       oracleHelp: signGroup.oracleHelp
     };
-
-    console.log('Selected question:', question);
     
     // Define the safe zone based on the question's position
     const optionZPosition = 0;
@@ -319,8 +313,7 @@ export default function Game() {
 
   // Update the ref whenever currentLane changes
   useEffect(() => {
-    currentLaneRef.current = gameState.currentLane;
-    console.log(`Current Lane Updated: ${gameState.currentLane}`); // Debug log
+    currentLaneRef.current = gameState.currentLane; // Debug log
   }, [gameState.currentLane]);
 
   useEffect(() => {
@@ -341,8 +334,7 @@ export default function Game() {
             const newLane = baseLane - 1;
             setTargetLane(newLane);
             setTargetLanePosition(LANE_POSITIONS[newLane]); // Update targetLanePosition via state
-            lastLaneSwitch.current = now;
-            console.log(`Changing lane left to: ${newLane}`); // Debug log
+            lastLaneSwitch.current = now; // Debug log
           }
           break;
         case 'ArrowRight':
@@ -350,8 +342,7 @@ export default function Game() {
             const newLane = baseLane + 1;
             setTargetLane(newLane);
             setTargetLanePosition(LANE_POSITIONS[newLane]); // Update targetLanePosition via state
-            lastLaneSwitch.current = now;
-            console.log(`Changing lane right to: ${newLane}`); // Debug log
+            lastLaneSwitch.current = now; // Debug log
           }
           break;
       }
@@ -408,8 +399,7 @@ export default function Game() {
           if (newLane !== baseLane) {
             setTargetLane(newLane);
             setTargetLanePosition(LANE_POSITIONS[newLane]); // Update targetLanePosition via state
-            lastLaneSwitch.current = now;
-            console.log(`Swiping to lane: ${newLane}`); // Debug log
+            lastLaneSwitch.current = now; // Debug log
           }
         }
       }
@@ -435,8 +425,7 @@ export default function Game() {
 
   // Define a callback for when lane change is complete
   const onLaneChangeComplete = () => {
-    if (targetLane !== null) {
-      console.log(`Lane change complete. Setting currentLane to: ${targetLane}`); // Debug log
+    if (targetLane !== null) { // Debug log
       setGameState(prev => ({
         ...prev,
         currentLane: targetLane,
@@ -616,7 +605,6 @@ export default function Game() {
   // Add level selection handler
   const handleLevelSelect = (levelId: number) => {
     const levelQuestions = getLevelQuestions(levelId);
-    console.log(`Selected level ${levelId}, got questions:`, levelQuestions);
     
     setShowLevelMap(false); // Hide the level map first
     
@@ -635,8 +623,6 @@ export default function Game() {
   useEffect(() => {
     // Only initialize if we're in playing state and have a game mode set
     if (gameState.isPlaying && gameState.gameMode) {
-      console.log('Initializing game with mode:', gameState.gameMode);
-      console.log('Current level questions:', gameState.levelQuestions);
       
       // Small delay to ensure state is properly updated
       const timer = setTimeout(() => {
@@ -977,6 +963,7 @@ export default function Game() {
                     question={gameState.currentQuestion}
                     onCollision={handleCollision}
                     gameState={gameState}
+                    targetLane={targetLane}
                   />
                 )}
               </>

@@ -30,12 +30,12 @@ export function PlayerCar({ position, targetPosition, handleCoinCollect, onLaneC
         if (Math.abs(targetDiff) > 0.01) {
           if (!isMoving.current) {
             isMoving.current = true;
-            console.log(`Starting lane change to position: ${targetPosition}`); // Debug log
           }
   
           // Use a smaller lerp factor for smoother movement
           const lerpFactor = 0.08;
-          currentPos.current = lerp(currentPos.current, targetPosition,  lerpFactor);
+          const previousPos = currentPos.current;
+          currentPos.current = lerp(currentPos.current, targetPosition, lerpFactor);
   
           const newPosition = new Vector3(
             currentPos.current,
@@ -60,9 +60,7 @@ export function PlayerCar({ position, targetPosition, handleCoinCollect, onLaneC
             true
           );
           rigidBodyRef.current.setRotation(new THREE.Quaternion(), true);
-          isMoving.current = false;
-  
-          console.log(`Lane change to position ${targetPosition} completed.`); // Debug log
+          isMoving.current = false; // Debug log
   
           // Invoke the callback to notify lane change completion
           onLaneChangeComplete();
@@ -87,16 +85,8 @@ export function PlayerCar({ position, targetPosition, handleCoinCollect, onLaneC
             const otherBody = e.other.rigidBody;
             const otherType = e.other.rigidBodyObject?.userData?.type;
             
-            console.log('[PlayerCar] Collision detected:', {
-              otherType,
-              playerLane: currentPos.current,
-              otherPos: otherBody?.translation(),
-              time: Date.now()
-            });
-            
             if (otherType === 'Obstacle') {
               // Handle obstacle collision directly here
-              console.log('[PlayerCar] Hit obstacle!');
             }
           }}
         />
