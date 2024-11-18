@@ -26,7 +26,6 @@ interface TrafficObstacleProps {
   index: number; // Add index prop to stagger obstacles
   initialZ: number; // Add initialZ prop
   activeOptionZones: { start: number; end: number; }[]; // Add activeOptionZones prop
-  targetLane: number | null; // Add this prop
 }
 
 export function TrafficObstacle({ 
@@ -36,7 +35,6 @@ export function TrafficObstacle({
   index,
   initialZ,
   activeOptionZones, // Receive activeOptionZones
-  targetLane // Receive targetLane prop
 }: TrafficObstacleProps) {
   const lane = useRef(Math.floor(Math.random() * 3));
   const modelIndex = useRef(Math.floor(Math.random() * OBSTACLE_MODELS.length));
@@ -92,17 +90,12 @@ export function TrafficObstacle({
     // Update currentZ ref
     currentZ.current = newZ;
 
-    // Check for collision using effectiveLane
-    if (newZ > -2 && newZ < 2 && !hasCollided.current) {
-      // Use targetLane if available, otherwise use current lane
-      const effectiveLane = targetLane !== null ? targetLane : gameState.currentLane;
-      
-      if (effectiveLane === lane.current) {
-        console.log('[Obstacle] Collision detected:', {
+    // Check for collision based on position
+    if (newZ > -2 && newZ < 2 && !hasCollided.current) {  // Collision zone
+      if (gameState.currentLane === lane.current) {
+        console.log('[Obstacle] Position-based collision detected', {
           obstacleLane: lane.current,
-          playerCurrentLane: gameState.currentLane,
-          playerTargetLane: targetLane,
-          effectiveLane,
+          playerLane: gameState.currentLane,
           obstacleZ: newZ,
           time: Date.now()
         });
@@ -116,23 +109,24 @@ export function TrafficObstacle({
       }
     }
 
-    // Respawn logic
+    // Before respawning, ensure the new spawn position is outside the safe zones
     if (newZ > 15) {
       hasCollided.current = false;
       lane.current = Math.floor(Math.random() * 3);
       
-      // Ensure new lane is different from player's effective lane
-      const effectiveLane = targetLane !== null ? targetLane : gameState.currentLane;
-      while (lane.current === effectiveLane) {
+      // Ensure new lane is different from player's current lane
+      while (lane.current === gameState.currentLane) {
         lane.current = Math.floor(Math.random() * 3);
       }
-      
       modelIndex.current = Math.floor(Math.random() * OBSTACLE_MODELS.length);
       
+      // Calculate new spawn Z
       let repositionedZ = initialZ + (index * SPAWN_INTERVAL);
       
+      // Check against all active safe zones and adjust repositionedZ accordingly
       activeOptionZones.forEach(zone => {
         if (repositionedZ >= zone.start && repositionedZ <= zone.end) {
+          // Adjust repositionedZ to be after the safe zone
           repositionedZ = zone.end + SAFE_ZONE_AFTER;
         }
       });

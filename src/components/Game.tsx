@@ -60,6 +60,34 @@ const initialGameState: GameState = {
   activeOptionZones: [], // Add this new property to track active option zones
 };
 
+// Add this helper function near the top of the file
+const getGameOverMessage = (gameState: GameState) => {
+  if (gameState.gameMode === 'levels') {
+    if (gameState.lives > 0) {
+      return {
+        title: "Level Complete! 🎉",
+        message: `You scored ${gameState.score} points!`,
+        buttonText: "Play Next Level"
+      };
+    } else {
+      return {
+        title: "Level Failed",
+        message: "Keep practicing! You'll get better!",
+        buttonText: "Try Again"
+      };
+    }
+  } else { // infinite mode
+    return {
+      title: "Game Over",
+      message: `Final Score: ${gameState.score}`,
+      buttonText: "Play Again"
+    };
+  }
+};
+
+// Add this near the top of the file, after other constants
+const MAX_SPEED = 3; // Maximum possible speed in the game
+
 export default function Game() {
   const [gameState, setGameState] = useState<GameState>(initialGameState);
 
@@ -851,6 +879,45 @@ export default function Game() {
             </div>
           </>
         )}
+
+        {/* Repositioned speedometer */}
+        {gameState.isPlaying && (
+          <div className="absolute right-32 top-1/4 transform -translate-y-1/2 z-20">
+            <div className="bg-black/80 rounded-lg p-3 backdrop-blur-sm border border-white/20 flex flex-col items-center">
+              <span className="text-white text-xs mb-1">SPEED</span>
+              {/* Speedometer bar - made slightly smaller */}
+              <div className="w-24 h-2 bg-gray-700 rounded-full overflow-hidden">
+                <div 
+                  className="h-full bg-gradient-to-r from-green-500 via-yellow-500 to-red-500 transition-all duration-300"
+                  style={{ 
+                    width: `${(gameState.speed / MAX_SPEED) * 100}%`,
+                  }}
+                />
+              </div>
+              {/* Speed multiplier text */}
+              <span className="text-white text-sm mt-1 font-bold">
+                {gameState.speed.toFixed(1)}x
+              </span>
+              {/* Speed indicator arrows */}
+              <div className="flex gap-1 mt-0.5">
+                {Array.from({ length: Math.floor((gameState.speed - 1) * 2) }).map((_, i) => (
+                  <svg 
+                    key={i}
+                    className="w-2 h-2 text-yellow-500 animate-pulse"
+                    viewBox="0 0 20 20"
+                    fill="currentColor"
+                  >
+                    <path 
+                      fillRule="evenodd" 
+                      d="M5.293 7.707a1 1 0 010-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 01-1.414 1.414L11 5.414V17a1 1 0 11-2 0V5.414L6.707 7.707a1 1 0 01-1.414 0z" 
+                      clipRule="evenodd" 
+                    />
+                  </svg>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Game Over Screen */}
@@ -859,30 +926,64 @@ export default function Game() {
           <motion.div 
             initial={{ scale: 0.8, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
-            className="bg-white p-8 rounded-lg text-center"
+            className="bg-white p-8 rounded-lg text-center max-w-md w-full mx-4"
           >
-            <h2 className="text-3xl font-bold mb-4">Game Over!</h2>
-            <button
-              onClick={() => {
-                // Preserve the game mode and level when restarting
-                const currentLevel = gameState.currentLevel;
-                const currentMode = gameState.gameMode;
-                const levelQuestions = currentMode === 'levels' ? getLevelQuestions(currentLevel) : [];
-                
-                setGameState({
-                  ...initialGameState,
-                  isPlaying: true,
-                  isPaused: false,
-                  gameMode: currentMode,
-                  currentLevel: currentLevel,
-                  levelQuestions: levelQuestions
-                });
-                showNextQuestion();
-              }}
-              className="bg-blue-500 hover:bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold transition-colors"
-            >
-              Play Again
-            </button>
+            <h2 className={`text-3xl font-bold mb-2 ${
+              gameState.lives > 0 ? 'text-green-600' : 'text-red-600'
+            }`}>
+              {getGameOverMessage(gameState).title}
+            </h2>
+            <p className="text-gray-700 text-xl mb-6">
+              {getGameOverMessage(gameState).message}
+            </p>
+            <div className="flex flex-col gap-3">
+              <button
+                onClick={() => {
+                  // Preserve the game mode when restarting
+                  const currentMode = gameState.gameMode;
+                  let nextLevel = gameState.currentLevel;
+                  
+                  // If level was completed successfully, increment the level
+                  if (currentMode === 'levels' && gameState.lives > 0) {
+                    nextLevel = gameState.currentLevel + 1;
+                  }
+                  
+                  const levelQuestions = currentMode === 'levels' ? getLevelQuestions(nextLevel) : [];
+                  
+                  setGameState({
+                    ...initialGameState,
+                    isPlaying: true,
+                    isPaused: false,
+                    gameMode: currentMode,
+                    currentLevel: nextLevel,
+                    levelQuestions: levelQuestions
+                  });
+                  showNextQuestion();
+                }}
+                className={`px-6 py-3 rounded-lg font-semibold transition-colors ${
+                  gameState.lives > 0 
+                    ? 'bg-green-500 hover:bg-green-600 text-white'
+                    : 'bg-blue-500 hover:bg-blue-600 text-white'
+                }`}
+              >
+                {getGameOverMessage(gameState).buttonText}
+              </button>
+              
+              <button
+                onClick={() => {
+                  // Return to main menu
+                  setGameState({
+                    ...initialGameState,
+                    isPlaying: false,
+                    gameMode: null
+                  });
+                }}
+                className="px-6 py-3 rounded-lg font-semibold transition-colors 
+                           border-2 border-gray-300 hover:bg-gray-100"
+              >
+                Return to Menu
+              </button>
+            </div>
           </motion.div>
         </div>
       )}
@@ -954,8 +1055,7 @@ export default function Game() {
                     setGameState={setGameState}
                     onRespawn={() => {}}
                     initialZ={obstacleInitialZ}
-                    activeOptionZones={gameState.activeOptionZones}
-                    targetLane={targetLane}
+                    activeOptionZones={gameState.activeOptionZones} // Pass activeOptionZones
                   />
                 ))}
                 {/* Only show options when not showing correct answer */}
