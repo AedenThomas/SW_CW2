@@ -954,7 +954,8 @@ export default function Game() {
                     setGameState={setGameState}
                     onRespawn={() => {}}
                     initialZ={obstacleInitialZ}
-                    activeOptionZones={gameState.activeOptionZones} // Pass activeOptionZones
+                    activeOptionZones={gameState.activeOptionZones}
+                    targetLane={targetLane}
                   />
                 ))}
                 {/* Only show options when not showing correct answer */}
