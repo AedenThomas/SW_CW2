@@ -59,6 +59,7 @@ export interface GameState {
   currentLevel: number;
   levelQuestions: SignQuestions[];
   askedQuestions: Set<number>;
+  activeOptionZones: { start: number; end: number; }[]; // Add this new property
 }
 
 export interface PowerUp {

@@ -4,7 +4,7 @@ import { motion } from 'framer-motion';
 import { Physics } from '@react-three/rapier';
 import { PerspectiveCamera, useGLTF, Sky, Stars } from '@react-three/drei';
 import { questions, getOptionsForQuestion, getLevelQuestions } from '../data/questions';
-import { LANE_SWITCH_COOLDOWN } from '../constants/game';
+import { LANE_SWITCH_COOLDOWN, SAFE_ZONE_AFTER, SAFE_ZONE_BEFORE } from '../constants/game';
 import { GameState, Question, GameMode } from '../types/game'; // Import Question and GameMode types
 import { OracleButton, OracleModal } from './Oracle';
 import { TrafficObstacle, NUM_OBSTACLES } from './TrafficObstacle';
@@ -57,6 +57,7 @@ const initialGameState: GameState = {
   currentLevel: 0,
   levelQuestions: [], // Add this new property
   askedQuestions: new Set<number>(), // Add this new property
+  activeOptionZones: [], // Add this new property to track active option zones
 };
 
 export default function Game() {
@@ -105,20 +106,23 @@ export default function Game() {
   const showNextQuestion = () => {
     // Create a local variable for the gameMode with proper type guard
     const isLevelMode = gameState.gameMode === 'levels';
+    
+    // IMPORTANT: Only use levelQuestions if in level mode, otherwise use all questions
     let availableQuestions = isLevelMode 
-      ? gameState.levelQuestions 
-      : questions;
-  
+      ? [...gameState.levelQuestions] // Create a copy to avoid mutations
+      : [...questions];
+
     if (availableQuestions.length === 0) {
       console.log('No questions available');
       return;
     }
-  
+
     // Filter out sign groups that have all questions asked
-    availableQuestions = availableQuestions.filter(signGroup => 
-      signGroup.questions.some(q => !gameState.askedQuestions.has(q.id))
-    );
-  
+    availableQuestions = availableQuestions.filter(signGroup => {
+      // Check if any question in this sign group hasn't been asked yet
+      return signGroup.questions.some(q => !gameState.askedQuestions.has(q.id));
+    });
+
     if (availableQuestions.length === 0) {
       if (isLevelMode) {
         setGameState(prev => ({
@@ -127,36 +131,54 @@ export default function Game() {
         }));
         return;
       }
+      // Reset asked questions if in infinite mode
       setGameState(prev => ({
         ...prev,
         askedQuestions: new Set()
       }));
       availableQuestions = isLevelMode
-        ? gameState.levelQuestions 
-        : questions;
+        ? [...gameState.levelQuestions]
+        : [...questions];
     }
-  
+
+    // Log available questions for debugging
+    console.log('Available questions after filtering:', availableQuestions);
+
+    // Select a random sign group from available questions
     const signGroup = availableQuestions[Math.floor(Math.random() * availableQuestions.length)];
+    
+    // Get questions from this sign group that haven't been asked yet
     const availableSignQuestions = signGroup.questions.filter(q => 
       !gameState.askedQuestions.has(q.id)
     );
+
+    console.log('Available sign questions:', availableSignQuestions);
     
     const baseQuestion = availableSignQuestions[Math.floor(Math.random() * availableSignQuestions.length)];
     const options = getOptionsForQuestion(signGroup.signPath);
     
-    const question: Question = {
+    const question = {
       ...baseQuestion,
       signPath: signGroup.signPath,
       options: options,
       correctAnswer: 0,
       oracleHelp: signGroup.oracleHelp
     };
+
+    console.log('Selected question:', question);
     
-    // Use Array.from to convert Set to array before spreading
+    // Define the safe zone based on the question's position
+    const optionZPosition = 0;
+    const newSafeZone = {
+      start: optionZPosition - SAFE_ZONE_BEFORE,
+      end: optionZPosition + SAFE_ZONE_AFTER,
+    };
+
     setGameState(prev => ({
       ...prev,
       currentQuestion: question,
-      askedQuestions: new Set([...Array.from(prev.askedQuestions), question.id])
+      askedQuestions: new Set([...Array.from(prev.askedQuestions), question.id]),
+      activeOptionZones: [newSafeZone],
     }));
   };
 
@@ -223,17 +245,19 @@ export default function Game() {
           newScore: gameState.score + 100
         });
 
+        // Show the green flash effect
+        setShowCorrectAnswerFlash(true);
+
         setGameState(prev => {
           const newConsecutiveCorrect = prev.consecutiveCorrect + 1;
           const speedIncrease = Math.floor(newConsecutiveCorrect / 3);
-          const newSpeed = 1 + (speedIncrease * 0.5); // Increase speed by 0.5 for every 3 correct answers
+          const newSpeed = 1 + (speedIncrease * 0.5);
           
-          // Calculate bonus based on speed level
           const speedLevel = Math.floor((newConsecutiveCorrect - 1) / 3);
           const baseScore = 100;
           const bonus = speedLevel > 0 ? speedLevel * 10 : 0;
           const scoreIncrease = baseScore + bonus;
-      
+
           return {
             ...prev,
             score: prev.score + scoreIncrease,
@@ -242,6 +266,12 @@ export default function Game() {
             speed: newSpeed
           };
         });
+
+        // Hide the flash effect after 1.5 seconds
+        setTimeout(() => {
+          setShowCorrectAnswerFlash(false);
+        }, 1500);
+
         setTimeout(showNextQuestion, 200);
       } else {
         debugLog('Wrong answer in normal mode', {
@@ -249,7 +279,8 @@ export default function Game() {
           newLives: gameState.lives - 1
         });
 
-        // Show the correct answer
+        // Show the correct answer and flash effect
+        setShowWrongAnswerFlash(true);
         setGameState(prev => {
           const newLives = prev.lives - 1;
           return {
@@ -262,6 +293,11 @@ export default function Game() {
           };
         });
 
+        // Hide the flash effect after 1.5 seconds instead of 500ms
+        setTimeout(() => {
+          setShowWrongAnswerFlash(false);
+        }, 1500);
+
         // Hide the correct answer and show next question after delay
         setTimeout(() => {
           setGameState(prev => ({
@@ -269,7 +305,7 @@ export default function Game() {
             showingCorrectAnswer: false
           }));
           showNextQuestion();
-        }, 3000); // Show for 3 seconds
+        }, 3000);
       }
     }
   };
@@ -447,14 +483,11 @@ export default function Game() {
 
   // Add new function to handle game start
   const startGame = (mode: GameMode) => {
-    setGameState({ 
+    setGameState(prev => ({ 
       ...initialGameState,
       isPlaying: true,
       gameMode: mode,
-    });
-    if (mode === 'infinite') {
-      showNextQuestion();
-    }
+    }));
   };
 
   // Add toggle pause function
@@ -583,23 +616,36 @@ export default function Game() {
   // Add level selection handler
   const handleLevelSelect = (levelId: number) => {
     const levelQuestions = getLevelQuestions(levelId);
-    console.log(`Selected level ${levelId}, got questions:`, levelQuestions); // Debug log
+    console.log(`Selected level ${levelId}, got questions:`, levelQuestions);
     
-    setShowLevelMap(false);
-    setGameState({
+    setShowLevelMap(false); // Hide the level map first
+    
+    // Reset game state completely
+    setGameState(prev => ({
       ...initialGameState,
       isPlaying: true,
       gameMode: 'levels',
       currentLevel: levelId,
-      levelQuestions: levelQuestions
-    });
-    
-    // Force showNextQuestion to run after state update
-    setTimeout(() => {
-      setGameState(prev => ({...prev}));
-      showNextQuestion();
-    }, 0);
+      levelQuestions: levelQuestions,
+      askedQuestions: new Set() // Make sure to reset asked questions
+    }));
   };
+
+  // Add this new effect to handle game initialization
+  useEffect(() => {
+    // Only initialize if we're in playing state and have a game mode set
+    if (gameState.isPlaying && gameState.gameMode) {
+      console.log('Initializing game with mode:', gameState.gameMode);
+      console.log('Current level questions:', gameState.levelQuestions);
+      
+      // Small delay to ensure state is properly updated
+      const timer = setTimeout(() => {
+        showNextQuestion();
+      }, 100);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [gameState.isPlaying, gameState.gameMode]); // Dependencies
 
   useEffect(() => {
     if (gameState.isGameOver && gameState.gameMode === 'levels') {
@@ -613,9 +659,31 @@ export default function Game() {
     }
   }, [gameState.isGameOver]);
 
+  // Add this near the top with other state declarations
+  const [showWrongAnswerFlash, setShowWrongAnswerFlash] = useState(false);
+  const [showCorrectAnswerFlash, setShowCorrectAnswerFlash] = useState(false);
+
   return (
     // Add touch-action CSS to prevent default touch behaviors
     <div className="w-full h-screen" style={{ touchAction: 'none' }} onTouchStart={(e: React.TouchEvent) => handleTouchStart(e.nativeEvent)} onTouchEnd={(e: React.TouchEvent) => handleTouchEnd(e.nativeEvent)}>
+      {/* Wrong Answer Flash Effect */}
+      {showWrongAnswerFlash && (
+        <div className="absolute inset-0 pointer-events-none z-50">
+          <div className="absolute inset-y-0 left-0 w-32 bg-gradient-to-r from-red-500/70 to-transparent" />
+          <div className="absolute inset-y-0 right-0 w-32 bg-gradient-to-l from-red-500/70 to-transparent" />
+          <div className="absolute inset-x-0 top-0 h-32 bg-gradient-to-b from-red-500/70 to-transparent" />
+          <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-red-500/70 to-transparent" />
+        </div>
+      )}
+      {/* Correct Answer Flash Effect */}
+      {showCorrectAnswerFlash && (
+        <div className="absolute inset-0 pointer-events-none z-50">
+          <div className="absolute inset-y-0 left-0 w-32 bg-gradient-to-r from-green-500/70 to-transparent" />
+          <div className="absolute inset-y-0 right-0 w-32 bg-gradient-to-l from-green-500/70 to-transparent" />
+          <div className="absolute inset-x-0 top-0 h-32 bg-gradient-to-b from-green-500/70 to-transparent" />
+          <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-green-500/70 to-transparent" />
+        </div>
+      )}
       {/* Game Menu */}
       {!gameState.isPlaying && !showLevelMap && (
         <div 
@@ -893,6 +961,7 @@ export default function Game() {
                     setGameState={setGameState}
                     onRespawn={() => {}}
                     initialZ={obstacleInitialZ}
+                    activeOptionZones={gameState.activeOptionZones} // Pass activeOptionZones
                   />
                 ))}
                 {/* Only show options when not showing correct answer */}

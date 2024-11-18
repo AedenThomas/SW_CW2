@@ -83,14 +83,14 @@ export const questions: SignQuestions[] = [
         id: 7,
         text: "Which warning sign indicates that drivers must yield to traffic in 50 yards?"
       },
-      {
-        id: 8,
-        text: "What triangular sign features the text '50 yds' below a 'Give Way' symbol?"
-      },
-      {
-        id: 9,
-        text: "Which advance warning sign tells drivers they will need to give way ahead?"
-      }
+      // {
+      //   id: 8,
+      //   text: "What triangular sign features the text '50 yds' below a 'Give Way' symbol?"
+      // },
+      // {
+      //   id: 9,
+      //   text: "Which advance warning sign tells drivers they will need to give way ahead?"
+      // }
     ],
     oracleHelp: {
       hint: "This sign combines the 'Give Way' symbol with a distance indicator - warning drivers to prepare to yield ahead.",
@@ -109,14 +109,14 @@ export const questions: SignQuestions[] = [
         id: 10,
         text: "Which sign warns drivers of a STOP sign 100 yards ahead?"
       },
-      {
-        id: 11,
-        text: "What advance warning sign features the word 'STOP' with a distance indicator?"
-      },
-      {
-        id: 12,
-        text: "Which triangular warning sign tells drivers they will need to make a complete stop ahead?"
-      }
+      // {
+      //   id: 11,
+      //   text: "What advance warning sign features the word 'STOP' with a distance indicator?"
+      // },
+      // {
+      //   id: 12,
+      //   text: "Which triangular warning sign tells drivers they will need to make a complete stop ahead?"
+      // }
     ],
     oracleHelp: {
       hint: "Look for the word 'STOP' with the distance indicator - this gives advance warning of a stop requirement ahead.",

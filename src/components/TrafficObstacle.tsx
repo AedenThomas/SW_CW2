@@ -7,6 +7,7 @@ import { GAME_SPEED } from '../constants/game';
 import { LANE_POSITIONS } from './Game';
 import { GameState } from '../types/game';
 import { Dispatch, SetStateAction } from 'react';
+import { SAFE_ZONE_AFTER, SAFE_ZONE_BEFORE } from '../constants/game';
 
 const OBSTACLE_MODELS = [
     `${process.env.PUBLIC_URL}/models/traffic1.glb`,
@@ -24,6 +25,7 @@ interface TrafficObstacleProps {
   onRespawn: () => void;
   index: number; // Add index prop to stagger obstacles
   initialZ: number; // Add initialZ prop
+  activeOptionZones: { start: number; end: number; }[]; // Add activeOptionZones prop
 }
 
 export function TrafficObstacle({ 
@@ -31,7 +33,8 @@ export function TrafficObstacle({
   setGameState,
   onRespawn,
   index,
-  initialZ
+  initialZ,
+  activeOptionZones, // Receive activeOptionZones
 }: TrafficObstacleProps) {
   const lane = useRef(Math.floor(Math.random() * 3));
   const modelIndex = useRef(Math.floor(Math.random() * OBSTACLE_MODELS.length));
@@ -49,11 +52,25 @@ export function TrafficObstacle({
 
   useEffect(() => {
     if (obstacleRef.current) {
-      obstacleRef.current.setTranslation(
-        new Vector3(LANE_POSITIONS[lane.current], 0, initialZ + (index * SPAWN_INTERVAL))
+      const spawnZ = initialZ + (index * SPAWN_INTERVAL);
+      
+      // Find the first zone that includes spawnZ
+      const matchingZone = activeOptionZones.find(zone => 
+        spawnZ >= zone.start && spawnZ <= zone.end
       );
+
+      if (matchingZone) {
+        // Adjust spawnZ to be after the safe zone using SAFE_ZONE_AFTER
+        obstacleRef.current.setTranslation(
+          new Vector3(LANE_POSITIONS[lane.current], 0, matchingZone.end + SAFE_ZONE_AFTER)
+        );
+      } else {
+        obstacleRef.current.setTranslation(
+          new Vector3(LANE_POSITIONS[lane.current], 0, spawnZ)
+        );
+      }
     }
-  }, [initialZ, index]);
+  }, [initialZ, index, activeOptionZones]);
 
   useFrame((state, delta) => {
     if (!gameState.isPlaying || !obstacleRef.current) return;
@@ -92,18 +109,28 @@ export function TrafficObstacle({
       }
     }
 
-    // Reset position when passed player
+    // Before respawning, ensure the new spawn position is outside the safe zones
     if (newZ > 15) {
       hasCollided.current = false;
       lane.current = Math.floor(Math.random() * 3);
+      
       // Ensure new lane is different from player's current lane
       while (lane.current === gameState.currentLane) {
         lane.current = Math.floor(Math.random() * 3);
       }
       modelIndex.current = Math.floor(Math.random() * OBSTACLE_MODELS.length);
       
-      // Reset position with proper spacing
-      const repositionedZ = initialZ + (index * SPAWN_INTERVAL);
+      // Calculate new spawn Z
+      let repositionedZ = initialZ + (index * SPAWN_INTERVAL);
+      
+      // Check against all active safe zones and adjust repositionedZ accordingly
+      activeOptionZones.forEach(zone => {
+        if (repositionedZ >= zone.start && repositionedZ <= zone.end) {
+          // Adjust repositionedZ to be after the safe zone
+          repositionedZ = zone.end + SAFE_ZONE_AFTER;
+        }
+      });
+
       obstacleRef.current.setTranslation(
         new Vector3(LANE_POSITIONS[lane.current], 0, repositionedZ)
       );
