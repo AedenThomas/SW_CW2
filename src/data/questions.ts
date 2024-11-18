@@ -46,7 +46,7 @@ export const questions: SignQuestions[] = [
         "1": "That sign doesn't indicate a junction with left priority - look for the cross shape with left arrow.",
         "2": "This isn't the correct sign for a left priority junction - the correct sign has a distinctive cross shape."
       },
-      correctAnswerInsight: "This sign warns drivers of an upcoming junction where vehicles must give way to traffic approaching from the left, shown by the cross shape with left-pointing arrow."
+      correctAnswerInsight: "This sign warns drivers of an upcoming junction where vehicles must give way to traffic approaching from the left, shown by the cross shape with left-pointing arrow. "
     }
   },
   {
