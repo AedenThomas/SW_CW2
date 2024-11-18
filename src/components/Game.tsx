@@ -878,11 +878,18 @@ export default function Game() {
             <h2 className="text-3xl font-bold mb-4">Game Over!</h2>
             <button
               onClick={() => {
-                // Reset game state - using initialGameState to ensure all properties are included
+                // Preserve the game mode and level when restarting
+                const currentLevel = gameState.currentLevel;
+                const currentMode = gameState.gameMode;
+                const levelQuestions = currentMode === 'levels' ? getLevelQuestions(currentLevel) : [];
+                
                 setGameState({
                   ...initialGameState,
                   isPlaying: true,
-                  isPaused: false
+                  isPaused: false,
+                  gameMode: currentMode,
+                  currentLevel: currentLevel,
+                  levelQuestions: levelQuestions
                 });
                 showNextQuestion();
               }}
