@@ -413,4 +413,48 @@
   background: linear-gradient(to right, rgba(0,0,0,0.1), transparent);
   z-index: 2;
 }
+
+/* Mobile styles */
+@media (max-width: 768px) {
+  .book-wrapper {
+    width: 100%;
+    height: 100vh;
+    padding: 1rem;
+  }
+
+  .book-container {
+    width: 100%;
+    height: 100%;
+  }
+
+  /* Single column layout on mobile */
+  .mobile-single-page {
+    width: 100% !important;
+    padding: 1rem !important;
+  }
+
+  .mobile-single-page .grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Hide the right page on mobile */
+  .mobile-hide {
+    display: none !important;
+  }
+
+  /* Adjust cover for mobile */
+  .cover-title {
+    font-size: 2rem;
+  }
+
+  .cover-subtitle {
+    font-size: 1.2rem;
+  }
+
+  /* Adjust navigation controls for mobile */
+  .mobile-nav {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+}
   

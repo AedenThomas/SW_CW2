@@ -19,6 +19,7 @@ export const SignIndex: React.FC<SignIndexProps> = ({ onBack }) => {
   const [levelProgress, setLevelProgress] = useState<LevelProgressMap>({});
   const [isPageTurning, setIsPageTurning] = useState(false);
   const [pageDirection, setPageDirection] = useState<'forward' | 'backward'>('forward');
+  const [isMobile, setIsMobile] = useState(false);
 
   const totalPages = Math.ceil(questions.length / ITEMS_PER_PAGE);
   const isLastPage = currentPage >= totalPages - 2; // -2 because we show 2 pages at once
@@ -36,6 +37,18 @@ export const SignIndex: React.FC<SignIndexProps> = ({ onBack }) => {
     setLevelProgress(getAllLevelProgress());
   }, []);
 
+  // Add useEffect to detect mobile screens
+  React.useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth <= 768);
+    };
+    
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
   // Add helper function to check if a sign should be greyed out
   const isSignGreyedOut = (levelId: number) => {
     return !levelProgress[levelId]?.completed;
@@ -49,11 +62,12 @@ export const SignIndex: React.FC<SignIndexProps> = ({ onBack }) => {
   };
 
   const handleNextPage = () => {
-    if (currentPage < totalPages - 2 && !isPageTurning) {
+    const maxPages = isMobile ? totalPages : totalPages - 1;
+    if (currentPage < maxPages && !isPageTurning) {
       setIsPageTurning(true);
       setPageDirection('forward');
       setTimeout(() => {
-        setCurrentPage(prev => prev + 2);
+        setCurrentPage(prev => prev + (isMobile ? 1 : 2));
         setIsPageTurning(false);
       }, PAGE_SWITCH_DELAY);
     }
@@ -64,7 +78,7 @@ export const SignIndex: React.FC<SignIndexProps> = ({ onBack }) => {
       setIsPageTurning(true);
       setPageDirection('backward');
       setTimeout(() => {
-        setCurrentPage(prev => prev - 2);
+        setCurrentPage(prev => prev - (isMobile ? 1 : 2));
         setIsPageTurning(false);
       }, PAGE_SWITCH_DELAY);
     }
@@ -186,63 +200,104 @@ export const SignIndex: React.FC<SignIndexProps> = ({ onBack }) => {
             >
               <div className="flex h-full">
                 {/* Left Page */}
-                <div className="flex-1 p-8 bg-white left-page overflow-y-auto">
+                <div className={`flex-1 p-8 bg-white left-page overflow-y-auto mobile-single-page`}>
                   <div className="mb-8">
                     <h1 className="text-4xl font-bold text-gray-800 text-center p-4 
                                  bg-gray-800 text-white rounded-lg shadow-md">
                       📖 Sign Index 📖
                     </h1>
                     <div className="text-center mt-4 text-gray-600">
-                      Page {currentPage + 1}-{currentPage + 2} of {totalPages}
+                      {isMobile ? (
+                        `Page ${currentPage + 1} of ${totalPages}`
+                      ) : (
+                        `Page ${currentPage + 1}-${currentPage + 2} of ${totalPages}`
+                      )}
                     </div>
                   </div>
 
+                  {/* Navigation Controls - Show on top for mobile */}
+                  {isMobile && (
+                    <div className="flex justify-between items-center mb-8 mobile-nav">
+                      <button
+                        onClick={handlePrevPage}
+                        disabled={currentPage === 0}
+                        className={`${currentPage === 0 ? 'opacity-50 cursor-not-allowed' : ''} 
+                                 bg-gray-800 hover:bg-gray-700 text-white px-4 py-2 
+                                 rounded-lg transition-colors flex items-center gap-2 w-full`}
+                      >
+                        ← Previous
+                      </button>
+                      <button
+                        onClick={handleClose}
+                        className="bg-gray-800 hover:bg-gray-700 text-white px-4 py-2 
+                                 rounded-lg transition-colors flex items-center gap-2 w-full"
+                      >
+                        Close Book
+                      </button>
+                      <button
+                        onClick={handleNextPage}
+                        disabled={isLastPage}
+                        className={`${isLastPage ? 'opacity-50 cursor-not-allowed' : ''} 
+                                 bg-gray-800 hover:bg-gray-700 text-white px-4 py-2 
+                                 rounded-lg transition-colors flex items-center gap-2 w-full`}
+                      >
+                        Next →
+                      </button>
+                    </div>
+                  )}
+
                   {/* Signs Grid - Left Page */}
                   <div className="grid grid-cols-2 gap-4">
-                    {questions.slice(currentPage * ITEMS_PER_PAGE, (currentPage * ITEMS_PER_PAGE) + ITEMS_PER_PAGE).map((signGroup, index) => (
-                      renderSignCard(signGroup, index)
-                    ))}
+                    {questions
+                      .slice(
+                        currentPage * (isMobile ? ITEMS_PER_PAGE / 2 : ITEMS_PER_PAGE),
+                        (currentPage * (isMobile ? ITEMS_PER_PAGE / 2 : ITEMS_PER_PAGE)) + 
+                        (isMobile ? ITEMS_PER_PAGE / 2 : ITEMS_PER_PAGE)
+                      )
+                      .map((signGroup, index) => renderSignCard(signGroup, index))}
                   </div>
                 </div>
 
-                {/* Right Page */}
-                <div className="flex-1 p-8 bg-white right-page overflow-y-auto">
-                  {/* Navigation Controls */}
-                  <div className="flex justify-between items-center mb-8">
-                    <button
-                      onClick={handlePrevPage}
-                      disabled={currentPage === 0}
-                      className={`${currentPage === 0 ? 'opacity-50 cursor-not-allowed' : ''} 
-                               bg-gray-800 hover:bg-gray-700 text-white px-4 py-2 
-                               rounded-lg transition-colors flex items-center gap-2`}
-                    >
-                      ← Previous
-                    </button>
-                    <button
-                      onClick={handleClose}
-                      className="bg-gray-800 hover:bg-gray-700 text-white px-4 py-2 
-                               rounded-lg transition-colors flex items-center gap-2"
-                    >
-                      Close Book
-                    </button>
-                    <button
-                      onClick={handleNextPage}
-                      disabled={isLastPage}
-                      className={`${isLastPage ? 'opacity-50 cursor-not-allowed' : ''} 
-                               bg-gray-800 hover:bg-gray-700 text-white px-4 py-2 
-                               rounded-lg transition-colors flex items-center gap-2`}
-                    >
-                      Next →
-                    </button>
-                  </div>
+                {/* Right Page - Hide on mobile */}
+                {!isMobile && (
+                  <div className="flex-1 p-8 bg-white right-page overflow-y-auto">
+                    {/* Navigation Controls */}
+                    <div className="flex justify-between items-center mb-8">
+                      <button
+                        onClick={handlePrevPage}
+                        disabled={currentPage === 0}
+                        className={`${currentPage === 0 ? 'opacity-50 cursor-not-allowed' : ''} 
+                                 bg-gray-800 hover:bg-gray-700 text-white px-4 py-2 
+                                 rounded-lg transition-colors flex items-center gap-2`}
+                      >
+                        ← Previous
+                      </button>
+                      <button
+                        onClick={handleClose}
+                        className="bg-gray-800 hover:bg-gray-700 text-white px-4 py-2 
+                                 rounded-lg transition-colors flex items-center gap-2"
+                      >
+                        Close Book
+                      </button>
+                      <button
+                        onClick={handleNextPage}
+                        disabled={isLastPage}
+                        className={`${isLastPage ? 'opacity-50 cursor-not-allowed' : ''} 
+                                 bg-gray-800 hover:bg-gray-700 text-white px-4 py-2 
+                                 rounded-lg transition-colors flex items-center gap-2`}
+                      >
+                        Next →
+                      </button>
+                    </div>
 
-                  {/* Signs Grid - Right Page */}
-                  <div className="grid grid-cols-2 gap-4 mt-[68px]">
-                    {questions.slice((currentPage * ITEMS_PER_PAGE) + ITEMS_PER_PAGE, (currentPage * ITEMS_PER_PAGE) + (ITEMS_PER_PAGE * 2)).map((signGroup, index) => (
-                      renderSignCard(signGroup, index)
-                    ))}
+                    {/* Signs Grid - Right Page */}
+                    <div className="grid grid-cols-2 gap-4 mt-[68px]">
+                      {questions.slice((currentPage * ITEMS_PER_PAGE) + ITEMS_PER_PAGE, (currentPage * ITEMS_PER_PAGE) + (ITEMS_PER_PAGE * 2)).map((signGroup, index) => (
+                        renderSignCard(signGroup, index)
+                      ))}
+                    </div>
                   </div>
-                </div>
+                )}
               </div>
             </div>
 
