@@ -59,6 +59,7 @@ const initialGameState: GameState = {
   levelQuestions: [], // Add this new property
   askedQuestions: new Set<number>(), // Add this new property
   activeOptionZones: [], // Add this new property to track active option zones
+  questionsAnswered: 0,  // Add this new property
 };
 
 // Add this helper function near the top of the file
@@ -211,6 +212,11 @@ export default function Game() {
       setPreviousQuestion(gameState.currentQuestion);
       setPreviousAnswer(gameState.currentLane);
     }
+
+    setGameState(prev => ({
+      ...prev,
+      questionsAnswered: prev.questionsAnswered + 1  // Increment questions answered
+    }));
 
     if (gameState.oracleMode) {
       const currentQuestion = gameState.currentQuestion;
@@ -1098,11 +1104,14 @@ export default function Game() {
         />
       )}
 
-      {/* Add Oracle Button */}
-      <OracleButton 
-        onClick={toggleOracle}
-        isActive={isOracleActive}
-      />
+      {/* Add Oracle Button - only show during gameplay */}
+      {gameState.isPlaying && !gameState.isGameOver && (
+        <OracleButton 
+          onClick={toggleOracle}
+          isActive={isOracleActive}
+          disabled={gameState.questionsAnswered === 0}
+        />
+      )}
 
       {/* Add Oracle Modal */}
       <OracleModal

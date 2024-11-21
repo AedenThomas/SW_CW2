@@ -5,20 +5,23 @@ import React from "react";
 interface OracleButtonProps {
   onClick: () => void;
   isActive: boolean;
+  disabled: boolean;
 }
 
-export function OracleButton({ onClick, isActive }: OracleButtonProps) {
+export function OracleButton({ onClick, isActive, disabled }: OracleButtonProps) {
   return (
     <motion.button
       onClick={onClick}
       className={`fixed top-4 right-4 w-12 h-12 rounded-full flex items-center justify-center 
                  transition-colors z-50 ${
+                   disabled ? "bg-gray-400 cursor-not-allowed" :
                    isActive ? "bg-blue-600" : "bg-blue-500 hover:bg-blue-600"
                  }`}
-      whileHover={{ scale: 1.05 }}
-      whileTap={{ scale: 0.95 }}
+      whileHover={{ scale: disabled ? 1 : 1.05 }}
+      whileTap={{ scale: disabled ? 1 : 0.95 }}
+      disabled={disabled}
     >
-      <span className="text-2xl">🔮</span>
+      <span className={`text-2xl ${disabled ? 'opacity-50' : ''}`}>🔮</span>
     </motion.button>
   );
 }

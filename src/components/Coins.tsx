@@ -20,7 +20,7 @@ interface CustomCollisionEvent {
 const DEBUG = true;
 function debugLog(message: string, data?: any) {
   if (DEBUG) {
-  }
+  } 
 }
 
 interface UserDataWithId extends UserData {

@@ -60,6 +60,7 @@ export interface GameState {
   levelQuestions: SignQuestions[];
   askedQuestions: Set<number>;
   activeOptionZones: { start: number; end: number; }[]; // Add this new property
+  questionsAnswered: number;  // Add this new property
 }
 
 export interface PowerUp {

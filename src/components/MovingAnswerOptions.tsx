@@ -8,7 +8,15 @@ import * as THREE from 'three';
 
 interface MovingAnswerOptionsProps {
   question: Question;
-  onCollision: (isCorrect: boolean) => void;
+  onCollision: (
+    isCorrect: boolean,
+    gameState: GameState,
+    setGameState: (state: GameState | ((prev: GameState) => GameState)) => void,
+    setPreviousQuestion: (question: Question | null) => void,
+    setPreviousAnswer: (answer: number | undefined) => void,
+    setShowCorrectAnswerFlash: (show: boolean) => void,
+    setShowWrongAnswerFlash: (show: boolean) => void
+  ) => void;
   gameState: GameState;
   targetLane: number | null;
 }
@@ -74,7 +82,17 @@ export function MovingAnswerOptions({
         optionsGroupRef.current.visible = false;
       }
       
-      onCollision(isCorrect);
+      onCollision(isCorrect, gameState, (state) => {
+        // Implement setGameState logic here
+      }, (question) => {
+        // Implement setPreviousQuestion logic here
+      }, (answer) => {
+        // Implement setPreviousAnswer logic here
+      }, (show) => {
+        // Implement setShowCorrectAnswerFlash logic here
+      }, (show) => {
+        // Implement setShowWrongAnswerFlash logic here
+      });
     };
   
     // Reset refs when question changes

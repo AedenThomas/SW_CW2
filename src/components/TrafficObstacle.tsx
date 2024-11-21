@@ -10,10 +10,12 @@ import { Dispatch, SetStateAction } from 'react';
 import { SAFE_ZONE_AFTER, SAFE_ZONE_BEFORE } from '../constants/game';
 
 const OBSTACLE_MODELS = [
+  `${process.env.PUBLIC_URL}/models/traffic6.glb`,
     `${process.env.PUBLIC_URL}/models/traffic1.glb`,
     `${process.env.PUBLIC_URL}/models/traffic2.glb`,
     `${process.env.PUBLIC_URL}/models/traffic3.glb`,
-    `${process.env.PUBLIC_URL}/models/traffic4.glb`
+    `${process.env.PUBLIC_URL}/models/traffic4.glb`,
+    `${process.env.PUBLIC_URL}/models/traffic5.glb`,
   ];
 
 export const NUM_OBSTACLES = 3; // Number of simultaneous obstacles
@@ -157,6 +159,7 @@ export function TrafficObstacle({
         position={[0, 0, 0]}
         rotation={
           modelIndex.current === 2 ? [0, Math.PI / 2, 0] :
+          modelIndex.current === 0 ? [0, -Math.PI / 2, 0] :
           [0, Math.PI, 0]
         }
       />
