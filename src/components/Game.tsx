@@ -1032,7 +1032,7 @@ export default function Game() {
 
         {/* Repositioned speedometer */}
         {gameState.isPlaying && (
-          <div className="absolute right-32 top-1/4 transform -translate-y-1/2 z-20">
+          <div className={`absolute right-32 ${isMobile ? 'top-4 scale-75 origin-top-right' : 'top-1/4 transform -translate-y-1/2'} z-20`}>
             <div className="bg-black/80 rounded-lg p-3 backdrop-blur-sm border border-white/20 flex flex-col items-center">
               <span className="text-white text-xs mb-1">SPEED</span>
               {/* Speedometer bar - made slightly smaller */}
@@ -1048,7 +1048,6 @@ export default function Game() {
               <span className="text-white text-sm mt-1 font-bold">
                 {gameState.speed.toFixed(1)}x
               </span>
-              {/* Speed indicator arrows */}
               <div className="flex gap-1 mt-0.5">
                 {Array.from({ length: Math.floor((gameState.speed - 1) * 2) }).map((_, i) => (
                   <svg 
