@@ -91,6 +91,12 @@ function calculateCurvePoints(width: number, height: number, isMobile: boolean) 
 
 interface Point { x: number; y: number; }
 
+// Add this function near the top with other utility functions
+function isLevelUnlocked(levelId: number, levelProgress: LevelProgressMap): boolean {
+    if (levelId === 1) return true; // First level is always unlocked
+    return levelProgress[levelId - 1]?.completed === true;
+}
+
 export function LevelMap({ onSelectLevel, onBack }: { 
     onSelectLevel: (level: number) => void,
     onBack: () => void 
@@ -237,6 +243,7 @@ export function LevelMap({ onSelectLevel, onBack }: {
                         {/* Level Markers */}
                         {levels.map((level, index) => {
                             const progress = levelProgress[level.id];
+                            const isUnlocked = isLevelUnlocked(level.id, levelProgress);
                             const curveLength = getCurveLength(curvePoints);
                             const spacing = curveLength / (levels.length - 1);
                             const distance = index * spacing;
@@ -253,10 +260,11 @@ export function LevelMap({ onSelectLevel, onBack }: {
                                         {/* Single combined circle for both hover and click */}
                                         <circle
                                             r={isMobile ? "32" : "45"}
-                                            fill={getDifficultyColor(level.difficulty)}
-                                            className={`transition-transform duration-200 hover:scale-110 cursor-pointer
+                                            fill={isUnlocked ? getDifficultyColor(level.difficulty) : '#9CA3AF'} // gray-400 for locked levels
+                                            className={`transition-transform duration-200 
+                                                ${isUnlocked ? 'hover:scale-110 cursor-pointer' : 'cursor-not-allowed opacity-60'}
                                                 ${progress?.completed ? 'stroke-2 stroke-yellow-400' : ''}`}
-                                            onClick={() => handleLevelClick(level.id)}
+                                            onClick={() => isUnlocked && handleLevelClick(level.id)}
                                             onMouseEnter={() => {
                                                 const popup = document.getElementById(levelInfoId);
                                                 if (popup) {
@@ -279,7 +287,8 @@ export function LevelMap({ onSelectLevel, onBack }: {
                                             y="0"
                                             textAnchor="middle"
                                             dominantBaseline="middle"
-                                            className="text-xl font-bold fill-current text-white pointer-events-none"
+                                            className={`text-xl font-bold fill-current pointer-events-none
+                                                ${isUnlocked ? 'text-white' : 'text-gray-400'}`}
                                         >
                                             {level.id}
                                         </text>
@@ -301,13 +310,25 @@ export function LevelMap({ onSelectLevel, onBack }: {
                                                         <span 
                                                             className="inline-block px-2 py-1 mt-1 text-xs rounded-full"
                                                             style={{ 
-                                                                backgroundColor: `${getDifficultyColor(level.difficulty)}20`,
-                                                                color: getDifficultyColor(level.difficulty)
+                                                                backgroundColor: isUnlocked ? 
+                                                                    `${getDifficultyColor(level.difficulty)}20` : 
+                                                                    '#F3F4F6',
+                                                                color: isUnlocked ? 
+                                                                    getDifficultyColor(level.difficulty) : 
+                                                                    '#6B7280'
                                                             }}
                                                         >
                                                             {level.difficulty}
                                                         </span>
                                                     </div>
+                                                    {!isUnlocked && (
+                                                        <div className="flex items-center gap-1 bg-gray-100 px-2 py-1 rounded-full">
+                                                            <svg className="w-4 h-4 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                                                            </svg>
+                                                            <span className="text-xs font-medium text-gray-600">Locked</span>
+                                                        </div>
+                                                    )}
                                                     {progress?.completed && (
                                                         <div className="flex items-center gap-1 bg-green-100 px-2 py-1 rounded-full">
                                                             <svg className="w-4 h-4 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -318,9 +339,11 @@ export function LevelMap({ onSelectLevel, onBack }: {
                                                     )}
                                                 </div>
                                                 
-                                                <p className="text-sm text-gray-600 mb-3">{level.description}</p>
+                                                <p className="text-sm text-gray-600 mb-3">
+                                                    {isUnlocked ? level.description : 'Complete the previous level to unlock'}
+                                                </p>
                                                 
-                                                {progress && (
+                                                {progress && isUnlocked && (
                                                     <div className="space-y-3">
                                                         <div className="flex items-center justify-between bg-gray-50 px-3 py-2 rounded-lg">
                                                             <span className="text-sm text-gray-600">High Score</span>
