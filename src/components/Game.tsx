@@ -664,7 +664,7 @@ export default function Game() {
   // Move getGameOverMessage inside the Game component
   const getGameOverMessage = (gameState: GameState) => {
     if (gameState.gameMode === 'levels') {
-      if (gameState.lives > 0) {
+      if (gameState.lives > 0 && gameState.questionsAnswered > 0) {
         return {
           title: "Level Complete! 🎉",
           message: `You scored ${gameState.score} points!`,
@@ -672,13 +672,12 @@ export default function Game() {
             {
               text: "Next Level",
               action: () => {
-                // Instead of starting next level directly, show the level map
                 setGameState({
                   ...initialGameState,
                   isPlaying: false,
                   gameMode: null
                 });
-                setShowLevelMap(true); // Show the level map
+                setShowLevelMap(true);
               },
               className: "bg-green-500 hover:bg-green-600 text-white"
             },
@@ -703,17 +702,25 @@ export default function Game() {
             {
               text: "Try Again",
               action: () => {
-                // Replay current level
+                // Get fresh questions for the level
                 const levelQuestions = getLevelQuestions(gameState.currentLevel);
-                setGameState({
+                
+                // Reset game state with the new questions
+                setGameState(prev => ({
                   ...initialGameState,
                   isPlaying: true,
                   isPaused: false,
                   gameMode: 'levels',
-                  currentLevel: gameState.currentLevel,
-                  levelQuestions: levelQuestions
-                });
-                showNextQuestion();
+                  currentLevel: prev.currentLevel,
+                  levelQuestions: levelQuestions,
+                  askedQuestions: new Set(), // Reset asked questions
+                  isGameOver: false
+                }));
+
+                // Small delay to ensure state is updated before showing first question
+                setTimeout(() => {
+                  showNextQuestion();
+                }, 100);
               },
               className: "bg-blue-500 hover:bg-blue-600 text-white"
             },
