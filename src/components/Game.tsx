@@ -1167,15 +1167,15 @@ export default function Game() {
           />
           <hemisphereLight color="#b1e1ff" groundColor="#000000" intensity={0.5} />
           
-          <Physics paused={!gameState.isPlaying || gameState.isPaused}>
+          <Physics paused={!gameState.isPlaying || gameState.isPaused || gameState.isGameOver}>
             <Road />
-            {gameState.isPlaying && (
+            {gameState.isPlaying && !gameState.isGameOver && (
               <>
                 <PlayerCar 
                   position={[LANE_POSITIONS[gameState.currentLane], 1.0, 0]}
                   targetPosition={targetLanePosition}
                   handleCoinCollect={handleCoinCollect}
-                  onLaneChangeComplete={onLaneChangeComplete} // Passed callback prop
+                  onLaneChangeComplete={onLaneChangeComplete}
                 />
                 <MovingLaneDividers gameState={gameState} />
                 {Array.from({ length: NUM_OBSTACLES }).map((_, index) => (
@@ -1186,10 +1186,9 @@ export default function Game() {
                     setGameState={setGameState}
                     onRespawn={() => {}}
                     initialZ={obstacleInitialZ}
-                    activeOptionZones={gameState.activeOptionZones} // Pass activeOptionZones
+                    activeOptionZones={gameState.activeOptionZones}
                   />
                 ))}
-                {/* Only show options when not showing correct answer */}
                 {gameState.currentQuestion && !gameState.showingCorrectAnswer && (
                   <MovingAnswerOptions 
                     question={gameState.currentQuestion}
