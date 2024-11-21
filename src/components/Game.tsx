@@ -26,14 +26,12 @@ const debugLog = (message: string, data?: any) => {
   }
 };
 
-
+// Add this near the top of the file, after other constants
 const SWIPE_THRESHOLD = 50; // Minimum swipe distance to trigger lane change
 const SWIPE_TIMEOUT = 300; // Maximum time in ms for a swipe
-
+const MAX_SPEED = 3; // Maximum possible speed in the game
 
 export const LANE_POSITIONS = [-5, 0, 5]; // Make sure these match your desired positions
-
-
 
 const initialGameState: GameState = {
   currentLane: 1,
@@ -62,37 +60,8 @@ const initialGameState: GameState = {
   questionsAnswered: 0,  // Add this new property
 };
 
-// Add this helper function near the top of the file
-const getGameOverMessage = (gameState: GameState) => {
-  if (gameState.gameMode === 'levels') {
-    if (gameState.lives > 0) {
-      return {
-        title: "Level Complete! 🎉",
-        message: `You scored ${gameState.score} points!`,
-        buttonText: "Play Next Level"
-      };
-    } else {
-      return {
-        title: "Level Failed",
-        message: "Keep practicing! You'll get better!",
-        buttonText: "Try Again"
-      };
-    }
-  } else { // infinite mode
-    return {
-      title: "Game Over",
-      message: `Final Score: ${gameState.score}`,
-      buttonText: "Play Again"
-    };
-  }
-};
-
-// Add this near the top of the file, after other constants
-const MAX_SPEED = 3; // Maximum possible speed in the game
-
 export default function Game() {
   const [gameState, setGameState] = useState<GameState>(initialGameState);
-
 
   const [targetLanePosition, setTargetLanePosition] = useState<number>(
     LANE_POSITIONS[gameState.currentLane]
@@ -338,7 +307,6 @@ export default function Game() {
       }
     }
   };
-
 
   // Update keyboard controls with debugging
   const [targetLane, setTargetLane] = useState<number | null>(null);
@@ -633,7 +601,6 @@ export default function Game() {
   // Adjust initialZ to position obstacles away from options
   const obstacleInitialZ = -200; // Increased from -100 for better spacing
 
-
   // Add new state for showing level map
   const [showLevelMap, setShowLevelMap] = useState(false);
 
@@ -685,6 +652,98 @@ export default function Game() {
   const [showCorrectAnswerFlash, setShowCorrectAnswerFlash] = useState(false);
 
   const [showSignIndex, setShowSignIndex] = useState(false);
+
+  // Move getGameOverMessage inside the Game component
+  const getGameOverMessage = (gameState: GameState) => {
+    if (gameState.gameMode === 'levels') {
+      if (gameState.lives > 0) {
+        return {
+          title: "Level Complete! 🎉",
+          message: `You scored ${gameState.score} points!`,
+          buttons: [
+            {
+              text: "Next Level",
+              action: () => {
+                // Instead of starting next level directly, show the level map
+                setGameState({
+                  ...initialGameState,
+                  isPlaying: false,
+                  gameMode: null
+                });
+                setShowLevelMap(true); // Show the level map
+              },
+              className: "bg-green-500 hover:bg-green-600 text-white"
+            },
+            {
+              text: "Main Menu",
+              action: () => {
+                setGameState({
+                  ...initialGameState,
+                  isPlaying: false,
+                  gameMode: null
+                });
+              },
+              className: "border-2 border-gray-300 hover:bg-gray-100"
+            }
+          ]
+        };
+      } else {
+        return {
+          title: "Level Failed",
+          message: "Keep practicing! You'll get better!",
+          buttons: [
+            {
+              text: "Try Again",
+              action: () => {
+                // Replay current level
+                const levelQuestions = getLevelQuestions(gameState.currentLevel);
+                setGameState({
+                  ...initialGameState,
+                  isPlaying: true,
+                  isPaused: false,
+                  gameMode: 'levels',
+                  currentLevel: gameState.currentLevel,
+                  levelQuestions: levelQuestions
+                });
+                showNextQuestion();
+              },
+              className: "bg-blue-500 hover:bg-blue-600 text-white"
+            },
+            {
+              text: "Main Menu",
+              action: () => {
+                setGameState({
+                  ...initialGameState,
+                  isPlaying: false,
+                  gameMode: null
+                });
+              },
+              className: "border-2 border-gray-300 hover:bg-gray-100"
+            }
+          ]
+        };
+      }
+    } else { // infinite mode
+      return {
+        title: "Game Over",
+        message: `Final Score: ${gameState.score}`,
+        buttons: [
+          {
+            text: "Play Again",
+            action: () => {
+              setGameState({
+                ...initialGameState,
+                isPlaying: true,
+                gameMode: 'infinite'
+              });
+              showNextQuestion();
+            },
+            className: "bg-blue-500 hover:bg-blue-600 text-white"
+          }
+        ]
+      };
+    }
+  };
 
   return (
     // Add touch-action CSS to prevent default touch behaviors
@@ -952,7 +1011,11 @@ export default function Game() {
             className="bg-white p-8 rounded-lg text-center max-w-md w-full mx-4"
           >
             <h2 className={`text-3xl font-bold mb-2 ${
-              gameState.lives > 0 ? 'text-green-600' : 'text-red-600'
+              gameState.gameMode === 'levels' && gameState.lives > 0 
+                ? 'text-green-600' 
+                : gameState.gameMode === 'levels' 
+                  ? 'text-red-600'
+                  : 'text-gray-900'
             }`}>
               {getGameOverMessage(gameState).title}
             </h2>
@@ -960,52 +1023,15 @@ export default function Game() {
               {getGameOverMessage(gameState).message}
             </p>
             <div className="flex flex-col gap-3">
-              <button
-                onClick={() => {
-                  // Preserve the game mode when restarting
-                  const currentMode = gameState.gameMode;
-                  let nextLevel = gameState.currentLevel;
-                  
-                  // If level was completed successfully, increment the level
-                  if (currentMode === 'levels' && gameState.lives > 0) {
-                    nextLevel = gameState.currentLevel + 1;
-                  }
-                  
-                  const levelQuestions = currentMode === 'levels' ? getLevelQuestions(nextLevel) : [];
-                  
-                  setGameState({
-                    ...initialGameState,
-                    isPlaying: true,
-                    isPaused: false,
-                    gameMode: currentMode,
-                    currentLevel: nextLevel,
-                    levelQuestions: levelQuestions
-                  });
-                  showNextQuestion();
-                }}
-                className={`px-6 py-3 rounded-lg font-semibold transition-colors ${
-                  gameState.lives > 0 
-                    ? 'bg-green-500 hover:bg-green-600 text-white'
-                    : 'bg-blue-500 hover:bg-blue-600 text-white'
-                }`}
-              >
-                {getGameOverMessage(gameState).buttonText}
-              </button>
-              
-              <button
-                onClick={() => {
-                  // Return to main menu
-                  setGameState({
-                    ...initialGameState,
-                    isPlaying: false,
-                    gameMode: null
-                  });
-                }}
-                className="px-6 py-3 rounded-lg font-semibold transition-colors 
-                           border-2 border-gray-300 hover:bg-gray-100"
-              >
-                Return to Menu
-              </button>
+              {getGameOverMessage(gameState).buttons.map((button, index) => (
+                <button
+                  key={index}
+                  onClick={button.action}
+                  className={`px-6 py-3 rounded-lg font-semibold transition-colors ${button.className}`}
+                >
+                  {button.text}
+                </button>
+              ))}
             </div>
           </motion.div>
         </div>

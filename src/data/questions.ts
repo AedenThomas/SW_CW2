@@ -31,14 +31,14 @@ export const questions: SignQuestions[] = [
         id: 1,
         text: "Which UK warning road sign features a black cross-shaped symbol with an arrow pointing to the left within a red triangular border?"
       },
-      {
-        id: 2,
-        text: "What traffic sign would warn drivers that they are approaching a junction where traffic from the left has priority?"
-      },
-      {
-        id: 3,
-        text: "In the UK Highway Code, which warning sign indicates a crossroads ahead where vehicles must give way to traffic approaching from the left?"
-      }
+      // {
+      //   id: 2,
+      //   text: "What traffic sign would warn drivers that they are approaching a junction where traffic from the left has priority?"
+      // },
+      // {
+      //   id: 3,
+      //   text: "In the UK Highway Code, which warning sign indicates a crossroads ahead where vehicles must give way to traffic approaching from the left?"
+      // }
     ],
     oracleHelp: {
       hint: "Look for the distinctive cross shape with a left-pointing arrow - this indicates a junction where traffic from the left has priority.",
@@ -57,14 +57,14 @@ export const questions: SignQuestions[] = [
         id: 4,
         text: "Which warning sign shows a black cross-shaped symbol indicating a crossroads ahead?"
       },
-      {
-        id: 5,
-        text: "What road sign would you expect to see before approaching an intersection where all roads have equal priority?"
-      },
-      {
-        id: 6,
-        text: "In the UK Highway Code, which triangular warning sign features a symmetrical cross pattern indicating a four-way junction ahead?"
-      }
+      // {
+      //   id: 5,
+      //   text: "What road sign would you expect to see before approaching an intersection where all roads have equal priority?"
+      // },
+      // {
+      //   id: 6,
+      //   text: "In the UK Highway Code, which triangular warning sign features a symmetrical cross pattern indicating a four-way junction ahead?"
+      // }
     ],
     oracleHelp: {
       hint: "Look for the symmetrical cross pattern - this indicates a crossroads where all approaches have equal priority.",
