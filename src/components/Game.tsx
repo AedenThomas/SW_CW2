@@ -18,6 +18,8 @@ import { PauseButton } from './PauseButton';
 import { LoadingScreen } from './LoadingScreen';
 import { saveLevelProgress } from '../utils/storage';
 import { SignIndex } from './SignIndex';
+import { LevelProgressMap } from '../types/game';
+import { getAllLevelProgress } from '../utils/storage';
 
 // Add debug logging utility
 const DEBUG = true;
@@ -58,6 +60,11 @@ const initialGameState: GameState = {
   askedQuestions: new Set<number>(), // Add this new property
   activeOptionZones: [], // Add this new property to track active option zones
   questionsAnswered: 0,  // Add this new property
+};
+
+// Add this helper function near the top of the file
+const isInfiniteModeUnlocked = (levelProgress: LevelProgressMap): boolean => {
+  return levelProgress[3]?.completed ?? false;
 };
 
 export default function Game() {
@@ -745,6 +752,14 @@ export default function Game() {
     }
   };
 
+  // In the Game component, add this state
+  const [levelProgress, setLevelProgress] = useState<LevelProgressMap>({});
+
+  // Add this useEffect to load level progress
+  useEffect(() => {
+    setLevelProgress(getAllLevelProgress());
+  }, []);
+
   return (
     // Add touch-action CSS to prevent default touch behaviors
     <div className="w-full h-screen" style={{ touchAction: 'none' }} onTouchStart={(e: React.TouchEvent) => handleTouchStart(e.nativeEvent)} onTouchEnd={(e: React.TouchEvent) => handleTouchEnd(e.nativeEvent)}>
@@ -796,23 +811,76 @@ export default function Game() {
             
             {/* Game Mode Buttons */}
             <div className="flex flex-col gap-4">
-              <button
-                onClick={() => startGame('infinite')}
-                className="bg-[#333333] hover:bg-[#444444] text-white px-8 py-3 
-                         rounded-lg font-bold text-xl transition-colors flex items-center gap-4
-                         shadow-lg"
-              >
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="white">
-                  <path d="M8 5v14l11-7z"/>
-                </svg>
-                Infinite Mode
-              </button>
+              <div className="relative group">
+                <button
+                  onClick={() => startGame('infinite')}
+                  disabled={!isInfiniteModeUnlocked(levelProgress)}
+                  className={`w-full bg-[#333333] px-8 py-3 rounded-lg font-bold text-xl 
+                           flex items-center justify-center gap-4 shadow-lg transition-all duration-300
+                           ${isInfiniteModeUnlocked(levelProgress) 
+                             ? 'hover:bg-[#444444] text-white hover:shadow-xl transform hover:-translate-y-0.5' 
+                             : 'bg-[#2A2A2A] cursor-not-allowed text-gray-400'}`}
+                >
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M8 5v14l11-7z"/>
+                  </svg>
+                  Infinite Mode
+                  {!isInfiniteModeUnlocked(levelProgress) && (
+                    <svg 
+                      className="w-6 h-6 ml-2" 
+                      fill="none" 
+                      stroke="currentColor" 
+                      viewBox="0 0 24 24"
+                    >
+                      <path 
+                        strokeLinecap="round" 
+                        strokeLinejoin="round" 
+                        strokeWidth={2} 
+                        d="M12 15v2m0 0v2m0-2h2m-2 0H8m4-6V4a2 2 0 00-2-2H6a2 2 0 00-2 2v16a2 2 0 002 2h8a2 2 0 002-2v-3" 
+                      />
+                      <path 
+                        strokeLinecap="round" 
+                        strokeLinejoin="round" 
+                        strokeWidth={2} 
+                        d="M15 11h3m0 0h3m-3 0v3m0-3V8" 
+                      />
+                    </svg>
+                  )}
+                </button>
+
+                {/* Hover tooltip for locked state */}
+                {!isInfiniteModeUnlocked(levelProgress) && (
+                  <div className="absolute -top-12 left-1/2 transform -translate-x-1/2 opacity-0 
+                                group-hover:opacity-100 transition-all duration-300 pointer-events-none">
+                    <div className="bg-[#1A1A1A] text-white px-4 py-2 rounded-lg shadow-xl 
+                                  flex items-center gap-2 whitespace-nowrap">
+                      <svg 
+                        className="w-5 h-5 text-yellow-500" 
+                        fill="none" 
+                        stroke="currentColor" 
+                        viewBox="0 0 24 24"
+                      >
+                        <path 
+                          strokeLinecap="round" 
+                          strokeLinejoin="round" 
+                          strokeWidth={2} 
+                          d="M12 15v2m0 0v2m0-2h2m-2 0H8m4-6V4a2 2 0 00-2-2H6a2 2 0 00-2 2v16a2 2 0 002 2h8a2 2 0 002-2v-3" 
+                        />
+                      </svg>
+                      <span className="font-medium">Complete Level 3 to unlock</span>
+                    </div>
+                    {/* Arrow pointer */}
+                    <div className="w-4 h-4 bg-[#1A1A1A] transform rotate-45 absolute -bottom-2 left-1/2 -translate-x-1/2" />
+                  </div>
+                )}
+              </div>
               
               <button
                 onClick={() => setShowLevelMap(true)}
                 className="bg-[#4A63B4] hover:bg-[#5A73C4] text-white px-8 py-3 
-                         rounded-lg font-bold text-xl transition-colors flex items-center gap-4
-                         shadow-lg"
+                         rounded-lg font-bold text-xl transition-all duration-300 
+                         flex items-center gap-4 shadow-lg hover:shadow-xl 
+                         transform hover:-translate-y-0.5"
               >
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="white">
                   <path d="M3 5v14h18V5H3zm16 12H5V7h14v10z"/>
