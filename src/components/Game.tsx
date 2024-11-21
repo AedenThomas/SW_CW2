@@ -1113,13 +1113,27 @@ export default function Game() {
             animate={{ scale: 1, opacity: 1 }}
             className="bg-white p-8 rounded-lg text-center"
           >
-            <h2 className="text-3xl font-bold mb-4">Game Paused</h2>
-            <button
-              onClick={togglePause}
-              className="bg-blue-500 hover:bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold transition-colors"
-            >
-              Resume Game
-            </button>
+            <h2 className="text-3xl font-bold mb-6">Game Paused</h2>
+            <div className="flex flex-col gap-4">
+              <button
+                onClick={togglePause}
+                className="bg-blue-500 hover:bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold transition-colors"
+              >
+                Resume Game
+              </button>
+              <button
+                onClick={() => {
+                  setGameState({
+                    ...initialGameState,
+                    isPlaying: false,
+                    gameMode: null
+                  });
+                }}
+                className="border-2 border-gray-300 hover:bg-gray-100 px-6 py-3 rounded-lg font-semibold transition-colors"
+              >
+                Main Menu
+              </button>
+            </div>
           </motion.div>
         </div>
       )}
