@@ -585,7 +585,7 @@ export default function Game() {
       setIsOracleActive(!isOracleActive);
       setGameState(prev => ({ 
         ...prev, 
-        isPlaying: isOracleActive // Resume game if closing Oracle, pause if opening
+        isPaused: !isOracleActive // Pause game when oracle is active
       }));
     }
   };

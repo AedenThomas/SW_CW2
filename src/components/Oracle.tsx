@@ -79,7 +79,7 @@ export function OracleModal({
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-40"
+          className="fixed inset-0 bg-black/50 flex items-center justify-center z-40"
           onClick={handleBackdropClick}
         >
           <div className="relative">
@@ -87,7 +87,7 @@ export function OracleModal({
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.9, opacity: 0 }}
-              className="bg-[#272D45] rounded-lg p-8 max-w-md w-full mx-4 relative"
+              className="bg-[#272D45] rounded-lg p-8 max-w-md w-full mx-4 relative shadow-xl"
               onClick={(e) => e.stopPropagation()}
             >
               <div className="space-y-6">
@@ -117,7 +117,7 @@ export function OracleModal({
             </motion.div>
 
             {/* Sticker overlapping the modal */}
-                        <div className="absolute -bottom-16 -right-16 w-36 h-36">
+            <div className="absolute -bottom-16 -right-16 w-36 h-36">
               <img
                 src={process.env.PUBLIC_URL + "/images/happy1.svg"}
                 alt="Happy stickers"
