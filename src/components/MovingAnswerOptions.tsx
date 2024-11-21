@@ -1,6 +1,6 @@
 import { useFrame } from "@react-three/fiber";
 import { RigidBody, CuboidCollider } from "@react-three/rapier";
-import { useRef, useEffect } from "react";
+import { useRef, useEffect, useMemo } from "react";
 import { GAME_SPEED } from "../constants/game";
 import { Question, GameState } from "../types/game";
 import { LANE_POSITIONS } from "./Game";
@@ -32,6 +32,30 @@ export function MovingAnswerOptions({
     const resetPosition = useRef(false);
     const initialZ = -180;
   
+    // Create a randomized mapping of options to lanes
+    const randomizedOptions = useMemo(() => {
+      // Create array of indices using Array.from instead of Array.keys()
+      const positions = Array.from({ length: question.options.length }, (_, i) => i);
+      
+      // Fisher-Yates shuffle algorithm
+      for (let i = positions.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [positions[i], positions[j]] = [positions[j], positions[i]];
+      }
+
+      // Create mapping of shuffled positions to options
+      return question.options.map((option, index) => ({
+        option,
+        laneIndex: positions[index],
+        isCorrect: index === question.correctAnswer
+      }));
+    }, [question]); // Recreate when question changes
+
+    // Keep track of where the correct answer ended up
+    const correctLaneIndex = useMemo(() => {
+      return randomizedOptions.findIndex(opt => opt.isCorrect);
+    }, [randomizedOptions]);
+
     useFrame((state, delta) => {
       if (!gameState.isPlaying || gameState.isPaused) return;
       
@@ -39,10 +63,6 @@ export function MovingAnswerOptions({
   
       const currentZ = optionsGroupRef.current.position.z;
       
-      // Enhanced collision detection logging
-      if (currentZ > -5 && currentZ < 5) {  // Expanded collision zone for debugging
-      }
-  
       // Move options forward
       optionsGroupRef.current.position.z += GAME_SPEED * gameState.speed * gameState.multiplier;
       
@@ -75,7 +95,7 @@ export function MovingAnswerOptions({
       if (hasCollided.current) return;
 
       hasCollided.current = true;
-      const isCorrect = lane === question.correctAnswer;
+      const isCorrect = lane === correctLaneIndex; // Use the new correctLaneIndex
       
       if (isCorrect && optionsGroupRef.current) {
         resetPosition.current = true;
@@ -107,8 +127,8 @@ export function MovingAnswerOptions({
   
     return (
       <group ref={optionsGroupRef} position={[0, 0, initialZ]} name="optionsGroup">
-        {question.options.map((option, index) => {
-          const lanePosition = LANE_POSITIONS[index];
+        {randomizedOptions.map(({ option, laneIndex }, index) => {
+          const lanePosition = LANE_POSITIONS[laneIndex];
           return (
             <RigidBody
               key={index}
@@ -118,17 +138,16 @@ export function MovingAnswerOptions({
               sensor={true}
             >
               <CuboidCollider 
-                args={[2, 1.5, 0.5]} // Increased width and height
+                args={[2, 1.5, 0.5]}
                 sensor={true}
               />
               <mesh>
-                <planeGeometry args={[4, 3]} /> {/* Use planeGeometry for images */}
+                <planeGeometry args={[4, 3]} />
                 <meshStandardMaterial 
                   map={new THREE.TextureLoader().load(option)} 
                   transparent={true}
                 />
               </mesh>
-              {/* Remove Text component and use image */}
             </RigidBody>
           );
         })}
