@@ -284,8 +284,9 @@ export default function Game() {
           newLives: gameState.lives - 1
         });
 
-        // Show the correct answer and flash effect
+        // Show the wrong answer flash effect
         setShowWrongAnswerFlash(true);
+
         setGameState(prev => {
           const newLives = prev.lives - 1;
           return {
@@ -298,7 +299,7 @@ export default function Game() {
           };
         });
 
-        // Hide the flash effect after 1.5 seconds instead of 500ms
+        // Hide the flash effect after 1.5 seconds
         setTimeout(() => {
           setShowWrongAnswerFlash(false);
         }, 1500);
@@ -760,6 +761,9 @@ export default function Game() {
     setLevelProgress(getAllLevelProgress());
   }, []);
 
+  // Add new state for obstacle collision flash
+  const [showObstacleCollisionFlash, setShowObstacleCollisionFlash] = useState(false);
+
   return (
     // Add touch-action CSS to prevent default touch behaviors
     <div className="w-full h-screen" style={{ touchAction: 'none' }} onTouchStart={(e: React.TouchEvent) => handleTouchStart(e.nativeEvent)} onTouchEnd={(e: React.TouchEvent) => handleTouchEnd(e.nativeEvent)}>
@@ -770,6 +774,16 @@ export default function Game() {
           <div className="absolute inset-y-0 right-0 w-32 bg-gradient-to-l from-red-500/70 to-transparent" />
           <div className="absolute inset-x-0 top-0 h-32 bg-gradient-to-b from-red-500/70 to-transparent" />
           <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-red-500/70 to-transparent" />
+        </div>
+      )}
+      
+      {/* Obstacle Collision Flash Effect - 25% less intense */}
+      {showObstacleCollisionFlash && (
+        <div className="absolute inset-0 pointer-events-none z-50">
+          <div className="absolute inset-y-0 left-0 w-32 bg-gradient-to-r from-red-500/50 to-transparent" />
+          <div className="absolute inset-y-0 right-0 w-32 bg-gradient-to-l from-red-500/50 to-transparent" />
+          <div className="absolute inset-x-0 top-0 h-32 bg-gradient-to-b from-red-500/50 to-transparent" />
+          <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-red-500/50 to-transparent" />
         </div>
       )}
       {/* Correct Answer Flash Effect */}
@@ -1186,6 +1200,7 @@ export default function Game() {
                     onRespawn={() => {}}
                     initialZ={obstacleInitialZ}
                     activeOptionZones={gameState.activeOptionZones}
+                    setShowObstacleCollisionFlash={setShowObstacleCollisionFlash}
                   />
                 ))}
                 {gameState.currentQuestion && !gameState.showingCorrectAnswer && (

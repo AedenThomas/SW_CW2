@@ -28,6 +28,7 @@ interface TrafficObstacleProps {
   index: number; // Add index prop to stagger obstacles
   initialZ: number; // Add initialZ prop
   activeOptionZones: { start: number; end: number; }[]; // Add activeOptionZones prop
+  setShowObstacleCollisionFlash: (show: boolean) => void; // Add this line
 }
 
 export function TrafficObstacle({ 
@@ -37,6 +38,7 @@ export function TrafficObstacle({
   index,
   initialZ,
   activeOptionZones, // Receive activeOptionZones
+  setShowObstacleCollisionFlash, // Receive setShowObstacleCollisionFlash
 }: TrafficObstacleProps) {
   const lane = useRef(Math.floor(Math.random() * 3));
   const modelIndex = useRef(Math.floor(Math.random() * OBSTACLE_MODELS.length));
@@ -103,11 +105,17 @@ export function TrafficObstacle({
         });
         
         hasCollided.current = true;
+        setShowObstacleCollisionFlash(true); // Show the flash effect
         setGameState(prev => ({
           ...prev,
           lives: prev.lives - 1,
           isGameOver: prev.lives <= 1
         }));
+        
+        // Hide the flash effect after 1.5 seconds
+        setTimeout(() => {
+          setShowObstacleCollisionFlash(false);
+        }, 1500);
       }
     }
 
