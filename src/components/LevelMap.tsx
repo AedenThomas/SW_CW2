@@ -65,16 +65,16 @@ function calculateCurvePoints(width: number, height: number, isMobile: boolean) 
     const offsetY = (scaledHeight - height) / 2;
 
     const roadPoints = isMobile ? {
-        // 20% more pronounced vertical S-curve for mobile
+        // Compress the vertical spacing for mobile
         start: { x: width / 2, y: padding },
-        control1: { x: padding - 80, y: height * 0.35 * scaleFactor }, // Moved further left
-        control2: { x: width - padding + 80, y: height * 0.65 * scaleFactor }, // Moved further right
-        end: { x: width / 2, y: height * scaleFactor - padding }
+        control1: { x: padding - 80, y: height * 0.25 }, // Reduced from 0.35
+        control2: { x: width - padding + 80, y: height * 0.75 }, // Reduced from 0.65
+        end: { x: width / 2, y: height - padding }
     } : {
-        // 100% more pronounced horizontal S-curve for desktop
+        // Desktop remains unchanged
         start: { x: padding - offsetX, y: height / 2 },
-        control1: { x: (scaledWidth * 0.25) - offsetX, y: -(height * 0.2) }, // Much higher (was 0.05)
-        control2: { x: (scaledWidth * 0.75) - offsetX, y: (height * 1.2) },  // Much lower (was 0.95)
+        control1: { x: (scaledWidth * 0.25) - offsetX, y: -(height * 0.2) },
+        control2: { x: (scaledWidth * 0.75) - offsetX, y: (height * 1.2) },
         end: { x: (scaledWidth - padding) - offsetX, y: height / 2 }
     };
 
@@ -162,7 +162,7 @@ export function LevelMap({ onSelectLevel, onBack }: {
     // Calculate curve points using useMemo to prevent recalculation
     const { roadPoints, curvePoints } = useMemo(() => {
         const viewWidth = isMobile ? 400 : 1000;
-        const viewHeight = isMobile ? 800 : 600;
+        const viewHeight = isMobile ? 1000 : 600; // Reduced from 1200
         return calculateCurvePoints(viewWidth, viewHeight, isMobile);
     }, [isMobile]);
 
@@ -184,9 +184,9 @@ export function LevelMap({ onSelectLevel, onBack }: {
     }, [selectedLevel, levelQuestions]); // Add levelQuestions to dependencies
 
     return (
-        <div className="fixed inset-0 z-50 bg-gradient-to-b from-blue-100 to-green-100 overflow-hidden">
+        <div className="absolute inset-0 z-50 bg-gradient-to-b from-blue-100 to-green-100 overflow-auto">
             {/* Top Bar */}
-            <div className="sticky top-0 z-50 bg-white/80 backdrop-blur-sm shadow-md">
+            <div className="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-sm shadow-md">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
                     <h1 className="text-3xl font-bold text-gray-900">Road to Mastery</h1>
                     <button
@@ -200,15 +200,18 @@ export function LevelMap({ onSelectLevel, onBack }: {
                 </div>
             </div>
 
-            {/* Winding Road with Levels */}
-            <div className="h-[calc(100vh-80px)] max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-                <div className="relative h-full">
+            {/* Adjust the container for better mobile visibility */}
+            <div className={`
+                ${isMobile ? 'pt-[80px] pb-8 min-h-screen' : 'h-[calc(100vh-80px)]'}
+                max-w-7xl mx-auto px-4 sm:px-6 lg:px-8
+            `}>
+                {/* Reduce the container height */}
+                <div className={`${isMobile ? 'h-[1000px]' : 'h-full'} relative`}>
                     <svg 
-                        className="absolute w-full h-full" 
-                        viewBox={isMobile ? 
-                            "0 0 400 800" : 
+                        className={`w-full h-full ${isMobile ? 'absolute inset-0' : ''}`}
+                        viewBox={isMobile ? "0 0 400 1000" : // Reduced height from 1200
                             `-${Math.floor((1000 * 0.15) / 2)} -${Math.floor((600 * 0.15) / 2)} ${1000 * 1.15} ${600 * 1.15}`}
-                        preserveAspectRatio="xMidYMid meet"
+                        preserveAspectRatio={isMobile ? "xMidYMid" : "xMidYMid meet"}
                     >
                         <defs>
                             <linearGradient id="roadGradient" x1="0%" y1="0%" x2="100%" y2="0%">
