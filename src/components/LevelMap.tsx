@@ -105,6 +105,7 @@ export function LevelMap({ onSelectLevel, onBack }: {
     const [selectedLevel, setSelectedLevel] = useState<number | null>(null);
     const [currentSignIndex, setCurrentSignIndex] = useState(0);
     const [levelProgress, setLevelProgress] = useState<LevelProgressMap>({});
+    const [hoveredLevel, setHoveredLevel] = useState<number | null>(null);
     
     const levels = [
         { id: 1, name: "First Steps", difficulty: "Easy", description: "Learn basic road safety" },
@@ -203,14 +204,15 @@ export function LevelMap({ onSelectLevel, onBack }: {
             {/* Adjust the container for better mobile visibility */}
             <div className={`
                 ${isMobile ? 'pt-[80px] pb-8 min-h-screen' : 'h-[calc(100vh-80px)]'}
-                max-w-7xl mx-auto px-4 sm:px-6 lg:px-8
+                max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative overflow-visible
             `}>
                 {/* Reduce the container height */}
                 <div className={`${isMobile ? 'h-[1000px]' : 'h-full'} relative`}>
                     <svg 
                         className={`w-full h-full ${isMobile ? 'absolute inset-0' : ''}`}
-                        viewBox={isMobile ? "0 0 400 1000" : // Reduced height from 1200
-                            `-${Math.floor((1000 * 0.15) / 2)} -${Math.floor((600 * 0.15) / 2)} ${1000 * 1.15} ${600 * 1.15}`}
+                        viewBox={isMobile ? 
+                            "-100 -100 600 1200" : // Added padding on all sides
+                            `-${Math.floor((1000 * 0.25) / 2)} -${Math.floor((600 * 0.25) / 2)} ${1000 * 1.25} ${600 * 1.25}`}
                         preserveAspectRatio={isMobile ? "xMidYMid" : "xMidYMid meet"}
                     >
                         <defs>
@@ -243,7 +245,7 @@ export function LevelMap({ onSelectLevel, onBack }: {
                             strokeDasharray="20 20"
                         />
 
-                        {/* Level Markers */}
+                        {/* Level Markers Base Layer */}
                         {levels.map((level, index) => {
                             const progress = levelProgress[level.id];
                             const isUnlocked = isLevelUnlocked(level.id, levelProgress);
@@ -251,132 +253,165 @@ export function LevelMap({ onSelectLevel, onBack }: {
                             const spacing = curveLength / (levels.length - 1);
                             const distance = index * spacing;
                             const point = getPointAtDistance(curvePoints, distance);
-                            const levelInfoId = `level-info-${level.id}`;
 
                             return (
-                                <g key={level.id} transform={`translate(${point.x}, ${point.y})`}>
-                                    <motion.g
-                                        initial={{ scale: 0 }}
-                                        animate={{ scale: 1 }}
-                                        transition={{ delay: index * 0.1 }}
-                                    >
-                                        {/* Single combined circle for both hover and click */}
-                                        <circle
-                                            r={isMobile ? "32" : "45"}
-                                            fill={isUnlocked ? getDifficultyColor(level.difficulty) : '#9CA3AF'} // gray-400 for locked levels
-                                            className={`transition-transform duration-200 
-                                                ${isUnlocked ? 'hover:scale-110 cursor-pointer' : 'cursor-not-allowed opacity-60'}
-                                                ${progress?.completed ? 'stroke-2 stroke-yellow-400' : ''}`}
-                                            onClick={() => isUnlocked && handleLevelClick(level.id)}
-                                            onMouseEnter={() => {
-                                                const popup = document.getElementById(levelInfoId);
-                                                if (popup) {
-                                                    popup.classList.remove('opacity-0');
-                                                    popup.classList.add('opacity-100');
-                                                }
-                                            }}
-                                            onMouseLeave={() => {
-                                                const popup = document.getElementById(levelInfoId);
-                                                if (popup) {
-                                                    popup.classList.remove('opacity-100');
-                                                    popup.classList.add('opacity-0');
-                                                }
-                                            }}
-                                        />
-                                        
-                                        {/* Level number */}
-                                        <text
-                                            x="0"
-                                            y="0"
-                                            textAnchor="middle"
-                                            dominantBaseline="middle"
-                                            className={`text-xl font-bold fill-current pointer-events-none
-                                                ${isUnlocked ? 'text-white' : 'text-gray-400'}`}
+                                <g key={`base-${level.id}`}>
+                                    <g transform={`translate(${point.x}, ${point.y})`}>
+                                        <motion.g
+                                            initial={{ scale: 0 }}
+                                            animate={{ scale: 1 }}
+                                            transition={{ delay: index * 0.1 }}
                                         >
-                                            {level.id}
-                                        </text>
-
-                                        {/* Level info popup */}
-                                        <foreignObject
-                                            id={levelInfoId}
-                                            x="-150"
-                                            y="45"
-                                            width="300"
-                                            height="220"
-                                            className="opacity-0 transition-opacity duration-300"
-                                            style={{ pointerEvents: 'none' }}
-                                        >
-                                            <div className="bg-white/95 backdrop-blur-sm p-5 rounded-xl shadow-xl border border-gray-100">
-                                                <div className="flex items-start justify-between mb-3">
-                                                    <div>
-                                                        <h3 className="font-bold text-lg text-gray-900">{level.name}</h3>
-                                                        <span 
-                                                            className="inline-block px-2 py-1 mt-1 text-xs rounded-full"
-                                                            style={{ 
-                                                                backgroundColor: isUnlocked ? 
-                                                                    `${getDifficultyColor(level.difficulty)}20` : 
-                                                                    '#F3F4F6',
-                                                                color: isUnlocked ? 
-                                                                    getDifficultyColor(level.difficulty) : 
-                                                                    '#6B7280'
-                                                            }}
-                                                        >
-                                                            {level.difficulty}
-                                                        </span>
-                                                    </div>
-                                                    {!isUnlocked && (
-                                                        <div className="flex items-center gap-1 bg-gray-100 px-2 py-1 rounded-full">
-                                                            <svg className="w-4 h-4 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                                                            </svg>
-                                                            <span className="text-xs font-medium text-gray-600">Locked</span>
-                                                        </div>
-                                                    )}
-                                                    {progress?.completed && (
-                                                        <div className="flex items-center gap-1 bg-green-100 px-2 py-1 rounded-full">
-                                                            <svg className="w-4 h-4 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                                                            </svg>
-                                                            <span className="text-xs font-medium text-green-600">Complete</span>
-                                                        </div>
-                                                    )}
-                                                </div>
-                                                
-                                                <p className="text-sm text-gray-600 mb-3">
-                                                    {isUnlocked ? level.description : 'Complete the previous level to unlock'}
-                                                </p>
-                                                
-                                                {progress && isUnlocked && (
-                                                    <div className="space-y-3">
-                                                        <div className="flex items-center justify-between bg-gray-50 px-3 py-2 rounded-lg">
-                                                            <span className="text-sm text-gray-600">High Score</span>
-                                                            <span className="font-semibold text-sm">
-                                                                {progress.highScore}
-                                                                <span className="text-yellow-500 ml-1">★</span>
-                                                            </span>
-                                                        </div>
-                                                        <div className="flex items-center justify-between">
-                                                            <span className="text-sm text-gray-600">Fuel Remaining</span>
-                                                            <div className="flex gap-1.5">
-                                                                {Array.from({ length: 3 }).map((_, i) => (
-                                                                    <div
-                                                                        key={i}
-                                                                        className={`w-5 h-2 rounded-full transition-colors ${
-                                                                            i < progress.remainingLives
-                                                                                ? 'bg-blue-500'
-                                                                                : 'bg-gray-200'
-                                                                        }`}
-                                                                    />
-                                                                ))}
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                )}
-                                            </div>
-                                        </foreignObject>
-                                    </motion.g>
+                                            <circle
+                                                r={isMobile ? "32" : "45"}
+                                                fill={isUnlocked ? getDifficultyColor(level.difficulty) : '#9CA3AF'}
+                                                className={`transition-transform duration-200
+                                                    ${isUnlocked ? 'hover:scale-110 cursor-pointer' : 'cursor-not-allowed opacity-60'}
+                                                    ${progress?.completed ? 'stroke-2 stroke-yellow-400' : ''}`}
+                                                onClick={() => isUnlocked && handleLevelClick(level.id)}
+                                                onMouseEnter={() => setHoveredLevel(level.id)}
+                                                onMouseLeave={() => setHoveredLevel(null)}
+                                            />
+                                            <text
+                                                x="0"
+                                                y="0"
+                                                textAnchor="middle"
+                                                dominantBaseline="middle"
+                                                className={`text-xl font-bold fill-current pointer-events-none
+                                                    ${isUnlocked ? 'text-white' : 'text-gray-400'}`}
+                                            >
+                                                {level.id}
+                                            </text>
+                                        </motion.g>
+                                    </g>
                                 </g>
                             );
+                        })}
+
+                        {/* Hover Cards Overlay Layer */}
+                        {levels.map((level, index) => {
+                            const progress = levelProgress[level.id];
+                            const isUnlocked = isLevelUnlocked(level.id, levelProgress);
+                            const curveLength = getCurveLength(curvePoints);
+                            const spacing = curveLength / (levels.length - 1);
+                            const distance = index * spacing;
+                            const point = getPointAtDistance(curvePoints, distance);
+
+                            return hoveredLevel === level.id ? (
+                                <g key={`overlay-${level.id}`}>
+                                    <g transform={`translate(${point.x}, ${point.y})`}>
+                                        <foreignObject
+                                            x={(() => {
+                                                if (isMobile) {
+                                                    return index === 0 ? -75 : index === levels.length - 1 ? -225 : -150;
+                                                } else {
+                                                    if (index === 0) return 50;
+                                                    if (index === levels.length - 1) return -350;
+                                                    return -150;
+                                                }
+                                            })()}
+                                            y={(() => {
+                                                if (isMobile) {
+                                                    if (index === 0) return 50;
+                                                    if (index === levels.length - 1) return -250;
+                                                    return 50;
+                                                } else {
+                                                    return -110;
+                                                }
+                                            })()}
+                                            width="300"
+                                            height="220"
+                                            style={{ 
+                                                pointerEvents: 'none',
+                                                zIndex: 1000,
+                                                overflow: 'visible'
+                                            }}
+                                        >
+                                            <div 
+                                                className="relative"
+                                                style={{ pointerEvents: 'none' }}
+                                            >
+                                                <motion.div 
+                                                    initial={{ opacity: 0, y: 10 }}
+                                                    animate={{ opacity: 1, y: 0 }}
+                                                    className="absolute bg-white/95 backdrop-blur-sm p-5 rounded-xl shadow-xl border border-gray-100"
+                                                    style={{ 
+                                                        pointerEvents: 'none',
+                                                        zIndex: 1000,
+                                                        width: '300px'
+                                                    }}
+                                                >
+                                                    <div className="flex items-start justify-between mb-3" style={{ pointerEvents: 'none' }}>
+                                                        <div>
+                                                            <h3 className="font-bold text-lg text-gray-900">{level.name}</h3>
+                                                            <span 
+                                                                className="inline-block px-2 py-1 mt-1 text-xs rounded-full"
+                                                                style={{ 
+                                                                    backgroundColor: isUnlocked ? 
+                                                                        `${getDifficultyColor(level.difficulty)}20` : 
+                                                                        '#F3F4F6',
+                                                                    color: isUnlocked ? 
+                                                                        getDifficultyColor(level.difficulty) : 
+                                                                        '#6B7280'
+                                                                }}
+                                                            >
+                                                                {level.difficulty}
+                                                            </span>
+                                                        </div>
+                                                        {!isUnlocked && (
+                                                            <div className="flex items-center gap-1 bg-gray-100 px-2 py-1 rounded-full">
+                                                                <svg className="w-4 h-4 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                                                                </svg>
+                                                                <span className="text-xs font-medium text-gray-600">Locked</span>
+                                                            </div>
+                                                        )}
+                                                        {progress?.completed && (
+                                                            <div className="flex items-center gap-1 bg-green-100 px-2 py-1 rounded-full">
+                                                                <svg className="w-4 h-4 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                                                </svg>
+                                                                <span className="text-xs font-medium text-green-600">Complete</span>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                    
+                                                    <p className="text-sm text-gray-600 mb-3">
+                                                        {isUnlocked ? level.description : 'Complete the previous level to unlock'}
+                                                    </p>
+                                                    
+                                                    {progress && isUnlocked && (
+                                                        <div className="space-y-3">
+                                                            <div className="flex items-center justify-between bg-gray-50 px-3 py-2 rounded-lg">
+                                                                <span className="text-sm text-gray-600">High Score</span>
+                                                                <span className="font-semibold text-sm">
+                                                                    {progress.highScore}
+                                                                    <span className="text-yellow-500 ml-1">★</span>
+                                                                </span>
+                                                            </div>
+                                                            <div className="flex items-center justify-between">
+                                                                <span className="text-sm text-gray-600">Fuel Remaining</span>
+                                                                <div className="flex gap-1.5">
+                                                                    {Array.from({ length: 3 }).map((_, i) => (
+                                                                        <div
+                                                                            key={i}
+                                                                            className={`w-5 h-2 rounded-full transition-colors ${
+                                                                                i < progress.remainingLives
+                                                                                    ? 'bg-blue-500'
+                                                                                    : 'bg-gray-200'
+                                                                            }`}
+                                                                        />
+                                                                    ))}
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    )}
+                                                </motion.div>
+                                            </div>
+                                        </foreignObject>
+                                    </g>
+                                </g>
+                            ) : null;
                         })}
                     </svg>
                 </div>
