@@ -37,78 +37,38 @@ export function TrafficObstacle({
   onRespawn,
   index,
   initialZ,
-  activeOptionZones, // Receive activeOptionZones
-  setShowObstacleCollisionFlash, // Receive setShowObstacleCollisionFlash
+  activeOptionZones,
+  setShowObstacleCollisionFlash,
 }: TrafficObstacleProps) {
   const lane = useRef(Math.floor(Math.random() * 3));
   const modelIndex = useRef(Math.floor(Math.random() * OBSTACLE_MODELS.length));
   const { scene } = useGLTF(OBSTACLE_MODELS[modelIndex.current]);
   const obstacleRef = useRef<any>(null);
-
-  // Define proximity range at component level
-  const PROXIMITY_Z = 15;
-
-  // Use a ref to store the current Z position
-  const currentZ = useRef<number>(initialZ + (index * SPAWN_INTERVAL));
-
-  // Add collision state ref
   const hasCollided = useRef(false);
-
-  useEffect(() => {
-    if (obstacleRef.current) {
-      const spawnZ = initialZ + (index * SPAWN_INTERVAL);
-      
-      // Find the first zone that includes spawnZ
-      const matchingZone = activeOptionZones.find(zone => 
-        spawnZ >= zone.start && spawnZ <= zone.end
-      );
-
-      if (matchingZone) {
-        // Adjust spawnZ to be after the safe zone using SAFE_ZONE_AFTER
-        obstacleRef.current.setTranslation(
-          new Vector3(LANE_POSITIONS[lane.current], 0, matchingZone.end + SAFE_ZONE_AFTER)
-        );
-      } else {
-        obstacleRef.current.setTranslation(
-          new Vector3(LANE_POSITIONS[lane.current], 0, spawnZ)
-        );
-      }
-    }
-  }, [initialZ, index, activeOptionZones]);
+  
+  // Add this to track the actual position
+  const currentPosition = useRef({
+    x: LANE_POSITIONS[lane.current],
+    y: modelIndex.current === 3 ? 1.4 :
+       modelIndex.current === 2 ? 1.0 :
+       modelIndex.current === 1 ? 1.0 :
+       modelIndex.current === 4 ? 1.3 :
+       0.5,
+    z: initialZ + (index * SPAWN_INTERVAL)
+  });
 
   useFrame((state, delta) => {
     if (!gameState.isPlaying || !obstacleRef.current) return;
 
-    const currentPos = obstacleRef.current.translation();
-    
-    // Move obstacle forward
-    const newZ = currentPos.z + GAME_SPEED * gameState.speed * gameState.multiplier;
-    
-    // Calculate y position to maintain constant height above road
-    const yOffset = modelIndex.current === 3 ? 1.4 :
-                   modelIndex.current === 2 ? 1.0 :
-                   modelIndex.current === 1 ? 1.0 :
-                   modelIndex.current === 4 ? 1.3 :
-                   0.5;
-
-    obstacleRef.current.setTranslation(
-      new Vector3(
-        currentPos.x,
-        yOffset,
-        newZ
-      )
-    );
-
-    // Update currentZ ref
-    currentZ.current = newZ;
+    // Calculate movement based on game speed and delta
+    const moveAmount = GAME_SPEED * gameState.speed * gameState.multiplier * delta * 60;
+    currentPosition.current.z += moveAmount;
 
     // Check for collision based on position
-    if (newZ > -2 && newZ < 2 && !hasCollided.current) {  // Collision zone
-      // Use targetLane if available, otherwise use currentLane
+    if (currentPosition.current.z > -2 && currentPosition.current.z < 2 && !hasCollided.current) {
       const effectiveLane = gameState.targetLane !== null ? gameState.targetLane : gameState.currentLane;
       
       if (effectiveLane === lane.current) {
-        
         hasCollided.current = true;
         setShowObstacleCollisionFlash(true);
         setGameState(prev => ({
@@ -123,8 +83,8 @@ export function TrafficObstacle({
       }
     }
 
-    // Before respawning, ensure the new spawn position is outside the safe zones
-    if (newZ > 15) {
+    // Reset position if passed player
+    if (currentPosition.current.z > 15) {
       hasCollided.current = false;
       lane.current = Math.floor(Math.random() * 3);
       
@@ -132,24 +92,41 @@ export function TrafficObstacle({
       while (lane.current === gameState.currentLane) {
         lane.current = Math.floor(Math.random() * 3);
       }
-      modelIndex.current = Math.floor(Math.random() * OBSTACLE_MODELS.length);
-      
-      // Calculate new spawn Z
-      let repositionedZ = initialZ + (index * SPAWN_INTERVAL);
-      
-      // Check against all active safe zones and adjust repositionedZ accordingly
-      activeOptionZones.forEach(zone => {
-        if (repositionedZ >= zone.start && repositionedZ <= zone.end) {
-          // Adjust repositionedZ to be after the safe zone
-          repositionedZ = zone.end + SAFE_ZONE_AFTER;
-        }
-      });
 
-      obstacleRef.current.setTranslation(
-        new Vector3(LANE_POSITIONS[lane.current], 0, repositionedZ)
+      // Calculate new spawn position
+      let newZ = initialZ + (index * SPAWN_INTERVAL);
+      
+      // Check and adjust for safe zones
+      const matchingZone = activeOptionZones.find(zone => 
+        newZ >= zone.start && newZ <= zone.end
       );
+
+      if (matchingZone) {
+        newZ = matchingZone.end + SAFE_ZONE_AFTER;
+      }
+
+      // Update position
+      currentPosition.current = {
+        x: LANE_POSITIONS[lane.current],
+        y: modelIndex.current === 3 ? 1.4 :
+           modelIndex.current === 2 ? 1.0 :
+           modelIndex.current === 1 ? 1.0 :
+           modelIndex.current === 4 ? 1.3 :
+           0.5,
+        z: newZ
+      };
+
       onRespawn();
     }
+
+    // Update obstacle position
+    obstacleRef.current.setTranslation(
+      new Vector3(
+        currentPosition.current.x,
+        currentPosition.current.y,
+        currentPosition.current.z
+      )
+    );
   });
 
   return (
@@ -158,13 +135,9 @@ export function TrafficObstacle({
       type="kinematicPosition"
       colliders={false}
       position={[
-        LANE_POSITIONS[lane.current], 
-        modelIndex.current === 3 ? 1.4 :
-        modelIndex.current === 2 ? 1.0 :
-        modelIndex.current === 1 ? 1.0 :
-        modelIndex.current === 4 ? 1.3 :
-        0.5, // Set initial height based on model type
-        initialZ + (index * SPAWN_INTERVAL)
+        currentPosition.current.x,
+        currentPosition.current.y,
+        currentPosition.current.z
       ]}
     >
       <primitive 
