@@ -1,10 +1,11 @@
+import React from 'react';
 import { Canvas } from '@react-three/fiber';
 import { useState, useEffect, useRef, Suspense } from 'react';
 import { motion } from 'framer-motion';
 import { Physics } from '@react-three/rapier';
 import { PerspectiveCamera, useGLTF, Sky, Stars } from '@react-three/drei';
 import { questions, getOptionsForQuestion, getLevelQuestions } from '../data/questions';
-import { LANE_SWITCH_COOLDOWN, SAFE_ZONE_AFTER, SAFE_ZONE_BEFORE } from '../constants/game';
+import { LANE_SWITCH_COOLDOWN, SAFE_ZONE_AFTER, SAFE_ZONE_BEFORE, initialZ, LANE_POSITIONS } from '../constants/game';
 import { GameState, Question, GameMode } from '../types/game'; // Import Question and GameMode types
 import { OracleButton, OracleModal } from './Oracle';
 import { TrafficObstacle, NUM_OBSTACLES } from './TrafficObstacle';
@@ -12,7 +13,7 @@ import { FuelIcon } from './FuelIcon';
 import { LevelMap } from './LevelMap';
 import { Road } from './Road';
 import { PlayerCar } from './PlayerCar';
-import {MovingAnswerOptions} from './MovingAnswerOptions';
+import { MovingAnswerOptions } from './MovingAnswerOptions';
 import { MovingLaneDividers } from './MovingLaneDividers';
 import { PauseButton } from './PauseButton';
 import { LoadingScreen } from './LoadingScreen';
@@ -20,6 +21,8 @@ import { saveLevelProgress } from '../utils/storage';
 import { SignIndex } from './SignIndex';
 import { LevelProgressMap } from '../types/game';
 import { getAllLevelProgress } from '../utils/storage';
+import Coins from './Coins';
+import { Scenery } from './Scenery';
 
 // Add debug logging utility
 const DEBUG = true;
@@ -32,8 +35,6 @@ const debugLog = (message: string, data?: any) => {
 const SWIPE_THRESHOLD = 50; // Minimum swipe distance to trigger lane change
 const SWIPE_TIMEOUT = 300; // Maximum time in ms for a swipe
 const MAX_SPEED = 3; // Maximum possible speed in the game
-
-export const LANE_POSITIONS = [-5, 0, 5]; // Make sure these match your desired positions
 
 const initialGameState: GameState = {
   currentLane: 1,
@@ -64,7 +65,7 @@ const initialGameState: GameState = {
 
 // Add this helper function near the top of the file
 const isInfiniteModeUnlocked = (levelProgress: LevelProgressMap): boolean => {
-  return levelProgress[3]?.completed ?? false;
+  return levelProgress[1]?.completed ?? false;
 };
 
 export default function Game() {
@@ -459,26 +460,22 @@ export default function Game() {
   }, [gameState.score, gameState.multiplier, gameState.currentLane, gameState.coinsCollected]);
 
   const handleCoinCollect = (id: number) => {
-    debugLog(`handleCoinCollect execution started:`, {
-      id,
-      currentState: {
-        coinsCollected: gameState.coinsCollected,
-        score: gameState.score // Add score to debug output
-      }
+    debugLog('Collecting coin', {
+      coinId: id,
+      lane: getLaneFromId(id),
+      currentCoins: gameState.coinsCollected,
     });
     
-    // Update ONLY coinsCollected, remove any score changes
     setGameState(prev => ({
       ...prev,
       coinsCollected: prev.coinsCollected + 1,
-      // Do NOT modify score here
+      score: prev.score + 10, // {{ edit_1 }} Optional: Increase score per coin
     }));
-    
-    debugLog('Coin collection completed:', {
-      newCoinsCollected: gameState.coinsCollected + 1,
-      score: gameState.score, // Add score to verify it's unchanged
-      coinId: id
-    });
+  };
+
+  // Helper function to determine lane from coin ID
+  const getLaneFromId = (id: number): number => {
+    return Math.floor(id / 10000);
   };
 
   // Add new function to handle game start
@@ -770,6 +767,31 @@ export default function Game() {
 
   // Add new state for obstacle collision flash
   const [showObstacleCollisionFlash, setShowObstacleCollisionFlash] = useState(false);
+
+  // Add this state to manage multiple Z positions for coin groups
+  const [coinGroups, setCoinGroups] = useState<number[]>([]);
+
+  // Function to spawn a new group of coins
+  const spawnCoinGroup = () => {
+    const lastGroupZ = coinGroups.length > 0 ? coinGroups[coinGroups.length - 1] : initialZ;
+    const newGroupZ = lastGroupZ - 200; // Adjust spacing as needed
+    setCoinGroups(prev => [...prev, newGroupZ]);
+  };
+
+  // Initialize coin groups
+  useEffect(() => {
+    const initialGroups = Array.from({ length: 10 }).map((_, index) => initialZ - index * 200);
+    setCoinGroups(initialGroups);
+  }, [initialZ]);
+
+  // Periodically spawn new coin groups
+  useEffect(() => {
+    const interval = setInterval(() => {
+      spawnCoinGroup();
+    }, 5000); // Spawn every 5 seconds, adjust as needed
+
+    return () => clearInterval(interval);
+  }, [coinGroups]);
 
   return (
     // Add touch-action CSS to prevent default touch behaviors
@@ -1189,6 +1211,7 @@ export default function Game() {
           
           <Physics paused={!gameState.isPlaying || gameState.isPaused || gameState.isGameOver}>
             <Road />
+            <Scenery speed={gameState.speed} />
             {gameState.isPlaying && !gameState.isGameOver && (
               <>
                 <PlayerCar 
@@ -1210,6 +1233,26 @@ export default function Game() {
                     setShowObstacleCollisionFlash={setShowObstacleCollisionFlash}
                   />
                 ))}
+
+                {/* {{ edit_2 }} Render Coins in synchronized groups across all lanes */}
+                {gameState.gameMode === 'infinite' && (
+                  <>
+                    {coinGroups.map((groupZ, groupIndex) => (
+                      <React.Fragment key={`coin-group-${groupIndex}`}>
+                        {LANE_POSITIONS.map((position, laneIndex) => (
+                          <Coins 
+                            key={`coin-${laneIndex}-${groupIndex}`}
+                            lane={laneIndex}
+                            startingZ={groupZ} // {{ edit_3 }} Pass starting Z position
+                            gameState={gameState} 
+                            onCollect={handleCoinCollect} 
+                          />
+                        ))}
+                      </React.Fragment>
+                    ))}
+                  </>
+                )}
+
                 {gameState.currentQuestion && !gameState.showingCorrectAnswer && (
                   <MovingAnswerOptions 
                     question={gameState.currentQuestion}

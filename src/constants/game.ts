@@ -11,13 +11,16 @@ const LANE_SWITCH_COOLDOWN = 300; // 300ms cooldown between lane switches
 export const SAFE_ZONE_BEFORE = 20; // Distance before the options where obstacles won't spawn
 export const SAFE_ZONE_AFTER = 20;  // Distance after the options where obstacles won't spawn
 
+const initialZ = -100; // Define initialZ
+
 // Single export statement for all constants
 export {
   GAME_SPEED,
   LANE_WIDTH,
   LANE_POSITIONS,
   LANE_SWITCH_SPEED,
-  LANE_SWITCH_COOLDOWN
+  LANE_SWITCH_COOLDOWN,
+  initialZ
 };
 
 

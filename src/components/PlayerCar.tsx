@@ -19,7 +19,7 @@ export function PlayerCar({ position, targetPosition, handleCoinCollect, onLaneC
     const currentPos = useRef(position[0]);
     const isMoving = useRef(false);
     
-    const COLLISION_BOX = { width: 2, height: 1, depth: 4 };
+    const COLLISION_BOX = { width: 0.4, height: 0.2, depth: 0.8 };
   
     useFrame((state, delta) => {
       if (!rigidBodyRef.current) return;
@@ -73,13 +73,13 @@ export function PlayerCar({ position, targetPosition, handleCoinCollect, onLaneC
     return (
       <RigidBody 
         ref={rigidBodyRef} 
-        position={position} 
+        position={[position[0], 0.25, position[2]]}
         type="kinematicPosition"
         colliders={false}
         userData={{ type: 'PlayerCar' }}
       >
         <CuboidCollider 
-          args={[1, 1, 2]} // Adjust size to match car's visible size
+          args={[COLLISION_BOX.width/2, COLLISION_BOX.height/2, COLLISION_BOX.depth/2]} 
           sensor
           onIntersectionEnter={(e) => {
             const otherBody = e.other.rigidBody;
@@ -91,14 +91,12 @@ export function PlayerCar({ position, targetPosition, handleCoinCollect, onLaneC
           }}
         />
   
-        {/* Remove debugging visualization in production */}
-        {/* <mesh scale={[2, 2, 4]}>
-          <boxGeometry />
-          <meshBasicMaterial color="blue" wireframe />
-        </mesh> */}
-  
-        {/* Rest of the car model rendering */}
-        <group scale={[0.99, 0.99, 0.99]} rotation={[0, Math.PI, 0]}>
+        {/* Car model rendering */}
+        <group 
+          scale={[0.02, 0.02, 0.02]}
+          rotation={[0, Math.PI / 2, 0]} 
+          position={[0, 0, 0]}
+        >
           {scene ? (
             <primitive object={scene.clone()} />
           ) : (

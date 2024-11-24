@@ -79,3 +79,10 @@ export interface LevelProgress {
 export interface LevelProgressMap {
   [levelId: number]: LevelProgress;
 }
+
+export interface CoinsProps {
+  lane: number;
+  gameState: GameState;
+  onCollect: (id: number) => void;
+  startingZ: number;
+}

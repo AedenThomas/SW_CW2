@@ -5,11 +5,13 @@ import { useFrame } from '@react-three/fiber';
 import { GameState } from '../types/game';
 import { LANE_POSITIONS, GAME_SPEED } from '../constants/game';
 import { UserData } from '../types/userData';
+import { useGLTF } from '@react-three/drei';
 
 interface CoinsProps {
   lane: number;
   gameState: GameState;
   onCollect: (id: number) => void;
+  startingZ: number;
 }
 
 // Define a custom collision event interface
@@ -27,28 +29,29 @@ interface UserDataWithId extends UserData {
   coinId: number;
 }
 
-const Coins: React.FC<CoinsProps> = ({ lane, gameState, onCollect }) => {
+const Coins: React.FC<CoinsProps> = ({ lane, gameState, onCollect, startingZ }) => {
   const coinsRef = useRef<Array<{
     rigidBodyRef: React.RefObject<RapierRigidBody>;
     position: Vector3;
     id: number;
   }>>([]);
   const [collectedCoins, setCollectedCoins] = useState<number[]>([]);
-  const numCoins = 5; // Number of coins per lane
+  const numCoins = 10;
+  const { scene } = useGLTF(`${process.env.PUBLIC_URL}/models/coin.glb`);
 
-  // Initialize coins with better spacing
+  // Initialize coins with better spacing based on startingZ
   useEffect(() => {
     const generatedCoins = Array.from({ length: numCoins }).map((_, index) => {
-      const z = -50 - index * 40; // Even spacing
+      const z = startingZ - index * 40 + Math.random() * 20;
       return {
         rigidBodyRef: React.createRef<RapierRigidBody>(),
         position: new Vector3(LANE_POSITIONS[lane], 1, z),
-        id: index + lane * 1000, // Unique ID per lane
+        id: index + lane * 10000 + startingZ,
       };
     });
     coinsRef.current = generatedCoins;
     debugLog('Generated coins with new spacing:', generatedCoins);
-  }, [lane]);
+  }, [lane, startingZ, numCoins]);
 
   // Add collision zone check similar to options
   const isInCollisionZone = (z: number) => {
@@ -141,16 +144,11 @@ const Coins: React.FC<CoinsProps> = ({ lane, gameState, onCollect }) => {
             sensor={true}
           />
           {!collectedCoins.includes(coin.id) && (
-            <mesh castShadow>
-              <cylinderGeometry args={[0.5, 0.5, 0.1, 32]} />
-              <meshStandardMaterial 
-                color="#FFD700"
-                metalness={0.8}
-                roughness={0.3}
-                emissive="#FFD700"
-                emissiveIntensity={0.2}
-              />
-            </mesh>
+            <primitive 
+              object={scene.clone()} 
+              scale={[1.5, 1.5, 1.5]}
+              rotation={[0, Math.PI / 2, 0]} // Adjust rotation as needed
+            />
           )}
         </RigidBody>
       ))}

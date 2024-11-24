@@ -3,7 +3,7 @@ import { RigidBody, CuboidCollider } from "@react-three/rapier";
 import { useRef, useEffect, useMemo } from "react";
 import { GAME_SPEED } from "../constants/game";
 import { Question, GameState } from "../types/game";
-import { LANE_POSITIONS } from "./Game";
+import { LANE_POSITIONS } from '../constants/game';
 import * as THREE from 'three';
 
 interface MovingAnswerOptionsProps {

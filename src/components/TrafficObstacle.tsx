@@ -4,7 +4,7 @@ import { useRef, useEffect } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { Vector3 } from 'three';
 import { GAME_SPEED } from '../constants/game';
-import { LANE_POSITIONS } from './Game';
+import { LANE_POSITIONS, initialZ } from '../constants/game';
 import { GameState } from '../types/game';
 import { Dispatch, SetStateAction } from 'react';
 import { SAFE_ZONE_AFTER, SAFE_ZONE_BEFORE } from '../constants/game';
