@@ -17,8 +17,7 @@ const getRandomSigns = (currentSign: string, count: number = 2): string[] => {
 
 // Add this new function
 export const getLevelQuestions = (levelId: number): SignQuestions[] => {
-  const levelQuestions = questions.filter(q => q.levelId === levelId);
-  console.log(`Getting questions for level ${levelId}:`, levelQuestions); // Debug log
+  const levelQuestions = questions.filter(q => q.levelId === levelId); // Debug log
   return levelQuestions;
 };
 

@@ -71,24 +71,7 @@ const Coins: React.FC<CoinsProps> = ({ lane, gameState, onCollect, startingZ }) 
           // Use targetLane if available, otherwise use currentLane
           const effectiveLane = gameState.targetLane !== null ? gameState.targetLane : gameState.currentLane;
           
-          console.log('[Coin] Checking collision:', {
-            coinZ: currentPosition.z,
-            coinLane: lane,
-            playerCurrentLane: gameState.currentLane,
-            playerTargetLane: gameState.targetLane,
-            effectiveLane: effectiveLane,
-            time: Date.now()
-          });
-          
           if (lane === effectiveLane && !collectedCoins.includes(coin.id)) {
-            console.log('[Coin] COLLECTION DETECTED!', {
-              coinId: coin.id,
-              coinLane: lane,
-              playerCurrentLane: gameState.currentLane,
-              playerTargetLane: gameState.targetLane,
-              effectiveLane: effectiveLane,
-              time: Date.now()
-            });
             handleCollect(coin.id);
           }
         }

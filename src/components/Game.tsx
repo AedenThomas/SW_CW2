@@ -345,13 +345,6 @@ export default function Game() {
         case 'ArrowLeft':
           if (baseLane > 0) {
             const newLane = baseLane - 1;
-            console.log('[Lane Change] Left arrow pressed:', {
-              previousLane: baseLane,
-              newLane: newLane,
-              currentLane: gameState.currentLane,
-              targetLane: targetLane,
-              time: Date.now()
-            });
             setTargetLane(newLane);
             setTargetLanePosition(LANE_POSITIONS[newLane]);
             setGameState(prev => ({
@@ -364,13 +357,6 @@ export default function Game() {
         case 'ArrowRight':
           if (baseLane < LANE_POSITIONS.length - 1) {
             const newLane = baseLane + 1;
-            console.log('[Lane Change] Right arrow pressed:', {
-              previousLane: baseLane,
-              newLane: newLane,
-              currentLane: gameState.currentLane,
-              targetLane: targetLane,
-              time: Date.now()
-            });
             setTargetLane(newLane);
             setTargetLanePosition(LANE_POSITIONS[newLane]);
             setGameState(prev => ({
@@ -461,11 +447,6 @@ export default function Game() {
   // Define a callback for when lane change is complete
   const onLaneChangeComplete = () => {
     if (targetLane !== null) {
-      console.log('[Lane Change] Complete:', {
-        previousLane: gameState.currentLane,
-        newLane: targetLane,
-        time: Date.now()
-      });
       setGameState(prev => ({
         ...prev,
         currentLane: targetLane,

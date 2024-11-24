@@ -69,22 +69,7 @@ export function MovingAnswerOptions({
         // Use targetLane if available, otherwise use currentLane
         const effectiveLane = gameState.targetLane !== null ? gameState.targetLane : gameState.currentLane;
 
-        console.log('[Options] Checking collision:', {
-          optionZ: currentZ,
-          correctLaneIndex: correctLaneIndex,
-          playerCurrentLane: gameState.currentLane,
-          playerTargetLane: gameState.targetLane,
-          effectiveLane: effectiveLane,
-          time: Date.now()
-        });
-
         if (!hasCollided.current) {
-          console.log('[Options] Handling collision with lane:', {
-            lane: effectiveLane,
-            correctLaneIndex: correctLaneIndex,
-            isCorrect: effectiveLane === correctLaneIndex,
-            time: Date.now()
-          });
           handleCollision(effectiveLane);
         }
       }

@@ -107,23 +107,7 @@ export function TrafficObstacle({
       // Use targetLane if available, otherwise use currentLane
       const effectiveLane = gameState.targetLane !== null ? gameState.targetLane : gameState.currentLane;
       
-      console.log('[Obstacle] Checking collision:', {
-        obstacleZ: newZ,
-        obstacleLane: lane.current,
-        playerCurrentLane: gameState.currentLane,
-        playerTargetLane: gameState.targetLane,
-        effectiveLane: effectiveLane,
-        time: Date.now()
-      });
-      
       if (effectiveLane === lane.current) {
-        console.log('[Obstacle] COLLISION DETECTED!', {
-          obstacleLane: lane.current,
-          playerCurrentLane: gameState.currentLane,
-          playerTargetLane: gameState.targetLane,
-          effectiveLane: effectiveLane,
-          time: Date.now()
-        });
         
         hasCollided.current = true;
         setShowObstacleCollisionFlash(true);
