@@ -68,13 +68,26 @@ const Coins: React.FC<CoinsProps> = ({ lane, gameState, onCollect, startingZ }) 
         
         // Check for position-based collision like options
         if (isInCollisionZone(currentPosition.z)) {
-          if (lane === gameState.currentLane && !collectedCoins.includes(coin.id)) {
-            debugLog('Position-based coin collision detected', {
+          // Use targetLane if available, otherwise use currentLane
+          const effectiveLane = gameState.targetLane !== null ? gameState.targetLane : gameState.currentLane;
+          
+          console.log('[Coin] Checking collision:', {
+            coinZ: currentPosition.z,
+            coinLane: lane,
+            playerCurrentLane: gameState.currentLane,
+            playerTargetLane: gameState.targetLane,
+            effectiveLane: effectiveLane,
+            time: Date.now()
+          });
+          
+          if (lane === effectiveLane && !collectedCoins.includes(coin.id)) {
+            console.log('[Coin] COLLECTION DETECTED!', {
               coinId: coin.id,
-              lane,
-              playerLane: gameState.currentLane,
-              coinZ: currentPosition.z,
-              currentScore: gameState.score // Add score to debug output
+              coinLane: lane,
+              playerCurrentLane: gameState.currentLane,
+              playerTargetLane: gameState.targetLane,
+              effectiveLane: effectiveLane,
+              time: Date.now()
             });
             handleCollect(coin.id);
           }

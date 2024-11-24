@@ -61,6 +61,7 @@ export interface GameState {
   askedQuestions: Set<number>;
   activeOptionZones: { start: number; end: number; }[]; // Add this new property
   questionsAnswered: number;  // Add this new property
+  targetLane: number | null;
 }
 
 export interface PowerUp {

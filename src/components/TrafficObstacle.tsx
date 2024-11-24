@@ -89,12 +89,12 @@ export function TrafficObstacle({
                    modelIndex.current === 2 ? 1.0 :
                    modelIndex.current === 1 ? 1.0 :
                    modelIndex.current === 4 ? 1.3 :
-                   0.5; // Default height offset for other models
+                   0.5;
 
     obstacleRef.current.setTranslation(
       new Vector3(
         currentPos.x,
-        yOffset, // Use fixed height offset instead of 0
+        yOffset,
         newZ
       )
     );
@@ -104,23 +104,35 @@ export function TrafficObstacle({
 
     // Check for collision based on position
     if (newZ > -2 && newZ < 2 && !hasCollided.current) {  // Collision zone
-      if (gameState.currentLane === lane.current) {
-        console.log('[Obstacle] Position-based collision detected', {
+      // Use targetLane if available, otherwise use currentLane
+      const effectiveLane = gameState.targetLane !== null ? gameState.targetLane : gameState.currentLane;
+      
+      console.log('[Obstacle] Checking collision:', {
+        obstacleZ: newZ,
+        obstacleLane: lane.current,
+        playerCurrentLane: gameState.currentLane,
+        playerTargetLane: gameState.targetLane,
+        effectiveLane: effectiveLane,
+        time: Date.now()
+      });
+      
+      if (effectiveLane === lane.current) {
+        console.log('[Obstacle] COLLISION DETECTED!', {
           obstacleLane: lane.current,
-          playerLane: gameState.currentLane,
-          obstacleZ: newZ,
+          playerCurrentLane: gameState.currentLane,
+          playerTargetLane: gameState.targetLane,
+          effectiveLane: effectiveLane,
           time: Date.now()
         });
         
         hasCollided.current = true;
-        setShowObstacleCollisionFlash(true); // Show the flash effect
+        setShowObstacleCollisionFlash(true);
         setGameState(prev => ({
           ...prev,
           lives: prev.lives - 1,
           isGameOver: prev.lives <= 1
         }));
         
-        // Hide the flash effect after 1.5 seconds
         setTimeout(() => {
           setShowObstacleCollisionFlash(false);
         }, 1500);

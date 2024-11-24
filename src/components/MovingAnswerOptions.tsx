@@ -18,14 +18,12 @@ interface MovingAnswerOptionsProps {
     setShowWrongAnswerFlash: (show: boolean) => void
   ) => void;
   gameState: GameState;
-  targetLane: number | null;
 }
 
 export function MovingAnswerOptions({ 
   question, 
   onCollision, 
-  gameState,
-  targetLane
+  gameState
 }: MovingAnswerOptionsProps) {
     const optionsGroupRef = useRef<THREE.Group>(null);
     const hasCollided = useRef(false);
@@ -68,9 +66,25 @@ export function MovingAnswerOptions({
       
       // Position-based collision detection with enhanced logging
       if (currentZ > -2 && currentZ < 2) {
-        const effectiveLane = targetLane !== null ? targetLane : gameState.currentLane;
+        // Use targetLane if available, otherwise use currentLane
+        const effectiveLane = gameState.targetLane !== null ? gameState.targetLane : gameState.currentLane;
+
+        console.log('[Options] Checking collision:', {
+          optionZ: currentZ,
+          correctLaneIndex: correctLaneIndex,
+          playerCurrentLane: gameState.currentLane,
+          playerTargetLane: gameState.targetLane,
+          effectiveLane: effectiveLane,
+          time: Date.now()
+        });
 
         if (!hasCollided.current) {
+          console.log('[Options] Handling collision with lane:', {
+            lane: effectiveLane,
+            correctLaneIndex: correctLaneIndex,
+            isCorrect: effectiveLane === correctLaneIndex,
+            time: Date.now()
+          });
           handleCollision(effectiveLane);
         }
       }

@@ -61,6 +61,7 @@ const initialGameState: GameState = {
   askedQuestions: new Set<number>(), // Add this new property
   activeOptionZones: [], // Add this new property to track active option zones
   questionsAnswered: 0,  // Add this new property
+  targetLane: null,
 };
 
 // Add this helper function near the top of the file
@@ -344,17 +345,39 @@ export default function Game() {
         case 'ArrowLeft':
           if (baseLane > 0) {
             const newLane = baseLane - 1;
+            console.log('[Lane Change] Left arrow pressed:', {
+              previousLane: baseLane,
+              newLane: newLane,
+              currentLane: gameState.currentLane,
+              targetLane: targetLane,
+              time: Date.now()
+            });
             setTargetLane(newLane);
-            setTargetLanePosition(LANE_POSITIONS[newLane]); // Update targetLanePosition via state
-            lastLaneSwitch.current = now; // Debug log
+            setTargetLanePosition(LANE_POSITIONS[newLane]);
+            setGameState(prev => ({
+              ...prev,
+              targetLane: newLane
+            }));
+            lastLaneSwitch.current = now;
           }
           break;
         case 'ArrowRight':
           if (baseLane < LANE_POSITIONS.length - 1) {
             const newLane = baseLane + 1;
+            console.log('[Lane Change] Right arrow pressed:', {
+              previousLane: baseLane,
+              newLane: newLane,
+              currentLane: gameState.currentLane,
+              targetLane: targetLane,
+              time: Date.now()
+            });
             setTargetLane(newLane);
-            setTargetLanePosition(LANE_POSITIONS[newLane]); // Update targetLanePosition via state
-            lastLaneSwitch.current = now; // Debug log
+            setTargetLanePosition(LANE_POSITIONS[newLane]);
+            setGameState(prev => ({
+              ...prev,
+              targetLane: newLane
+            }));
+            lastLaneSwitch.current = now;
           }
           break;
       }
@@ -437,10 +460,16 @@ export default function Game() {
 
   // Define a callback for when lane change is complete
   const onLaneChangeComplete = () => {
-    if (targetLane !== null) { // Debug log
+    if (targetLane !== null) {
+      console.log('[Lane Change] Complete:', {
+        previousLane: gameState.currentLane,
+        newLane: targetLane,
+        time: Date.now()
+      });
       setGameState(prev => ({
         ...prev,
         currentLane: targetLane,
+        targetLane: null,
         isMoving: false
       }));
       setTargetLane(null);
@@ -1258,7 +1287,6 @@ export default function Game() {
                     question={gameState.currentQuestion}
                     onCollision={handleCollision}
                     gameState={gameState}
-                    targetLane={targetLane}
                   />
                 )}
               </>
