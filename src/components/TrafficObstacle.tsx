@@ -83,10 +83,18 @@ export function TrafficObstacle({
     
     // Move obstacle forward
     const newZ = currentPos.z + GAME_SPEED * gameState.speed * gameState.multiplier;
+    
+    // Calculate y position to maintain constant height above road
+    const yOffset = modelIndex.current === 3 ? 1.4 :
+                   modelIndex.current === 2 ? 1.0 :
+                   modelIndex.current === 1 ? 1.0 :
+                   modelIndex.current === 4 ? 1.3 :
+                   0.5; // Default height offset for other models
+
     obstacleRef.current.setTranslation(
       new Vector3(
         currentPos.x,
-        0,
+        yOffset, // Use fixed height offset instead of 0
         newZ
       )
     );
@@ -153,15 +161,23 @@ export function TrafficObstacle({
       ref={obstacleRef}
       type="kinematicPosition"
       colliders={false}
-      position={[LANE_POSITIONS[lane.current], 0, initialZ + (index * SPAWN_INTERVAL)]}
+      position={[
+        LANE_POSITIONS[lane.current], 
+        modelIndex.current === 3 ? 1.4 :
+        modelIndex.current === 2 ? 1.0 :
+        modelIndex.current === 1 ? 1.0 :
+        modelIndex.current === 4 ? 1.3 :
+        0.5, // Set initial height based on model type
+        initialZ + (index * SPAWN_INTERVAL)
+      ]}
     >
-      {/* Remove CuboidCollider since we're using position-based detection */}
       <primitive 
         object={scene.clone()} 
         scale={
           modelIndex.current === 3 ? [2.8, 2.8, 2.8] :
           modelIndex.current === 2 ? [2.1, 2.1, 2.1] :
           modelIndex.current === 1 ? [2.1, 2.1, 2.1] :
+          modelIndex.current === 4 ? [2.7, 2.7, 2.7] :
           [1.12, 1.12, 1.12]
         }
         position={[0, 0, 0]}

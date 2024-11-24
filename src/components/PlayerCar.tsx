@@ -73,7 +73,7 @@ export function PlayerCar({ position, targetPosition, handleCoinCollect, onLaneC
     return (
       <RigidBody 
         ref={rigidBodyRef} 
-        position={[position[0], 0.25, position[2]]}
+        position={[position[0], position[1], position[2]]}
         type="kinematicPosition"
         colliders={false}
         userData={{ type: 'PlayerCar' }}
