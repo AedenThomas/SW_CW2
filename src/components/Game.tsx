@@ -1011,8 +1011,8 @@ export default function Game() {
         </motion.div>
       )}
 
-      {/* Game UI Overlay - Top */}
-      <div className="absolute top-0 left-0 w-full p-4 z-10">
+      {/* Game UI Overlay positioned at the top */}
+      <div className={`absolute top-0 left-0 w-full p-4 z-10 ${isMobile ? 'pt-24' : ''}`}>
         {/* Score display */}
         <div className="absolute top-4 left-4 flex flex-col gap-2">
           {/* Score text */}
@@ -1111,72 +1111,70 @@ export default function Game() {
         )}
       </div>
 
-      {/* Game UI Overlay - Bottom */}
+      {/* Speedometer - Now positioned independently at bottom left */}
       {gameState.isPlaying && (
-        <div className="absolute bottom-0 left-0 w-full p-4 z-10">
-          <div className={`absolute left-4 bottom-4 ${isMobile ? 'scale-75 origin-bottom-left' : ''}`}>
-            <div className="bg-black/80 p-4 rounded-lg backdrop-blur-sm border border-white/20">
-              {/* Speedometer Gauge */}
-              <div className="relative w-24 h-12">
-                {/* Gauge Background with tick marks */}
-                <div className="absolute inset-0 bg-gray-800 rounded-t-full overflow-hidden">
-                  {Array.from({ length: 11 }).map((_, i) => {
-                    const angle = -90 + (i * (MAX_SPEED_ANGLE / 10));
-                    const isMainTick = i % 2 === 0;
-                    return (
-                      <div
-                        key={i}
-                        className={`absolute bottom-0 left-1/2 origin-bottom ${isMainTick ? 'h-3 w-0.5' : 'h-2 w-0.5'}`}
-                        style={{
-                          background: 'white',
-                          transform: `translateX(-50%) rotate(${angle}deg)`,
-                        }}
-                      />
-                    );
-                  })}
-                </div>
-
-                {/* Speed Value */}
-                <div className="absolute -bottom-1 left-1/2 transform -translate-x-1/2">
-                  <div className="text-white text-lg font-bold">
-                    {gameState.speed.toFixed(1)}x
-                  </div>
-                </div>
-
-                {/* Needle */}
-                <div
-                  className="absolute bottom-0 left-1/2 w-[2px] h-[90%] bg-red-500 origin-bottom transition-transform duration-300"
-                  style={{
-                    transform: `translateX(-50%) rotate(${((gameState.speed - 1) / (MAX_SPEED - 1)) * MAX_SPEED_ANGLE - 90}deg)`
-                  }}
-                >
-                  <div className="absolute -top-1 -left-1 w-2 h-2 bg-red-500 rounded-full" />
-                </div>
-              </div>
-
-              {/* Speed Indicators */}
-              <div className="flex justify-between px-1 mt-1">
-                <span className="text-white text-[10px]">1.0x</span>
-                <span className="text-white text-[10px]">3.0x</span>
-              </div>
-
-              {/* Speed Boost Indicators */}
-              <div className="flex gap-1 mt-1 justify-center">
-                {Array.from({ length: Math.floor((gameState.speed - 1) * 2) }).map((_, i) => (
-                  <svg 
-                    key={i}
-                    className="w-2 h-2 text-yellow-500 animate-pulse"
-                    viewBox="0 0 20 20"
-                    fill="currentColor"
-                  >
-                    <path 
-                      fillRule="evenodd" 
-                      d="M5.293 7.707a1 1 0 010-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 01-1.414 1.414L11 5.414V17a1 1 0 11-2 0V5.414L6.707 7.707a1 1 0 01-1.414 0z" 
-                      clipRule="evenodd" 
+        <div className="absolute bottom-4 left-4 z-10">
+          <div className="bg-black/80 p-4 rounded-lg backdrop-blur-sm border border-white/20">
+            {/* Speedometer Gauge */}
+            <div className="relative w-24 h-12">
+              {/* Gauge Background with tick marks */}
+              <div className="absolute inset-0 bg-gray-800 rounded-t-full overflow-hidden">
+                {Array.from({ length: 11 }).map((_, i) => {
+                  const angle = -90 + (i * (MAX_SPEED_ANGLE / 10));
+                  const isMainTick = i % 2 === 0;
+                  return (
+                    <div
+                      key={i}
+                      className={`absolute bottom-0 left-1/2 origin-bottom ${isMainTick ? 'h-3 w-0.5' : 'h-2 w-0.5'}`}
+                      style={{
+                        background: 'white',
+                        transform: `translateX(-50%) rotate(${angle}deg)`,
+                      }}
                     />
-                  </svg>
-                ))}
+                  );
+                })}
               </div>
+
+              {/* Speed Value */}
+              <div className="absolute -bottom-1 left-1/2 transform -translate-x-1/2">
+                <div className="text-white text-lg font-bold">
+                  {gameState.speed.toFixed(1)}x
+                </div>
+              </div>
+
+              {/* Needle */}
+              <div
+                className="absolute bottom-0 left-1/2 w-[2px] h-[90%] bg-red-500 origin-bottom transition-transform duration-300"
+                style={{
+                  transform: `translateX(-50%) rotate(${((gameState.speed - 1) / (MAX_SPEED - 1)) * MAX_SPEED_ANGLE - 90}deg)`
+                }}
+              >
+                <div className="absolute -top-1 -left-1 w-2 h-2 bg-red-500 rounded-full" />
+              </div>
+            </div>
+
+            {/* Speed Indicators */}
+            <div className="flex justify-between px-1 mt-1">
+              <span className="text-white text-[10px]">1.0x</span>
+              <span className="text-white text-[10px]">3.0x</span>
+            </div>
+
+            {/* Speed Boost Indicators */}
+            <div className="flex gap-1 mt-1 justify-center">
+              {Array.from({ length: Math.floor((gameState.speed - 1) * 2) }).map((_, i) => (
+                <svg 
+                  key={i}
+                  className="w-2 h-2 text-yellow-500 animate-pulse"
+                  viewBox="0 0 20 20"
+                  fill="currentColor"
+                >
+                  <path 
+                    fillRule="evenodd" 
+                    d="M5.293 7.707a1 1 0 010-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 01-1.414 1.414L11 5.414V17a1 1 0 11-2 0V5.414L6.707 7.707a1 1 0 01-1.414 0z" 
+                    clipRule="evenodd" 
+                  />
+                </svg>
+              ))}
             </div>
           </div>
         </div>
@@ -1403,7 +1401,6 @@ export default function Game() {
         </Suspense>
       </Canvas>
 
-      {/* Move these buttons outside of Canvas */}
       {/* Add PauseButton next to Oracle button */}
       {gameState.isPlaying && !gameState.isGameOver && (
         <PauseButton 
