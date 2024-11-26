@@ -3,7 +3,7 @@ import { Canvas } from '@react-three/fiber';
 import { useState, useEffect, useRef, Suspense } from 'react';
 import { motion } from 'framer-motion';
 import { Physics } from '@react-three/rapier';
-import { PerspectiveCamera, useGLTF, Sky, Stars } from '@react-three/drei';
+import { PerspectiveCamera, useGLTF, Sky, Stars, Html } from '@react-three/drei';
 import { questions, getOptionsForQuestion, getLevelQuestions } from '../data/questions';
 import { LANE_SWITCH_COOLDOWN, SAFE_ZONE_AFTER, SAFE_ZONE_BEFORE, initialZ, LANE_POSITIONS } from '../constants/game';
 import { GameState, Question, GameMode } from '../types/game'; // Import Question and GameMode types
@@ -78,6 +78,9 @@ const SKY_COLOR_BOTTOM = 'rgba(142, 226, 233, 1)'; // #8EE2E9
 const GROUND_COLOR_TOP = 'rgba(56, 118, 40, 1)';   // Green (#387628)
 const GROUND_COLOR_BOTTOM = 'rgba(86, 162, 50, 1)'; 
 // const GROUND_COLOR_BOTTOM = 'rgba(255, 0, 0, 1)';   // Red (#FF0000)  
+
+// Add this new constant near the top of the file
+const MAX_SPEED_ANGLE = 180; // Maximum angle for the speedometer needle
 
 export default function Game() {
   const [gameState, setGameState] = useState<GameState>(initialGameState);
@@ -1008,8 +1011,8 @@ export default function Game() {
         </motion.div>
       )}
 
-      {/* Game UI Overlay */}
-      <div className={`absolute top-0 left-0 w-full p-4 z-10 ${isMobile ? 'pt-24' : ''}`}> {/* Added conditional padding-top for mobile */}
+      {/* Game UI Overlay - Top */}
+      <div className="absolute top-0 left-0 w-full p-4 z-10">
         {/* Score display */}
         <div className="absolute top-4 left-4 flex flex-col gap-2">
           {/* Score text */}
@@ -1106,26 +1109,59 @@ export default function Game() {
             </div>
           </>
         )}
+      </div>
 
-        {/* Repositioned speedometer */}
-        {gameState.isPlaying && (
-          <div className={`absolute right-32 ${isMobile ? 'top-4 scale-75 origin-top-right' : 'top-1/4 transform -translate-y-1/2'} z-20`}>
-            <div className="bg-black/80 rounded-lg p-3 backdrop-blur-sm border border-white/20 flex flex-col items-center">
-              <span className="text-white text-xs mb-1">SPEED</span>
-              {/* Speedometer bar - made slightly smaller */}
-              <div className="w-24 h-2 bg-gray-700 rounded-full overflow-hidden">
-                <div 
-                  className="h-full bg-gradient-to-r from-green-500 via-yellow-500 to-red-500 transition-all duration-300"
-                  style={{ 
-                    width: `${(gameState.speed / MAX_SPEED) * 100}%`,
+      {/* Game UI Overlay - Bottom */}
+      {gameState.isPlaying && (
+        <div className="absolute bottom-0 left-0 w-full p-4 z-10">
+          <div className={`absolute left-4 bottom-4 ${isMobile ? 'scale-75 origin-bottom-left' : ''}`}>
+            <div className="bg-black/80 p-4 rounded-lg backdrop-blur-sm border border-white/20">
+              {/* Speedometer Gauge */}
+              <div className="relative w-24 h-12">
+                {/* Gauge Background with tick marks */}
+                <div className="absolute inset-0 bg-gray-800 rounded-t-full overflow-hidden">
+                  {Array.from({ length: 11 }).map((_, i) => {
+                    const angle = -90 + (i * (MAX_SPEED_ANGLE / 10));
+                    const isMainTick = i % 2 === 0;
+                    return (
+                      <div
+                        key={i}
+                        className={`absolute bottom-0 left-1/2 origin-bottom ${isMainTick ? 'h-3 w-0.5' : 'h-2 w-0.5'}`}
+                        style={{
+                          background: 'white',
+                          transform: `translateX(-50%) rotate(${angle}deg)`,
+                        }}
+                      />
+                    );
+                  })}
+                </div>
+
+                {/* Speed Value */}
+                <div className="absolute -bottom-1 left-1/2 transform -translate-x-1/2">
+                  <div className="text-white text-lg font-bold">
+                    {gameState.speed.toFixed(1)}x
+                  </div>
+                </div>
+
+                {/* Needle */}
+                <div
+                  className="absolute bottom-0 left-1/2 w-[2px] h-[90%] bg-red-500 origin-bottom transition-transform duration-300"
+                  style={{
+                    transform: `translateX(-50%) rotate(${((gameState.speed - 1) / (MAX_SPEED - 1)) * MAX_SPEED_ANGLE - 90}deg)`
                   }}
-                />
+                >
+                  <div className="absolute -top-1 -left-1 w-2 h-2 bg-red-500 rounded-full" />
+                </div>
               </div>
-              {/* Speed multiplier text */}
-              <span className="text-white text-sm mt-1 font-bold">
-                {gameState.speed.toFixed(1)}x
-              </span>
-              <div className="flex gap-1 mt-0.5">
+
+              {/* Speed Indicators */}
+              <div className="flex justify-between px-1 mt-1">
+                <span className="text-white text-[10px]">1.0x</span>
+                <span className="text-white text-[10px]">3.0x</span>
+              </div>
+
+              {/* Speed Boost Indicators */}
+              <div className="flex gap-1 mt-1 justify-center">
                 {Array.from({ length: Math.floor((gameState.speed - 1) * 2) }).map((_, i) => (
                   <svg 
                     key={i}
@@ -1143,8 +1179,8 @@ export default function Game() {
               </div>
             </div>
           </div>
-        )}
-      </div>
+        </div>
+      )}
 
       {/* Game Over Screen */}
       {gameState.isGameOver && (
@@ -1367,6 +1403,7 @@ export default function Game() {
         </Suspense>
       </Canvas>
 
+      {/* Move these buttons outside of Canvas */}
       {/* Add PauseButton next to Oracle button */}
       {gameState.isPlaying && !gameState.isGameOver && (
         <PauseButton 
