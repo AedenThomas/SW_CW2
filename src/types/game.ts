@@ -62,6 +62,7 @@ export interface GameState {
   activeOptionZones: { start: number; end: number; }[]; // Add this new property
   questionsAnswered: number;  // Add this new property
   targetLane: number | null;
+  coinsScore: number;  // Add this new property
 }
 
 export interface PowerUp {

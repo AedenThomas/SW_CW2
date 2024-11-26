@@ -63,6 +63,7 @@ const initialGameState: GameState = {
   activeOptionZones: [], // Add this new property to track active option zones
   questionsAnswered: 0,  // Add this new property
   targetLane: null,
+  coinsScore: 0,  // Add this new property
 };
 
 // Add this helper function near the top of the file
@@ -492,7 +493,7 @@ export default function Game() {
     setGameState(prev => ({
       ...prev,
       coinsCollected: prev.coinsCollected + 1,
-      score: prev.score + 10, // {{ edit_1 }} Optional: Increase score per coin
+      coinsScore: prev.coinsScore + 1, // Changed from +10 to +1
     }));
   };
 
@@ -1011,8 +1012,8 @@ export default function Game() {
         </motion.div>
       )}
 
-      {/* Game UI Overlay positioned at the top */}
-      <div className={`absolute top-0 left-0 w-full p-4 z-10 ${isMobile ? 'pt-24' : ''}`}>
+      {/* Game UI Overlay */}
+      <div className="absolute top-0 left-0 w-full p-4 z-20">
         {/* Score display */}
         <div className="absolute top-4 left-4 flex flex-col gap-2">
           {/* Score text */}
@@ -1020,9 +1021,18 @@ export default function Game() {
             <span className="text-black text-2xl font-semibold">Score: {gameState.score}</span>
           </div>
           
-          {/* Fuel display with text */}
+          {/* Coins Score display */}
           <div className="flex items-center gap-2">
-            <span className="text-black text-2xl">Fuel:</span>
+            <span className="text-black text-2xl font-semibold">
+              Coins: {gameState.coinsScore}
+            </span>
+          </div>
+        </div>
+
+        {/* Fuel display - adjusted positioning and added background for better visibility */}
+        <div className="absolute top-4 left-1/2 transform -translate-x-1/2 flex items-center gap-2 bg-white/80 px-3 py-1 rounded-lg">
+          <span className="text-black text-2xl">Fuel:</span>
+          <div className="flex gap-1">
             {Array.from({ length: 3 }).map((_, i) => (
               <FuelIcon 
                 key={i} 
@@ -1030,14 +1040,12 @@ export default function Game() {
               />
             ))}
           </div>
-          
-         
         </div>
 
         {/* Question display with background and truss */}
         {(gameState.currentQuestion || gameState.showingCorrectAnswer) && (
           <>
-            <div className="relative max-w-4xl mx-auto">
+            <div className="relative max-w-4xl mx-auto mt-16">
               <div className="bg-[#3B50A1] border-4 border-white text-white p-4 rounded-lg">
                 <div className="mt-4 flex flex-col items-center">
                   {gameState.showingCorrectAnswer ? (
@@ -1404,22 +1412,20 @@ export default function Game() {
         </Suspense>
       </Canvas>
 
-      {/* Add PauseButton next to Oracle button */}
+      {/* Update the Oracle and Pause button positioning */}
       {gameState.isPlaying && !gameState.isGameOver && (
-        <PauseButton 
-          isPaused={gameState.isPaused} 
-          onClick={togglePause}
-          disabled={isOracleActive}
-        />
-      )}
-
-      {/* Add Oracle Button - only show during gameplay */}
-      {gameState.isPlaying && !gameState.isGameOver && (
-        <OracleButton 
-          onClick={toggleOracle}
-          isActive={isOracleActive}
-          disabled={gameState.questionsAnswered === 0}
-        />
+        <div className="absolute top-4 right-4 flex items-center gap-2 z-20">
+          <PauseButton 
+            isPaused={gameState.isPaused} 
+            onClick={togglePause}
+            disabled={isOracleActive}
+          />
+          <OracleButton 
+            onClick={toggleOracle}
+            isActive={isOracleActive}
+            disabled={gameState.questionsAnswered === 0}
+          />
+        </div>
       )}
 
       {/* Add Oracle Modal */}
