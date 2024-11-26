@@ -256,32 +256,6 @@ export const questions: SignQuestions[] = [
       correctAnswerInsight: "This sign uses the universal inverted triangle symbol to clearly indicate where drivers must yield to other traffic."
     }
   },
-  {
-    signPath: process.env.PUBLIC_URL + "/signs/warning-signs-jpg/1/501.jpg",
-    levelId: 3,
-    questions: [
-      {
-        id: 13,
-        text: "Which triangular warning sign shows the standard 'Give Way' symbol?"
-      },
-      {
-        id: 14,
-        text: "What sign indicates that drivers must yield to other traffic at an upcoming junction?"
-      },
-      {
-        id: 15,
-        text: "Which red and white triangular sign warns drivers they must give way ahead?"
-      }
-    ],
-    oracleHelp: {
-      hint: "Look for the inverted triangle symbol - this is the universal indication for yielding to other traffic.",
-      wrongAnswerFeedback: {
-        "1": "That's not the yield sign - look for the inverted triangle symbol.",
-        "2": "This sign doesn't indicate yielding - check for the distinctive triangular shape."
-      },
-      correctAnswerInsight: "This sign uses the universal inverted triangle symbol to clearly indicate where drivers must yield to other traffic."
-    }
-  },
   
   
 ];

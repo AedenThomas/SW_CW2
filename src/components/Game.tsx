@@ -23,6 +23,7 @@ import { LevelProgressMap } from '../types/game';
 import { getAllLevelProgress } from '../utils/storage';
 import Coins from './Coins';
 import { Scenery } from './Scenery';
+import * as THREE from 'three';
 
 // Add debug logging utility
 const DEBUG = true;
@@ -68,6 +69,15 @@ const initialGameState: GameState = {
 const isInfiniteModeUnlocked = (levelProgress: LevelProgressMap): boolean => {
   return levelProgress[1]?.completed ?? false;
 };
+
+// Update the color constants
+const SKY_COLOR_TOP = 'rgba(54, 185, 233, 1)';     // #36B9E9
+const SKY_COLOR_BOTTOM = 'rgba(142, 226, 233, 1)'; // #8EE2E9
+// const SKY_COLOR_TOP = 'rgba(142, 226, 233, 1)'; // #8EE2E9
+// const SKY_COLOR_BOTTOM = 'rgba(54, 185, 233, 1)'; // #36B9E9
+const GROUND_COLOR_TOP = 'rgba(56, 118, 40, 1)';   // Green (#387628)
+const GROUND_COLOR_BOTTOM = 'rgba(86, 162, 50, 1)'; 
+// const GROUND_COLOR_BOTTOM = 'rgba(255, 0, 0, 1)';   // Red (#FF0000)  
 
 export default function Game() {
   const [gameState, setGameState] = useState<GameState>(initialGameState);
@@ -258,7 +268,7 @@ export default function Game() {
         setGameState(prev => {
           const newConsecutiveCorrect = prev.consecutiveCorrect + 1;
           const speedIncrease = Math.floor(newConsecutiveCorrect / 3);
-          const newSpeed = 1 + (speedIncrease * 0.5);
+          const newSpeed = 1 + (speedIncrease * 0.2);
           
           const speedLevel = Math.floor((newConsecutiveCorrect - 1) / 3);
           const baseScore = 100;
@@ -803,6 +813,20 @@ export default function Game() {
     return () => clearInterval(interval);
   }, [coinGroups]);
 
+  const newLocal = `
+                uniform vec3 colorTop;
+                uniform vec3 colorBottom;
+                varying vec2 vUv;
+                varying vec3 vPosition;
+                void main() {
+                  // Adjust transition to visible ground area
+                  // Start green from the horizon (where ground meets sky)
+                  // Transition to red at 80% of the visible ground area
+                  float t = smoothstep(50.0, 150.0, vPosition.y);
+                  vec3 color = mix(colorTop, colorBottom, t);
+                  gl_FragColor = vec4(color, 1.0);
+                }
+              `;
   return (
     // Add touch-action CSS to prevent default touch behaviors
     <div className="w-full h-screen" style={{ touchAction: 'none' }} onTouchStart={(e: React.TouchEvent) => handleTouchStart(e.nativeEvent)} onTouchEnd={(e: React.TouchEvent) => handleTouchEnd(e.nativeEvent)}>
@@ -1199,79 +1223,146 @@ export default function Game() {
             fov={isMobile ? 60 : 75}
           />
           
-          {/* Add Sky and Stars */}
-          <Sky 
-            distance={450000}
-            sunPosition={[0, 1, 0]}
-            inclination={0.5}
-            azimuth={0.25}
-          />
-          <Stars radius={100} depth={50} count={5000} factor={4} saturation={0} fade />
-          
+          {/* Background gradient sky */}
+          <mesh>
+            <planeGeometry args={[2, 2]} />
+            <shaderMaterial
+              uniforms={{
+                colorTop: { value: new THREE.Color(SKY_COLOR_TOP) },
+                colorBottom: { value: new THREE.Color(SKY_COLOR_BOTTOM) }
+              }}
+              vertexShader={`
+                varying vec2 vUv;
+                void main() {
+                  vUv = uv;
+                  gl_Position = vec4(position.xy, 1.0, 1.0);
+                }
+              `}
+              fragmentShader={`
+                uniform vec3 colorTop;
+                uniform vec3 colorBottom;
+                varying vec2 vUv;
+                void main() {
+                  // Scale the UV coordinates to focus on top half of screen
+                  float yCoord = (vUv.y - 0.5) * 2.0;
+                  
+                  // Wider transition range (0.2-0.8 instead of 0.45-0.55)
+                  float startY = 0.2;
+                  float endY = 0.8;
+                  float t = smoothstep(startY, endY, yCoord);
+                  
+                  vec3 color = mix(colorBottom, colorTop, t);
+                  gl_FragColor = vec4(color, 1.0);
+                }
+              `}
+            />
+          </mesh>
+
+          {/* Ground with gradient */}
+          <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.2, 0]} receiveShadow>
+            <planeGeometry args={[1000, 1000]} />
+            <shaderMaterial
+              uniforms={{
+                colorTop: { value: new THREE.Color(GROUND_COLOR_TOP) },
+                colorBottom: { value: new THREE.Color(GROUND_COLOR_BOTTOM) }
+              }}
+              vertexShader={`
+                varying vec2 vUv;
+                varying vec3 vPosition;
+                void main() {
+                  vUv = uv;
+                  vPosition = position;
+                  gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+                }
+              `}
+              fragmentShader={`
+                uniform vec3 colorTop;
+                uniform vec3 colorBottom;
+                varying vec2 vUv;
+                void main() {
+                  // Adjusted for 50-50 split with smooth transition in the middle
+                  float startY = 0.45;  // Start transition at 45%
+                  float endY = 0.55;    // End transition at 55%
+                  float t = smoothstep(startY, endY, vUv.y);
+                  vec3 color = mix(colorBottom, colorTop, t);
+                  gl_FragColor = vec4(color, 1.0);
+                }
+              `}
+            />
+          </mesh>
+
           {/* Enhanced lighting */}
-          <ambientLight intensity={0.3} />
+          <ambientLight intensity={0.4} />
           <directionalLight
             position={[10, 10, 5]}
-            intensity={1.5}
+            intensity={1.2}
             castShadow
             shadow-mapSize-width={2048}
             shadow-mapSize-height={2048}
           />
-          <hemisphereLight color="#b1e1ff" groundColor="#000000" intensity={0.5} />
+          <hemisphereLight 
+            color={SKY_COLOR_TOP} 
+            groundColor={GROUND_COLOR_BOTTOM} 
+            intensity={0.8} 
+          />
           
           <Physics paused={!gameState.isPlaying || gameState.isPaused || gameState.isGameOver}>
-            <Road />
-            <Scenery speed={gameState.speed} />
-            {gameState.isPlaying && !gameState.isGameOver && (
-              <>
-                <PlayerCar 
-                  position={[LANE_POSITIONS[gameState.currentLane], 1.0, 0]}
-                  targetPosition={targetLanePosition}
-                  handleCoinCollect={handleCoinCollect}
-                  onLaneChangeComplete={onLaneChangeComplete}
-                />
-                <MovingLaneDividers gameState={gameState} />
-                {Array.from({ length: NUM_OBSTACLES }).map((_, index) => (
-                  <TrafficObstacle 
-                    key={index}
-                    index={index}
-                    gameState={gameState}
-                    setGameState={setGameState}
-                    onRespawn={() => {}}
-                    initialZ={obstacleInitialZ}
-                    activeOptionZones={gameState.activeOptionZones}
-                    setShowObstacleCollisionFlash={setShowObstacleCollisionFlash}
+            {/* Adjusted Y position to align perfectly with ground */}
+            <group position={[0, 0, 0]}>
+              {/* Road is now positioned slightly above ground to prevent z-fighting */}
+              <Road />
+              <Scenery speed={gameState.speed} />
+              {gameState.isPlaying && !gameState.isGameOver && (
+                <>
+                  <PlayerCar 
+                    position={[LANE_POSITIONS[gameState.currentLane], 1.0, 0]}
+                    targetPosition={targetLanePosition}
+                    handleCoinCollect={handleCoinCollect}
+                    onLaneChangeComplete={onLaneChangeComplete}
                   />
-                ))}
+                  <MovingLaneDividers gameState={gameState} />
+                  {Array.from({ length: NUM_OBSTACLES }).map((_, index) => (
+                    <TrafficObstacle 
+                      key={index}
+                      index={index}
+                      gameState={gameState}
+                      setGameState={setGameState}
+                      onRespawn={() => {}}
+                      initialZ={obstacleInitialZ}
+                      activeOptionZones={gameState.activeOptionZones}
+                      setShowObstacleCollisionFlash={setShowObstacleCollisionFlash}
+                    />
+                  ))}
 
-                {/* {{ edit_2 }} Render Coins in synchronized groups across all lanes */}
-                {gameState.gameMode === 'infinite' && (
-                  <>
-                    {coinGroups.map((groupZ, groupIndex) => (
-                      <React.Fragment key={`coin-group-${groupIndex}`}>
-                        {LANE_POSITIONS.map((position, laneIndex) => (
-                          <Coins 
-                            key={`coin-${laneIndex}-${groupIndex}`}
-                            lane={laneIndex}
-                            startingZ={groupZ} // {{ edit_3 }} Pass starting Z position
-                            gameState={gameState} 
-                            onCollect={handleCoinCollect} 
-                          />
-                        ))}
-                      </React.Fragment>
-                    ))}
-                  </>
-                )}
+                  {/* {{ edit_2 }} Render Coins in synchronized groups across all lanes */}
+                  {gameState.gameMode === 'infinite' && (
+                    <>
+                      {coinGroups.map((groupZ, groupIndex) => (
+                        <React.Fragment key={`coin-group-${groupIndex}`}>
+                          {LANE_POSITIONS.map((position, laneIndex) => (
+                            <Coins 
+                              key={`coin-${laneIndex}-${groupIndex}`}
+                              lane={laneIndex}
+                              startingZ={groupZ} // {{ edit_3 }} Pass starting Z position
+                              gameState={gameState} 
+                              onCollect={handleCoinCollect} 
+                            />
+                          ))}
+                        </React.Fragment>
+                      ))}
+                    </>
+                  )}
 
-                {gameState.currentQuestion && !gameState.showingCorrectAnswer && (
-                  <MovingAnswerOptions 
-                    question={gameState.currentQuestion}
-                    onCollision={handleCollision}
-                    gameState={gameState}
-                  />
-                )}
-              </>
-            )}
+                  {gameState.currentQuestion && !gameState.showingCorrectAnswer && (
+                    <MovingAnswerOptions 
+                      question={gameState.currentQuestion}
+                      onCollision={handleCollision}
+                      gameState={gameState}
+                    />
+                  )}
+                </>
+              )}
+            </group>
           </Physics>
         </Suspense>
       </Canvas>

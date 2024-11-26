@@ -45,13 +45,14 @@ export function MovingAnswerOptions({
       return question.options.map((option, index) => ({
         option,
         laneIndex: positions[index],
-        isCorrect: index === question.correctAnswer
+        isCorrect: index === 0
       }));
     }, [question]); // Recreate when question changes
 
     // Keep track of where the correct answer ended up
     const correctLaneIndex = useMemo(() => {
-      return randomizedOptions.findIndex(opt => opt.isCorrect);
+      const correctOption = randomizedOptions.find(opt => opt.isCorrect);
+      return correctOption ? correctOption.laneIndex : 0;
     }, [randomizedOptions]);
 
     useFrame((state, delta) => {
@@ -94,7 +95,7 @@ export function MovingAnswerOptions({
       if (hasCollided.current) return;
 
       hasCollided.current = true;
-      const isCorrect = lane === correctLaneIndex; // Use the new correctLaneIndex
+      const isCorrect = lane === correctLaneIndex;
       
       if (isCorrect && optionsGroupRef.current) {
         resetPosition.current = true;
