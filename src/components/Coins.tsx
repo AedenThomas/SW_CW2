@@ -6,6 +6,7 @@ import { GameState } from '../types/game';
 import { LANE_POSITIONS, GAME_SPEED } from '../constants/game';
 import { UserData } from '../types/userData';
 import { useGLTF } from '@react-three/drei';
+import { calculateMoveAmount } from '../utils/movement';
 
 interface CoinsProps {
   lane: number;
@@ -59,7 +60,7 @@ const Coins: React.FC<CoinsProps> = ({ lane, gameState, onCollect, startingZ }) 
   };
 
   useFrame((state, delta) => {
-    const moveAmount = GAME_SPEED * gameState.multiplier * delta * 60;
+    const moveAmount = calculateMoveAmount(gameState, delta, GAME_SPEED);
     
     coinsRef.current.forEach(coin => {
       if (coin.rigidBodyRef.current && !collectedCoins.includes(coin.id)) {

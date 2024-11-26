@@ -8,6 +8,7 @@ import { LANE_POSITIONS, initialZ } from '../constants/game';
 import { GameState } from '../types/game';
 import { Dispatch, SetStateAction } from 'react';
 import { SAFE_ZONE_AFTER, SAFE_ZONE_BEFORE } from '../constants/game';
+import { calculateMoveAmount } from '../utils/movement';
 
 const OBSTACLE_MODELS = [
   `${process.env.PUBLIC_URL}/models/traffic6.glb`,
@@ -60,8 +61,7 @@ export function TrafficObstacle({
   useFrame((state, delta) => {
     if (!gameState.isPlaying || gameState.isPaused || !obstacleRef.current) return;
 
-    // Calculate movement based on game speed and delta
-    const moveAmount = GAME_SPEED * gameState.speed * gameState.multiplier * delta * 60;
+    const moveAmount = calculateMoveAmount(gameState, delta, GAME_SPEED);
     currentPosition.current.z += moveAmount;
 
     // Check for collision based on position

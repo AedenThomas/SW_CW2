@@ -3,6 +3,7 @@ import { useRef } from "react";
 import { Vector3 } from "three";
 import { GAME_SPEED } from "../constants/game";
 import { GameState } from "../types/game";
+import { calculateMoveAmount } from '../utils/movement';
 
 
 export function MovingLaneDividers({ gameState }: { gameState: GameState }) {
@@ -13,7 +14,7 @@ export function MovingLaneDividers({ gameState }: { gameState: GameState }) {
     useFrame((state, delta) => {
       if (!gameState.isPlaying || gameState.isPaused) return; // Add pause check
       
-      const moveAmount = GAME_SPEED * gameState.multiplier * delta * 60;
+      const moveAmount = calculateMoveAmount(gameState, delta, GAME_SPEED);
       
       dividerRefs.current.forEach(marker => {
         marker.position.z += moveAmount;
