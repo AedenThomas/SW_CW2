@@ -58,7 +58,7 @@ export function TrafficObstacle({
   });
 
   useFrame((state, delta) => {
-    if (!gameState.isPlaying || !obstacleRef.current) return;
+    if (!gameState.isPlaying || gameState.isPaused || !obstacleRef.current) return;
 
     // Calculate movement based on game speed and delta
     const moveAmount = GAME_SPEED * gameState.speed * gameState.multiplier * delta * 60;

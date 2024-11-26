@@ -1345,7 +1345,10 @@ export default function Game() {
             <group position={[0, 0, 0]}>
               {/* Road is now positioned slightly above ground to prevent z-fighting */}
               <Road />
-              <Scenery speed={gameState.speed} />
+              <Scenery 
+                speed={gameState.speed} 
+                isPaused={gameState.isPaused || gameState.isGameOver}
+              />
               {gameState.isPlaying && !gameState.isGameOver && (
                 <>
                   <PlayerCar 

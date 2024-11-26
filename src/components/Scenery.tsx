@@ -39,19 +39,30 @@ Object.values(MODELS).flat().forEach(path => {
   useGLTF.preload(path);
 });
 
-function SceneryObject({ item, speed = 1 }: { item: SceneryItem; speed?: number }) {
+// Update the component props interface
+interface SceneryProps {
+  speed?: number;
+  isPaused?: boolean;
+}
+
+// Update the SceneryObject props interface
+interface SceneryObjectProps {
+  item: SceneryItem;
+  speed?: number;
+  isPaused?: boolean;
+}
+
+function SceneryObject({ item, speed = 1, isPaused = false }: SceneryObjectProps) {
   const { scene } = useGLTF(item.model);
   const clonedScene = useMemo(() => scene.clone(), [scene]);
   const ref = useRef<THREE.Group>(null);
 
   useFrame((state, delta) => {
-    if (ref.current) {
-      // Move the scenery object forward
+    if (ref.current && !isPaused) {
       ref.current.position.z += speed * delta * 10;
 
-      // If the object has moved too far forward, reset it to the back
       if (ref.current.position.z > 100) {
-        ref.current.position.z -= 200; // Reset to the start (match with road length)
+        ref.current.position.z -= 200;
       }
     }
   });
@@ -140,7 +151,7 @@ function generateSceneryItems(side: 'left' | 'right', roadLength: number): Scene
   return items;
 }
 
-export function Scenery({ speed = 1 }: { speed?: number }) {
+export function Scenery({ speed = 1, isPaused = false }: SceneryProps) {
   const roadLength = 200;
   
   const sceneryItems = useMemo(() => {
@@ -152,7 +163,12 @@ export function Scenery({ speed = 1 }: { speed?: number }) {
   return (
     <group>
       {sceneryItems.map((item, index) => (
-        <SceneryObject key={index} item={item} speed={speed} />
+        <SceneryObject 
+          key={index} 
+          item={item} 
+          speed={speed}
+          isPaused={isPaused}
+        />
       ))}
     </group>
   );
