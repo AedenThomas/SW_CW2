@@ -1409,6 +1409,7 @@ export default function Game() {
         <PauseButton 
           isPaused={gameState.isPaused} 
           onClick={togglePause}
+          disabled={isOracleActive}
         />
       )}
 

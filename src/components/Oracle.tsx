@@ -105,11 +105,9 @@ export function OracleModal({
                 {/* Text Content */}
                 <div className="text-center text-white">
                   <h3 className="text-xl mb-4">
-                    Hi, this is a {question.text} sign.
+                  {question.oracleHelp.hint}
                   </h3>
-                  <p className="text-gray-200">
-                    When you see it it means that {question.oracleHelp.hint}
-                  </p>
+                  
                 </div>
 
                 {/* Oracle Icon */}
