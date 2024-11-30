@@ -1,6 +1,6 @@
 import { useFrame } from "@react-three/fiber";
 import { RigidBody, CuboidCollider } from "@react-three/rapier";
-import { useRef, useEffect, useMemo } from "react";
+import { useRef, useEffect, useMemo, memo } from "react";
 import { GAME_SPEED } from "../constants/game";
 import { Question, GameState } from "../types/game";
 import { LANE_POSITIONS } from '../constants/game';
@@ -21,11 +21,11 @@ interface MovingAnswerOptionsProps {
   gameState: GameState;
 }
 
-export function MovingAnswerOptions({ 
+export const MovingAnswerOptions = memo(({ 
   question, 
   onCollision, 
   gameState
-}: MovingAnswerOptionsProps) {
+}: MovingAnswerOptionsProps) => {
     const optionsGroupRef = useRef<THREE.Group>(null);
     const hasCollided = useRef(false);
     const resetPosition = useRef(false);
@@ -155,4 +155,11 @@ export function MovingAnswerOptions({
         })}
       </group>
     );
-  }
+}, (prevProps, nextProps) => {
+    // Only re-render if these specific properties change
+    return prevProps.question.id === nextProps.question.id &&
+           prevProps.gameState.isPlaying === nextProps.gameState.isPlaying &&
+           prevProps.gameState.isPaused === nextProps.gameState.isPaused &&
+           prevProps.gameState.currentLane === nextProps.gameState.currentLane &&
+           prevProps.gameState.targetLane === nextProps.gameState.targetLane;
+});
