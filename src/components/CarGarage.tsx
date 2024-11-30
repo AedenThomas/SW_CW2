@@ -128,6 +128,26 @@ export const CarGarage: React.FC<CarGarageProps> = ({ onBack }) => {
     setSelectedCar(selectedForPurchase.id);
   };
 
+  // Add keyboard navigation handler
+  useEffect(() => {
+    const handleKeyPress = (e: KeyboardEvent) => {
+      switch (e.key) {
+        case 'Escape':
+          handleBack();
+          break;
+        case 'ArrowLeft':
+          handlePrevCar();
+          break;
+        case 'ArrowRight':
+          handleNextCar();
+          break;
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyPress);
+    return () => window.removeEventListener('keydown', handleKeyPress);
+  }, []); // Empty dependency array since handlers are stable
+
   return (
     <div className="fixed inset-0 z-50" 
          style={{
@@ -135,6 +155,26 @@ export const CarGarage: React.FC<CarGarageProps> = ({ onBack }) => {
            backgroundSize: 'cover',
            backgroundPosition: 'center'
          }}>
+      {/* Add close button */}
+      <button 
+        onClick={handleBack}
+        className="absolute top-4 left-4 z-30 bg-gray-800/80 hover:bg-gray-700 
+                   text-white p-3 rounded-full transition-colors duration-200"
+      >
+        <svg 
+          className="w-6 h-6" 
+          fill="none" 
+          stroke="currentColor" 
+          viewBox="0 0 24 24"
+        >
+          <path 
+            strokeLinecap="round" 
+            strokeLinejoin="round" 
+            strokeWidth={2} 
+            d="M10 19l-7-7m0 0l7-7m-7 7h18"
+          />
+        </svg>
+      </button>
      
       {/* Car Name */}
       <div className="absolute top-20 left-1/2 transform -translate-x-1/2 
