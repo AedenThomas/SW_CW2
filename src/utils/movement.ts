@@ -6,13 +6,6 @@ export const calculateMoveAmount = (gameState: GameState, delta: number, GAME_SP
     const moveAmount = GAME_SPEED * gameState.speed * gameState.multiplier * delta * 60;
     
     if (DEBUG_SPEED) {
-        console.log('Speed Components:', {
-            baseSpeed: GAME_SPEED,
-            gameStateSpeed: gameState.speed,
-            multiplier: gameState.multiplier,
-            delta,
-            finalMoveAmount: moveAmount
-        });
     }
     
     return moveAmount;

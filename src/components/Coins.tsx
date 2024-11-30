@@ -142,7 +142,7 @@ const Coins: React.FC<CoinsProps> = ({
         <RigidBody
           key={coin.id}
           ref={coin.rigidBodyRef}
-          position={[LANE_POSITIONS[lane], 1, coin.position.z]}
+          position={[LANE_POSITIONS[lane], 2, coin.position.z]} // Lifted y position from 1 to 2
           type="kinematicPosition"
           colliders={false}
           userData={{
@@ -159,7 +159,7 @@ const Coins: React.FC<CoinsProps> = ({
             <primitive
               object={scene.clone()}
               scale={[2, 2, 2]}
-              rotation={[Math.PI / 2, Math.PI / 2, 0]} // Updated rotation to make coin face forward
+              rotation={[0, 0, Math.PI / 2]} // Changed rotation to make coin stand upright
             />
           )}
         </RigidBody>

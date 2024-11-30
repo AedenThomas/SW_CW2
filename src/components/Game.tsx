@@ -105,7 +105,11 @@ const GameScore = memo(({ score, coinsScore, coinTextAnimating, lives }: {
       <div className={`flex items-center gap-2 text-2xl ${
         coinTextAnimating ? 'text-yellow-500 scale-110 transform' : 'text-white'
       }`}>
-        <span className="w-8 h-8">🪙</span>
+        <img 
+          src={`${process.env.PUBLIC_URL}/images/coin.svg`} 
+          alt="Coin"
+          className="w-8 h-8"
+        />
         <span className="orbitron-score font-semibold">{coinsScore}</span>
       </div>
     </div>
@@ -368,14 +372,6 @@ export default function Game() {
       start: optionZPosition - SAFE_ZONE_BEFORE,
       end: optionZPosition + SAFE_ZONE_AFTER,
     };
-
-    console.log('Creating new safe zone:', {
-      optionZPosition,
-      safeZoneStart: newSafeZone.start,
-      safeZoneEnd: newSafeZone.end,
-      SAFE_ZONE_BEFORE,
-      SAFE_ZONE_AFTER
-    });
 
     setGameState(prev => ({
       ...prev,

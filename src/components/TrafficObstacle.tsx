@@ -80,11 +80,6 @@ export function TrafficObstacle({
       const isInZone = zPosition >= ZONES.OPTIONS.START && zPosition <= ZONES.OPTIONS.END;
       
       if (DEBUG_SAFE_ZONES && isInZone) {
-        console.log(`Obstacle ${index} in safe zone:`, {
-          position: zPosition,
-          optionsStart: ZONES.OPTIONS.START,
-          optionsEnd: ZONES.OPTIONS.END
-        });
       }
       return isInZone;
     });
@@ -95,11 +90,6 @@ export function TrafficObstacle({
     let position = FIXED_SPAWN_POSITIONS[index];
     
     if (DEBUG_SAFE_ZONES) {
-      console.log(`Calculating spawn position for obstacle ${index}:`, {
-        basePosition: position,
-        spawnMin: ZONES.SPAWN.MIN,
-        spawnMax: ZONES.SPAWN.MAX
-      });
     }
 
     return position;
@@ -111,10 +101,6 @@ export function TrafficObstacle({
     currentPosition.current.z = spawnPos;
     
     if (DEBUG_SAFE_ZONES) {
-      console.log(`Obstacle ${index} initial spawn:`, {
-        position: spawnPos,
-        lane: lane.current
-      });
     }
   }, [index]);
 
@@ -161,10 +147,6 @@ export function TrafficObstacle({
       const newZ = getNextSpawnPosition();
 
       if (DEBUG_SAFE_ZONES) {
-        console.log(`Obstacle ${index} respawn:`, {
-          position: newZ,
-          lane: lane.current
-        });
       }
 
       currentPosition.current = {
