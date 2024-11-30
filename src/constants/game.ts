@@ -8,8 +8,8 @@ const LANE_SWITCH_SPEED = 0.2; // Speed at which lanes switch
 const LANE_SWITCH_COOLDOWN = 300; // 300ms cooldown between lane switches
 
 // Add safe zone constants
-export const SAFE_ZONE_BEFORE = 20; // Distance before the options where obstacles won't spawn
-export const SAFE_ZONE_AFTER = 20;  // Distance after the options where obstacles won't spawn
+export const SAFE_ZONE_BEFORE = 40; // Distance before the options where obstacles won't spawn
+export const SAFE_ZONE_AFTER = 40;  // Distance after the options where obstacles won't spawn
 
 const initialZ = -100; // Define initialZ
 

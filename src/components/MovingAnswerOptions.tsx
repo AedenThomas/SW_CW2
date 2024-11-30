@@ -5,6 +5,7 @@ import { GAME_SPEED } from "../constants/game";
 import { Question, GameState } from "../types/game";
 import { LANE_POSITIONS } from '../constants/game';
 import * as THREE from 'three';
+import { calculateMoveAmount } from '../utils/movement';
 
 interface MovingAnswerOptionsProps {
   question: Question;
@@ -62,8 +63,9 @@ export function MovingAnswerOptions({
   
       const currentZ = optionsGroupRef.current.position.z;
       
-      // Move options forward
-      optionsGroupRef.current.position.z += GAME_SPEED * gameState.speed * gameState.multiplier;
+      // Move options forward using calculateMoveAmount
+      const moveAmount = calculateMoveAmount(gameState, delta, GAME_SPEED);
+      optionsGroupRef.current.position.z += moveAmount;
       
       // Position-based collision detection with enhanced logging
       if (currentZ > -2 && currentZ < 2) {

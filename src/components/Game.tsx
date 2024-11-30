@@ -1,6 +1,6 @@
 import React from 'react';
-import { Canvas } from '@react-three/fiber';
-import { useState, useEffect, useRef, Suspense } from 'react';
+import { Canvas, useFrame } from '@react-three/fiber';
+import { useState, useEffect, useRef, Suspense, useCallback, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { Physics } from '@react-three/rapier';
 import { PerspectiveCamera, useGLTF, Sky, Stars, Html } from '@react-three/drei';
@@ -26,6 +26,7 @@ import { Scenery } from './Scenery';
 import * as THREE from 'three';
 import { useNavigate } from 'react-router-dom';
 import { getStoredCoins, saveCoins } from '../utils/storage';
+import { memo } from 'react';
 
 // Add debug logging utility
 const DEBUG = true;
@@ -70,7 +71,7 @@ const initialGameState: GameState = {
 
 // Add this helper function near the top of the file
 const isInfiniteModeUnlocked = (levelProgress: LevelProgressMap): boolean => {
-  return levelProgress[2]?.completed ?? false;
+  return levelProgress[1]?.completed ?? false;
 };
 
 // Update the color constants
@@ -84,6 +85,182 @@ const GROUND_COLOR_BOTTOM = 'rgba(86, 162, 50, 1)';
 
 // Add this new constant near the top of the file
 const MAX_SPEED_ANGLE = 180; // Maximum angle for the speedometer needle
+
+// Add this constant for coin group management
+const MAX_COIN_GROUPS = 15; // Maximum number of coin groups to maintain
+const COIN_GROUP_SPACING = 200; // Distance between coin groups
+
+// Add near the top of the file
+const PHYSICS_UPDATE_RATE = 1 / 60; // 60 FPS physics update rate
+
+// Memoize UI components
+const GameScore = memo(({ score, coinsScore, coinTextAnimating }: { 
+  score: number;
+  coinsScore: number;
+  coinTextAnimating: boolean;
+}) => (
+  <div className="absolute top-4 left-4 flex flex-col gap-2">
+    <div className="flex items-center gap-2">
+      <span className="text-black text-2xl font-semibold">Score: {score}</span>
+    </div>
+    <div className="flex items-center gap-2">
+      <span className={`text-2xl font-semibold transition-colors duration-300 ${
+        coinTextAnimating ? 'text-yellow-500 scale-110 transform' : 'text-black'
+      }`}>
+        Coins: {coinsScore}
+      </span>
+    </div>
+  </div>
+));
+
+const FuelDisplay = memo(({ lives }: { lives: number }) => (
+  <div className="absolute top-4 left-1/2 transform -translate-x-1/2 flex items-center gap-2 bg-white/80 px-3 py-1 rounded-lg">
+    <span className="text-black text-2xl">Fuel:</span>
+    <div className="flex gap-1">
+      {Array.from({ length: 3 }).map((_, i) => (
+        <FuelIcon key={i} depleted={i >= lives} />
+      ))}
+    </div>
+  </div>
+));
+
+const QuestionDisplay = memo(({ question, showingCorrectAnswer }: {
+  question: Question | null;
+  showingCorrectAnswer: boolean;
+}) => {
+  if (!question && !showingCorrectAnswer) return null;
+  
+  return (
+    <>
+      <div className="relative max-w-4xl mx-auto mt-16">
+        <div className="bg-[#3B50A1] border-4 border-white text-white p-4 rounded-lg">
+          <div className="mt-4 flex flex-col items-center">
+            {showingCorrectAnswer ? (
+              <div className="flex flex-col items-center gap-4">
+                <p className="text-xl text-center">The correct answer was:</p>
+                <img 
+                  src={question?.options[question.correctAnswer]} 
+                  alt="Correct answer"
+                  className="w-32 h-32 object-contain border-2 border-white rounded-lg"
+                />
+              </div>
+            ) : (
+              <p className="text-xl mb-4 text-center max-w-2xl">
+                {question?.text}
+              </p>
+            )}
+          </div>
+        </div>
+      </div>
+      {/* Truss pattern remains the same */}
+    </>
+  );
+});
+
+// Add this new component before the main Game component
+const GameUpdater = memo(({ 
+  isPlaying, 
+  isPaused, 
+  isGameOver,
+  onFrameUpdate
+}: { 
+  isPlaying: boolean;
+  isPaused: boolean;
+  isGameOver: boolean;
+  onFrameUpdate: (delta: number) => void;
+}) => {
+  const physicsAccumulator = useRef(0);
+  const lastTime = useRef(performance.now());
+  const frameCount = useRef(0);
+  const lastFpsUpdate = useRef(performance.now());
+  const fps = useRef(60);
+
+  useFrame((state, delta) => {
+    if (!isPlaying || isPaused || isGameOver) {
+      lastTime.current = performance.now();
+      return;
+    }
+
+    // Handle all frame updates here
+    const now = performance.now();
+    const frameTime = Math.min(delta, 0.1);
+
+    // Update FPS counter
+    frameCount.current++;
+    if (now - lastFpsUpdate.current >= 1000) {
+      fps.current = Math.round((frameCount.current * 1000) / (now - lastFpsUpdate.current));
+      frameCount.current = 0;
+      lastFpsUpdate.current = now;
+    }
+
+    // Physics update
+    physicsAccumulator.current += frameTime;
+    while (physicsAccumulator.current >= PHYSICS_UPDATE_RATE) {
+      onFrameUpdate(PHYSICS_UPDATE_RATE);
+      physicsAccumulator.current -= PHYSICS_UPDATE_RATE;
+    }
+
+    // Throttle updates if FPS is too low
+    if (fps.current < 30) {
+      // Reduce visual effects here
+    }
+  });
+
+  return null;
+});
+
+// Add these constants for object pooling and cleanup
+const CLEANUP_INTERVAL = 10000; // 10 seconds
+const OBJECT_POOL_SIZE = 50;
+const COLLISION_CHECK_INTERVAL = 100; // 100ms
+
+// Add object pooling utility
+interface PooledObject extends THREE.Object3D {
+  isActive?: boolean;
+  reset?: () => void;
+}
+
+// Update object pool implementation
+const objectPool = {
+  obstacles: [] as PooledObject[],
+  coins: [] as PooledObject[],
+  getObject: function(type: 'obstacle' | 'coin'): PooledObject | null {
+    const pool = type === 'obstacle' ? this.obstacles : this.coins;
+    const obj = pool.find(o => !o.isActive);
+    if (obj) {
+      obj.isActive = true;
+      obj.reset?.();
+      return obj;
+    }
+    return null;
+  },
+  returnObject: function(type: 'obstacle' | 'coin', object: PooledObject) {
+    object.isActive = false;
+    const pool = type === 'obstacle' ? this.obstacles : this.coins;
+    if (pool.length < OBJECT_POOL_SIZE && !pool.includes(object)) {
+      pool.push(object);
+    }
+  }
+};
+
+// Add performance monitoring
+const performanceMetrics = {
+  lastFrameTime: 0,
+  frameCount: 0,
+  fps: 0,
+  updateFPS: function() {
+    const now = performance.now();
+    const delta = now - this.lastFrameTime;
+    this.frameCount++;
+    
+    if (delta >= 1000) {
+      this.fps = Math.round((this.frameCount * 1000) / delta);
+      this.frameCount = 0;
+      this.lastFrameTime = now;
+    }
+    return this.fps;
+  }
+};
 
 export default function Game() {
   const [gameState, setGameState] = useState<GameState>(initialGameState);
@@ -193,6 +370,14 @@ export default function Game() {
       end: optionZPosition + SAFE_ZONE_AFTER,
     };
 
+    console.log('Creating new safe zone:', {
+      optionZPosition,
+      safeZoneStart: newSafeZone.start,
+      safeZoneEnd: newSafeZone.end,
+      SAFE_ZONE_BEFORE,
+      SAFE_ZONE_AFTER
+    });
+
     setGameState(prev => ({
       ...prev,
       currentQuestion: question,
@@ -201,139 +386,16 @@ export default function Game() {
     }));
   };
 
-  const handleCollision = (isCorrect: boolean) => {
-    // Store the previous question and answer before updating state
-    if (gameState.currentQuestion) {
-      setPreviousQuestion(gameState.currentQuestion);
-      setPreviousAnswer(gameState.currentLane);
+  // Add memoized computation of active objects
+  const activeGameObjects = useMemo(() => {
+    if (!gameState.isPlaying || gameState.isGameOver || gameState.isPaused) {
+      return { shouldRenderObstacles: false, shouldRenderCoins: false };
     }
-
-    setGameState(prev => ({
-      ...prev,
-      questionsAnswered: prev.questionsAnswered + 1  // Increment questions answered
-    }));
-
-    if (gameState.oracleMode) {
-      const currentQuestion = gameState.currentQuestion;
-      if (!currentQuestion) {
-        debugLog('No current question found in Oracle mode');
-        return;
-      }
-
-      if (isCorrect) {
-        debugLog('Correct answer in Oracle mode', {
-          previousScore: gameState.score,
-          newScore: gameState.score + 100
-        });
-
-        setGameState(prev => ({
-          ...prev,
-          score: prev.score + 100,
-          oracleFeedback: {
-            message: currentQuestion.oracleHelp.correctAnswerInsight,
-            type: 'praise',
-            shown: true
-          }
-        }));
-      } else {
-        const wrongOption = gameState.currentLane;
-        debugLog('Wrong answer in Oracle mode', {
-          wrongOption,
-          feedback: currentQuestion.oracleHelp.wrongAnswerFeedback[wrongOption]
-        });
-
-        setGameState(prev => ({
-          ...prev,
-          mistakeCount: prev.mistakeCount + 1,
-          oracleFeedback: {
-            message: currentQuestion.oracleHelp.wrongAnswerFeedback[wrongOption],
-            type: 'correction',
-            shown: true
-          }
-        }));
-      }
-
-      // Clear feedback after delay
-      setTimeout(() => {
-        debugLog('Clearing Oracle feedback');
-        setGameState(prev => ({
-          ...prev,
-          oracleFeedback: null
-        }));
-        showNextQuestion();
-      }, 4000);
-    } else {
-      if (isCorrect) {
-        debugLog('Correct answer in normal mode', {
-          previousScore: gameState.score,
-          newScore: gameState.score + 100
-        });
-
-        // Show the green flash effect
-        setShowCorrectAnswerFlash(true);
-
-        setGameState(prev => {
-          const newConsecutiveCorrect = prev.consecutiveCorrect + 1;
-          const speedIncrease = Math.floor(newConsecutiveCorrect / 3);
-          const newSpeed = 1 + (speedIncrease * 0.2);
-          
-          const speedLevel = Math.floor((newConsecutiveCorrect - 1) / 3);
-          const baseScore = 100;
-          const bonus = speedLevel > 0 ? speedLevel * 10 : 0;
-          const scoreIncrease = baseScore + bonus;
-
-          return {
-            ...prev,
-            score: prev.score + scoreIncrease,
-            currentQuestion: null,
-            consecutiveCorrect: newConsecutiveCorrect,
-            speed: newSpeed
-          };
-        });
-
-        // Hide the flash effect after 1.5 seconds
-        setTimeout(() => {
-          setShowCorrectAnswerFlash(false);
-        }, 1500);
-
-        setTimeout(showNextQuestion, 200);
-      } else {
-        debugLog('Wrong answer in normal mode', {
-          currentLives: gameState.lives,
-          newLives: gameState.lives - 1
-        });
-
-        // Show the wrong answer flash effect
-        setShowWrongAnswerFlash(true);
-
-        setGameState(prev => {
-          const newLives = prev.lives - 1;
-          return {
-            ...prev,
-            lives: newLives,
-            isGameOver: newLives <= 0,
-            consecutiveCorrect: 0,
-            speed: 1,
-            showingCorrectAnswer: true
-          };
-        });
-
-        // Hide the flash effect after 1.5 seconds
-        setTimeout(() => {
-          setShowWrongAnswerFlash(false);
-        }, 1500);
-
-        // Hide the correct answer and show next question after delay
-        setTimeout(() => {
-          setGameState(prev => ({
-            ...prev,
-            showingCorrectAnswer: false
-          }));
-          showNextQuestion();
-        }, 3000);
-      }
-    }
-  };
+    return {
+      shouldRenderObstacles: true,
+      shouldRenderCoins: gameState.gameMode === 'infinite'
+    };
+  }, [gameState.isPlaying, gameState.isGameOver, gameState.isPaused, gameState.gameMode]);
 
   // Update keyboard controls with debugging
   const [targetLane, setTargetLane] = useState<number | null>(null);
@@ -806,30 +868,34 @@ export default function Game() {
   // Add new state for obstacle collision flash
   const [showObstacleCollisionFlash, setShowObstacleCollisionFlash] = useState(false);
 
-  // Add this state to manage multiple Z positions for coin groups
-  const [coinGroups, setCoinGroups] = useState<number[]>([]);
+  // Replace the coin groups state and management
+  const [coinGroups, setCoinGroups] = useState<number[]>(() => 
+    Array.from({ length: 10 }).map((_, index) => initialZ - index * COIN_GROUP_SPACING)
+  );
 
-  // Function to spawn a new group of coins
-  const spawnCoinGroup = () => {
-    const lastGroupZ = coinGroups.length > 0 ? coinGroups[coinGroups.length - 1] : initialZ;
-    const newGroupZ = lastGroupZ - 200; // Adjust spacing as needed
-    setCoinGroups(prev => [...prev, newGroupZ]);
-  };
-
-  // Initialize coin groups
+  // Optimize coin group management
   useEffect(() => {
-    const initialGroups = Array.from({ length: 10 }).map((_, index) => initialZ - index * 200);
-    setCoinGroups(initialGroups);
-  }, [initialZ]);
+    if (!gameState.isPlaying || gameState.isPaused || gameState.isGameOver) return;
 
-  // Periodically spawn new coin groups
-  useEffect(() => {
     const interval = setInterval(() => {
-      spawnCoinGroup();
-    }, 5000); // Spawn every 5 seconds, adjust as needed
+      setCoinGroups(prevGroups => {
+        // Remove groups that are too far behind
+        const filteredGroups = prevGroups.filter(z => z > -1000);
+        
+        // Add new groups if needed
+        const lastGroupZ = filteredGroups[filteredGroups.length - 1] || initialZ;
+        const newGroups = [];
+        
+        while (filteredGroups.length + newGroups.length < MAX_COIN_GROUPS) {
+          newGroups.push(lastGroupZ - COIN_GROUP_SPACING * (newGroups.length + 1));
+        }
+        
+        return [...filteredGroups, ...newGroups];
+      });
+    }, 2000); // Reduced frequency of updates
 
     return () => clearInterval(interval);
-  }, [coinGroups]);
+  }, [gameState.isPlaying, gameState.isPaused, gameState.isGameOver]);
 
   const newLocal = `
                 uniform vec3 colorTop;
@@ -847,6 +913,272 @@ export default function Game() {
               `;
 
   const navigate = useNavigate();
+
+  // Add back the handleCollision function
+  const handleCollision = useCallback((isCorrect: boolean) => {
+    // Store the previous question and answer before updating state
+    if (gameState.currentQuestion) {
+      setPreviousQuestion(gameState.currentQuestion);
+      setPreviousAnswer(gameState.currentLane);
+    }
+
+    setGameState(prev => ({
+      ...prev,
+      questionsAnswered: prev.questionsAnswered + 1  // Increment questions answered
+    }));
+
+    if (gameState.oracleMode) {
+      const currentQuestion = gameState.currentQuestion;
+      if (!currentQuestion) {
+        debugLog('No current question found in Oracle mode');
+        return;
+      }
+
+      if (isCorrect) {
+        debugLog('Correct answer in Oracle mode', {
+          previousScore: gameState.score,
+          newScore: gameState.score + 100
+        });
+
+        setGameState(prev => ({
+          ...prev,
+          score: prev.score + 100,
+          oracleFeedback: {
+            message: currentQuestion.oracleHelp.correctAnswerInsight,
+            type: 'praise',
+            shown: true
+          }
+        }));
+      } else {
+        const wrongOption = gameState.currentLane;
+        debugLog('Wrong answer in Oracle mode', {
+          wrongOption,
+          feedback: currentQuestion.oracleHelp.wrongAnswerFeedback[wrongOption]
+        });
+
+        setGameState(prev => ({
+          ...prev,
+          mistakeCount: prev.mistakeCount + 1,
+          oracleFeedback: {
+            message: currentQuestion.oracleHelp.wrongAnswerFeedback[wrongOption],
+            type: 'correction',
+            shown: true
+          }
+        }));
+      }
+
+      // Clear feedback after delay
+      setTimeout(() => {
+        debugLog('Clearing Oracle feedback');
+        setGameState(prev => ({
+          ...prev,
+          oracleFeedback: null
+        }));
+        showNextQuestion();
+      }, 4000);
+    } else {
+      if (isCorrect) {
+        debugLog('Correct answer in normal mode', {
+          previousScore: gameState.score,
+          newScore: gameState.score + 100
+        });
+
+        // Show the green flash effect
+        setShowCorrectAnswerFlash(true);
+
+        setGameState(prev => {
+          const newConsecutiveCorrect = prev.consecutiveCorrect + 1;
+          const speedIncrease = Math.floor(newConsecutiveCorrect / 3);
+          const newSpeed = 1 + (speedIncrease * 0.2);
+          
+          const speedLevel = Math.floor((newConsecutiveCorrect - 1) / 3);
+          const baseScore = 100;
+          const bonus = speedLevel > 0 ? speedLevel * 10 : 0;
+          const scoreIncrease = baseScore + bonus;
+
+          return {
+            ...prev,
+            score: prev.score + scoreIncrease,
+            currentQuestion: null,
+            consecutiveCorrect: newConsecutiveCorrect,
+            speed: newSpeed
+          };
+        });
+
+        // Hide the flash effect after 1.5 seconds
+        setTimeout(() => {
+          setShowCorrectAnswerFlash(false);
+        }, 1500);
+
+        setTimeout(showNextQuestion, 200);
+      } else {
+        debugLog('Wrong answer in normal mode', {
+          currentLives: gameState.lives,
+          newLives: gameState.lives - 1
+        });
+
+        // Show the wrong answer flash effect
+        setShowWrongAnswerFlash(true);
+
+        setGameState(prev => {
+          const newLives = prev.lives - 1;
+          return {
+            ...prev,
+            lives: newLives,
+            isGameOver: newLives <= 0,
+            consecutiveCorrect: 0,
+            speed: 1,
+            showingCorrectAnswer: true
+          };
+        });
+
+        // Hide the flash effect after 1.5 seconds
+        setTimeout(() => {
+          setShowWrongAnswerFlash(false);
+        }, 1500);
+
+        // Hide the correct answer and show next question after delay
+        setTimeout(() => {
+          setGameState(prev => ({
+            ...prev,
+            showingCorrectAnswer: false
+          }));
+          showNextQuestion();
+        }, 3000);
+      }
+    }
+  }, [gameState.oracleMode, gameState.currentQuestion, gameState.currentLane, gameState.lives, gameState.score, showNextQuestion]);
+
+  // Add cleanup interval
+  useEffect(() => {
+    const cleanupInterval = setInterval(() => {
+      // Clean up disposed objects
+      objectPool.obstacles = objectPool.obstacles.filter(obj => obj.parent !== null);
+      objectPool.coins = objectPool.coins.filter(obj => obj.parent !== null);
+      
+      // Force garbage collection if available
+      if (window.gc) {
+        window.gc();
+      }
+    }, CLEANUP_INTERVAL);
+
+    return () => clearInterval(cleanupInterval);
+  }, []);
+
+  // Optimize collision detection with spatial partitioning
+  const spatialGrid = useMemo(() => {
+    const grid: Record<string, Set<THREE.Object3D>> = {};
+    const cellSize = 10;
+
+    return {
+      add: (obj: THREE.Object3D) => {
+        const cell = `${Math.floor(obj.position.x / cellSize)},${Math.floor(obj.position.z / cellSize)}`;
+        if (!grid[cell]) grid[cell] = new Set();
+        grid[cell].add(obj);
+      },
+      remove: (obj: THREE.Object3D) => {
+        const cell = `${Math.floor(obj.position.x / cellSize)},${Math.floor(obj.position.z / cellSize)}`;
+        grid[cell]?.delete(obj);
+      },
+      getNearby: (position: THREE.Vector3) => {
+        const cell = `${Math.floor(position.x / cellSize)},${Math.floor(position.z / cellSize)}`;
+        return Array.from(grid[cell] || []);
+      }
+    };
+  }, []);
+
+  // Optimize game state updates
+  const updateGameState = useCallback((updates: Partial<GameState>) => {
+    setGameState(prev => ({
+      ...prev,
+      ...updates
+    }));
+  }, []);
+
+  // Optimize frame updates
+  const frameUpdate = useCallback((state: any, delta: number) => {
+    if (!gameState.isPlaying || gameState.isPaused || gameState.isGameOver) return;
+
+    // Update performance metrics
+    const currentFPS = performanceMetrics.updateFPS();
+    
+    // Throttle updates if FPS drops too low
+    if (currentFPS < 30) {
+      // Reduce visual effects
+      // Reduce particle effects
+      // Reduce draw distance
+    }
+
+    // Batch state updates
+    const stateUpdates: Partial<GameState> = {};
+    
+    // Update game logic here
+    
+    if (Object.keys(stateUpdates).length > 0) {
+      updateGameState(stateUpdates);
+    }
+  }, [gameState.isPlaying, gameState.isPaused, gameState.isGameOver, updateGameState]);
+
+  // Optimize rendering of game objects
+  const renderGameObjects = useMemo(() => {
+    if (!gameState.isPlaying || gameState.isGameOver || gameState.isPaused) {
+      return null;
+    }
+
+    return (
+      <>
+        <PlayerCar
+          position={[LANE_POSITIONS[gameState.currentLane], 1.0, 0]}
+          targetPosition={targetLanePosition}
+          handleCoinCollect={handleCoinCollect}
+          onLaneChangeComplete={onLaneChangeComplete}
+          key={`player-${gameState.currentLane}`}
+        />
+        {Array.from({ length: NUM_OBSTACLES }).map((_, index) => (
+          <TrafficObstacle
+            key={`obstacle-${index}`}
+            index={index}
+            gameState={gameState}
+            setGameState={setGameState}
+            onRespawn={() => {}}
+            initialZ={obstacleInitialZ}
+            activeOptionZones={gameState.activeOptionZones}
+            setShowObstacleCollisionFlash={setShowObstacleCollisionFlash}
+          />
+        ))}
+        {activeGameObjects.shouldRenderCoins && coinGroups.slice(0, 5).map((groupZ, groupIndex) => (
+          <React.Fragment key={`coin-group-${groupIndex}`}>
+            {LANE_POSITIONS.map((position, laneIndex) => (
+              <Coins 
+                key={`coin-${laneIndex}-${groupIndex}`}
+                lane={laneIndex}
+                startingZ={groupZ}
+                gameState={gameState} 
+                onCollect={handleCoinCollect} 
+              />
+            ))}
+          </React.Fragment>
+        ))}
+      </>
+    );
+  }, [gameState.isPlaying, gameState.isGameOver, gameState.isPaused, gameState.currentLane, coinGroups, targetLanePosition, handleCoinCollect, onLaneChangeComplete, activeGameObjects.shouldRenderCoins]);
+
+  // Move frame update callback outside of useFrame
+  const handleFrameUpdate = useCallback((delta: number) => {
+    if (!gameState.isPlaying || gameState.isPaused || gameState.isGameOver) return;
+    
+    // Batch state updates
+    const stateUpdates: Partial<GameState> = {};
+    
+    // Update game logic here
+    
+    if (Object.keys(stateUpdates).length > 0) {
+      setGameState(prev => ({
+        ...prev,
+        ...stateUpdates
+      }));
+    }
+  }, [gameState.isPlaying, gameState.isPaused, gameState.isGameOver]);
 
   return (
     // Add touch-action CSS to prevent default touch behaviors
@@ -1039,113 +1371,18 @@ export default function Game() {
 
       {/* Game UI Overlay */}
       <div className="absolute top-0 left-0 w-full p-4 z-20">
-        {/* Score display */}
-        <div className="absolute top-4 left-4 flex flex-col gap-2">
-          {/* Score text */}
-          <div className="flex items-center gap-2">
-            <span className="text-black text-2xl font-semibold">Score: {gameState.score}</span>
-          </div>
-          
-          {/* Coins Score display */}
-          <div className="flex items-center gap-2">
-            <span className={`text-2xl font-semibold transition-colors duration-300 ${
-              coinTextAnimating 
-                ? 'text-yellow-500 scale-110 transform' 
-                : 'text-black'
-            }`}>
-              Coins: {gameState.coinsScore}
-            </span>
-          </div>
-        </div>
-
-        {/* Fuel display - adjusted positioning and added background for better visibility */}
-        <div className="absolute top-4 left-1/2 transform -translate-x-1/2 flex items-center gap-2 bg-white/80 px-3 py-1 rounded-lg">
-          <span className="text-black text-2xl">Fuel:</span>
-          <div className="flex gap-1">
-            {Array.from({ length: 3 }).map((_, i) => (
-              <FuelIcon 
-                key={i} 
-                depleted={i >= gameState.lives}
-              />
-            ))}
-          </div>
-        </div>
-
-        {/* Question display with background and truss */}
-        {(gameState.currentQuestion || gameState.showingCorrectAnswer) && (
-          <>
-            <div className="relative max-w-4xl mx-auto mt-16">
-              <div className="bg-[#3B50A1] border-4 border-white text-white p-4 rounded-lg">
-                <div className="mt-4 flex flex-col items-center">
-                  {gameState.showingCorrectAnswer ? (
-                    <div className="flex flex-col items-center gap-4">
-                      <p className="text-xl text-center">The correct answer was:</p>
-                      <img 
-                        src={gameState.currentQuestion?.options[gameState.currentQuestion.correctAnswer]} 
-                        alt="Correct answer"
-                        className="w-32 h-32 object-contain border-2 border-white rounded-lg"
-                      />
-                    </div>
-                  ) : (
-                    <p className="text-xl mb-4 text-center max-w-2xl">
-                      {gameState.currentQuestion?.text}
-                    </p>
-                  )}
-                </div>
-              </div>
-            </div>
-            {/* Full-width truss pattern with connecting vertical lines */}
-            <div className="absolute left-0 right-0 h-16"> {/* Increased height to accommodate vertical lines */}
-              <svg 
-                className="w-full h-full"
-                viewBox="0 0 1920 64" // Increased viewBox height
-                preserveAspectRatio="none"
-              >
-                {/* Vertical connecting lines - we'll add 4 evenly spaced lines */}
-                <line x1="480" y1="0" x2="480" y2="16" stroke="#666" strokeWidth="3"/>
-                <line x1="800" y1="0" x2="800" y2="16" stroke="#666" strokeWidth="3"/>
-                <line x1="1120" y1="0" x2="1120" y2="16" stroke="#666" strokeWidth="3"/>
-                <line x1="1440" y1="0" x2="1440" y2="16" stroke="#666" strokeWidth="3"/>
-
-                {/* Truss pattern - moved down by 16 units */}
-                <g transform="translate(0, 16)">
-                  {/* Top horizontal line */}
-                  <line x1="0" y1="0" x2="1920" y2="0" stroke="#666" strokeWidth="3"/>
-                  {/* Bottom horizontal line */}
-                  <line x1="0" y1="48" x2="1920" y2="48" stroke="#666" strokeWidth="3"/>
-                  
-                  {/* Generate zigzag pattern */}
-                  {Array.from({ length: 24 }).map((_, i) => {
-                    const x = i * 80;
-                    return (
-                      <g key={i}>
-                        <line 
-                          x1={x} y1="48" 
-                          x2={x + 40} y2="0" 
-                          stroke="#666" 
-                          strokeWidth="3"
-                        />
-                        <line 
-                          x1={x + 40} y1="0" 
-                          x2={x + 80} y2="48" 
-                          stroke="#666" 
-                          strokeWidth="3"
-                        />
-                        <line 
-                          x1={x} y1="0" 
-                          x2={x} y2="48" 
-                          stroke="#666" 
-                          strokeWidth="3"
-                        />
-                      </g>
-                    );
-                  })}
-                  <line x1="1920" y1="0" x2="1920" y2="48" stroke="#666" strokeWidth="3"/>
-                </g>
-              </svg>
-            </div>
-          </>
-        )}
+        <GameScore 
+          score={gameState.score}
+          coinsScore={gameState.coinsScore}
+          coinTextAnimating={coinTextAnimating}
+        />
+        
+        <FuelDisplay lives={gameState.lives} />
+        
+        <QuestionDisplay 
+          question={gameState.currentQuestion}
+          showingCorrectAnswer={gameState.showingCorrectAnswer}
+        />
       </div>
 
       {/* Speedometer - Now positioned independently at bottom left */}
@@ -1173,7 +1410,7 @@ export default function Game() {
               </div>
 
               {/* Speed Value */}
-              <div className="absolute -bottom-1 left-1/2 transform -translate-x-1/2">
+              <div className="absolute -bottom-1 left-1/2 transform -translate-x-1/2 pb-3.5">
                 <div className="text-white text-lg font-bold">
                   {gameState.speed.toFixed(1)}x
                 </div>
@@ -1288,6 +1525,12 @@ export default function Game() {
       {/* 3D Game Scene */}
       <Canvas shadows>
         <Suspense fallback={<LoadingScreen />}>
+          <GameUpdater 
+            isPlaying={gameState.isPlaying}
+            isPaused={gameState.isPaused}
+            isGameOver={gameState.isGameOver}
+            onFrameUpdate={handleFrameUpdate}
+          />
           <PerspectiveCamera 
             makeDefault 
             position={isMobile ? [0, 6, 22] : [0, 5, 10]} 
@@ -1350,12 +1593,13 @@ export default function Game() {
                 uniform vec3 colorTop;
                 uniform vec3 colorBottom;
                 varying vec2 vUv;
+                varying vec3 vPosition;
                 void main() {
-                  // Adjusted for 50-50 split with smooth transition in the middle
-                  float startY = 0.45;  // Start transition at 45%
-                  float endY = 0.55;    // End transition at 55%
-                  float t = smoothstep(startY, endY, vUv.y);
-                  vec3 color = mix(colorBottom, colorTop, t);
+                  // Adjust transition to visible ground area
+                  // Start green from the horizon (where ground meets sky)
+                  // Transition to red at 80% of the visible ground area
+                  float t = smoothstep(50.0, 150.0, vPosition.y);
+                  vec3 color = mix(colorTop, colorBottom, t);
                   gl_FragColor = vec4(color, 1.0);
                 }
               `}
@@ -1377,8 +1621,10 @@ export default function Game() {
             intensity={0.8} 
           />
           
-          <Physics paused={!gameState.isPlaying || gameState.isPaused || gameState.isGameOver}>
-            {/* Adjusted Y position to align perfectly with ground */}
+          <Physics 
+            paused={!gameState.isPlaying || gameState.isPaused || gameState.isGameOver}
+            timeStep={PHYSICS_UPDATE_RATE}
+          >
             <group position={[0, 0, 0]}>
               {/* Road is now positioned slightly above ground to prevent z-fighting */}
               <Road />
@@ -1386,55 +1632,14 @@ export default function Game() {
                 speed={gameState.speed} 
                 isPaused={gameState.isPaused || gameState.isGameOver}
               />
-              {gameState.isPlaying && !gameState.isGameOver && (
-                <>
-                  <PlayerCar 
-                    position={[LANE_POSITIONS[gameState.currentLane], 1.0, 0]}
-                    targetPosition={targetLanePosition}
-                    handleCoinCollect={handleCoinCollect}
-                    onLaneChangeComplete={onLaneChangeComplete}
-                  />
-                  <MovingLaneDividers gameState={gameState} />
-                  {Array.from({ length: NUM_OBSTACLES }).map((_, index) => (
-                    <TrafficObstacle 
-                      key={index}
-                      index={index}
-                      gameState={gameState}
-                      setGameState={setGameState}
-                      onRespawn={() => {}}
-                      initialZ={obstacleInitialZ}
-                      activeOptionZones={gameState.activeOptionZones}
-                      setShowObstacleCollisionFlash={setShowObstacleCollisionFlash}
-                    />
-                  ))}
-
-                  {/* {{ edit_2 }} Render Coins in synchronized groups across all lanes */}
-                  {gameState.gameMode === 'infinite' && (
-                    <>
-                      {coinGroups.map((groupZ, groupIndex) => (
-                        <React.Fragment key={`coin-group-${groupIndex}`}>
-                          {LANE_POSITIONS.map((position, laneIndex) => (
-                            <Coins 
-                              key={`coin-${laneIndex}-${groupIndex}`}
-                              lane={laneIndex}
-                              startingZ={groupZ} // {{ edit_3 }} Pass starting Z position
-                              gameState={gameState} 
-                              onCollect={handleCoinCollect} 
-                            />
-                          ))}
-                        </React.Fragment>
-                      ))}
-                    </>
-                  )}
-
-                  {gameState.currentQuestion && !gameState.showingCorrectAnswer && (
-                    <MovingAnswerOptions 
-                      question={gameState.currentQuestion}
-                      onCollision={handleCollision}
-                      gameState={gameState}
-                    />
-                  )}
-                </>
+              <MovingLaneDividers gameState={gameState} />
+              {activeGameObjects.shouldRenderObstacles && renderGameObjects}
+              {gameState.currentQuestion && !gameState.showingCorrectAnswer && (
+                <MovingAnswerOptions 
+                  question={gameState.currentQuestion}
+                  onCollision={handleCollision}
+                  gameState={gameState}
+                />
               )}
             </group>
           </Physics>

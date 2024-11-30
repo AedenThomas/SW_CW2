@@ -25,6 +25,19 @@ const PlayerCar = ({ position, rotation, modelId = 'car1' }: {
     position[2]
   ];
   
+  // Get the model-specific rotation
+  const getModelRotation = () => {
+    switch (modelId) {
+      case 'car2':
+        return Math.PI; // 90 degrees right + default rotation
+      case 'car3':
+      case 'car4':
+        return 0; // 90 degrees left + default rotation
+      default:
+        return Math.PI / 2; // Default rotation
+    }
+  };
+  
   return (
     <group
       ref={groupRef}
@@ -33,7 +46,7 @@ const PlayerCar = ({ position, rotation, modelId = 'car1' }: {
     >
       <group 
         scale={[carModel.scale, carModel.scale, carModel.scale]}
-        rotation={[0, Math.PI / 2, 0]} 
+        rotation={[0, getModelRotation(), 0]} 
         position={carModel.offset || [0, 0, 0]}
       >
         {scene ? (
@@ -195,14 +208,7 @@ export const CarGarage: React.FC<CarGarageProps> = ({ onBack }) => {
         <span className="text-xl font-bold">{coins}</span>
       </div>
 
-      {/* Lock overlay for unavailable cars */}
-      {!isCarUnlocked(selectedCar) && (
-        <div className="absolute inset-0 pointer-events-none bg-black/30 flex items-center justify-center">
-          <div className="text-white text-4xl pointer-events-auto">
-            🔒 {CAR_MODELS.find(car => car.id === selectedCar)?.price} Coins
-          </div>
-        </div>
-      )}
+     
 
       {/* Purchase Modal */}
       {showPurchaseModal && selectedForPurchase && (
@@ -240,11 +246,7 @@ export const CarGarage: React.FC<CarGarageProps> = ({ onBack }) => {
         </div>
       )}
 
-      {/* Instructions */}
-      <div className="absolute top-20 left-1/2 transform -translate-x-1/2 
-                    bg-black/50 text-white px-4 py-2 rounded-lg text-sm">
-        Click and drag to rotate the car
-      </div>
+     
 
       {/* Use Button */}
       <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 z-20">
@@ -253,7 +255,9 @@ export const CarGarage: React.FC<CarGarageProps> = ({ onBack }) => {
           className="bg-green-500 hover:bg-green-600 text-white px-8 py-3 rounded-lg 
                     font-bold text-xl transition-all duration-300 shadow-lg"
         >
-          {isCarUnlocked(selectedCar) ? 'Use' : `Buy (${CAR_MODELS.find(car => car.id === selectedCar)?.price} Coins)`}
+          {isCarUnlocked(selectedCar) || !CAR_MODELS.find(car => car.id === selectedCar)?.price 
+            ? 'Use' 
+            : `Buy (${CAR_MODELS.find(car => car.id === selectedCar)?.price} Coins)`}
         </button>
       </div>
     </div>

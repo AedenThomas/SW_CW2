@@ -73,6 +73,19 @@ export function PlayerCar({ position, targetPosition, handleCoinCollect, onLaneC
       }
     });
   
+    // Get the model-specific rotation
+    const getModelRotation = () => {
+      switch (selectedCar) {
+        case 'car2':
+          return Math.PI * 2; // 360 degrees
+        case 'car3':
+        case 'car4':
+          return Math.PI; // 180 degrees
+        default:
+          return Math.PI / 2; // 90 degrees (default)
+      }
+    };
+  
     return (
       <RigidBody 
         ref={rigidBodyRef} 
@@ -94,10 +107,10 @@ export function PlayerCar({ position, targetPosition, handleCoinCollect, onLaneC
           }}
         />
   
-        {/* Car model rendering */}
+        {/* Car model rendering with updated rotation */}
         <group 
           scale={[carModel.scale, carModel.scale, carModel.scale]}
-          rotation={[0, Math.PI / 2, 0]} 
+          rotation={[0, getModelRotation(), 0]} 
           position={carModel.offset || [0, 0, 0]}
         >
           <primitive object={scene.clone()} castShadow receiveShadow />
