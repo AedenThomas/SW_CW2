@@ -1,4 +1,3 @@
-
 import { LevelProgress, LevelProgressMap } from '../types/game';
 
 const STORAGE_KEY = 'roadSafetyGameProgress';
@@ -22,4 +21,30 @@ export const getLevelProgress = (levelId: number): LevelProgress | null => {
 export const getAllLevelProgress = (): LevelProgressMap => {
   const existingData = localStorage.getItem(STORAGE_KEY);
   return existingData ? JSON.parse(existingData) : {};
+};
+
+export const getStoredCoins = (): number => {
+  const storedCoins = localStorage.getItem('totalCoins');
+  return storedCoins ? parseInt(storedCoins, 0) : 0;
+};
+
+export const saveCoins = (coins: number) => {
+  localStorage.setItem('totalCoins', coins.toString());
+};
+
+export const getUnlockedCars = (): string[] => {
+  const unlockedCars = localStorage.getItem('unlockedCars');
+  return unlockedCars ? JSON.parse(unlockedCars) : ['car1']; // car1 is always unlocked
+};
+
+export const unlockCar = (carId: string) => {
+  const unlockedCars = getUnlockedCars();
+  if (!unlockedCars.includes(carId)) {
+    unlockedCars.push(carId);
+    localStorage.setItem('unlockedCars', JSON.stringify(unlockedCars));
+  }
+};
+
+export const isCarUnlocked = (carId: string): boolean => {
+  return getUnlockedCars().includes(carId);
 };

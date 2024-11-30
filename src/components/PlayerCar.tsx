@@ -1,10 +1,11 @@
 import { useGLTF } from "@react-three/drei";
 import { useFrame } from "@react-three/fiber";
 import { RapierRigidBody, RigidBody, CuboidCollider } from "@react-three/rapier";
-import { useRef, useEffect } from "react";
+import { useRef, useEffect, useState } from "react";
 import { Vector3 } from "three";
 import { lerp } from "three/src/math/MathUtils";
 import * as THREE from 'three';
+import { CAR_MODELS } from '../data/carModels';
 
 export function PlayerCar({ position, targetPosition, handleCoinCollect, onLaneChangeComplete }: { 
     position: [number, number, number], 
@@ -13,7 +14,9 @@ export function PlayerCar({ position, targetPosition, handleCoinCollect, onLaneC
     onLaneChangeComplete: () => void
   }) {
   
-    const { scene } = useGLTF(`${process.env.PUBLIC_URL}/models/car.glb`)
+    const [selectedCar] = useState(() => localStorage.getItem('selectedCar') || 'car1');
+    const carModel = CAR_MODELS.find(car => car.id === selectedCar) || CAR_MODELS[0];
+    const { scene } = useGLTF(`${process.env.PUBLIC_URL}/models/${carModel.model}`);
   
     const rigidBodyRef = useRef<RapierRigidBody>(null);
     const currentPos = useRef(position[0]);
@@ -93,18 +96,11 @@ export function PlayerCar({ position, targetPosition, handleCoinCollect, onLaneC
   
         {/* Car model rendering */}
         <group 
-          scale={[0.02, 0.02, 0.02]}
+          scale={[carModel.scale, carModel.scale, carModel.scale]}
           rotation={[0, Math.PI / 2, 0]} 
-          position={[0, 0, 0]}
+          position={carModel.offset || [0, 0, 0]}
         >
-          {scene ? (
-            <primitive object={scene.clone()} />
-          ) : (
-            <mesh castShadow>
-              <boxGeometry args={[COLLISION_BOX.width, COLLISION_BOX.height, COLLISION_BOX.depth]} />
-              <meshStandardMaterial color="red" wireframe />
-            </mesh>
-          )}
+          <primitive object={scene.clone()} castShadow receiveShadow />
         </group>
       </RigidBody>
     );

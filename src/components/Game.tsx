@@ -24,6 +24,8 @@ import { getAllLevelProgress } from '../utils/storage';
 import Coins from './Coins';
 import { Scenery } from './Scenery';
 import * as THREE from 'three';
+import { useNavigate } from 'react-router-dom';
+import { getStoredCoins, saveCoins } from '../utils/storage';
 
 // Add debug logging utility
 const DEBUG = true;
@@ -63,7 +65,7 @@ const initialGameState: GameState = {
   activeOptionZones: [], // Add this new property to track active option zones
   questionsAnswered: 0,  // Add this new property
   targetLane: null,
-  coinsScore: 0,  // Add this new property
+  coinsScore: getStoredCoins(), // Initialize with stored coins
 };
 
 // Add this helper function near the top of the file
@@ -85,6 +87,7 @@ const MAX_SPEED_ANGLE = 180; // Maximum angle for the speedometer needle
 
 export default function Game() {
   const [gameState, setGameState] = useState<GameState>(initialGameState);
+  const [coinTextAnimating, setCoinTextAnimating] = useState(false);
 
   const [targetLanePosition, setTargetLanePosition] = useState<number>(
     LANE_POSITIONS[gameState.currentLane]
@@ -490,11 +493,22 @@ export default function Game() {
       currentCoins: gameState.coinsCollected,
     });
     
-    setGameState(prev => ({
-      ...prev,
-      coinsCollected: prev.coinsCollected + 1,
-      coinsScore: prev.coinsScore + 1, // Changed from +10 to +1
-    }));
+    setGameState(prev => {
+      const newCoinsScore = prev.coinsScore + 1;
+      // Save coins to localStorage whenever they change
+      saveCoins(newCoinsScore);
+      return {
+        ...prev,
+        coinsCollected: prev.coinsCollected + 1,
+        coinsScore: newCoinsScore,
+      };
+    });
+
+    // Trigger animation
+    setCoinTextAnimating(true);
+    setTimeout(() => {
+      setCoinTextAnimating(false);
+    }, 1000);
   };
 
   // Helper function to determine lane from coin ID
@@ -831,6 +845,9 @@ export default function Game() {
                   gl_FragColor = vec4(color, 1.0);
                 }
               `;
+
+  const navigate = useNavigate();
+
   return (
     // Add touch-action CSS to prevent default touch behaviors
     <div className="w-full h-screen" style={{ touchAction: 'none' }} onTouchStart={(e: React.TouchEvent) => handleTouchStart(e.nativeEvent)} onTouchEnd={(e: React.TouchEvent) => handleTouchEnd(e.nativeEvent)}>
@@ -872,14 +889,22 @@ export default function Game() {
             backgroundPosition: 'center'
           }}
         >
-          {/* Sign Index Button - Positioned absolutely in top left */}
-          <div className="absolute top-4 left-4">
+          {/* Top buttons container */}
+          <div className="absolute top-4 left-4 flex flex-col gap-2">
             <button
               onClick={() => setShowSignIndex(true)}
               className="bg-[#505050] hover:bg-[#505050] text-white px-4 py-2 
                          rounded-lg transition-colors flex items-center gap-2 shadow-md"
             >
                📖 Sign Index 📖
+            </button>
+            
+            <button
+              onClick={() => navigate('/garage')}
+              className="bg-[#505050] hover:bg-[#505050] text-white px-4 py-2 
+                         rounded-lg transition-colors flex items-center gap-2 shadow-md"
+            >
+               🚗 Car Garage 🚗
             </button>
           </div>
 
@@ -1023,7 +1048,11 @@ export default function Game() {
           
           {/* Coins Score display */}
           <div className="flex items-center gap-2">
-            <span className="text-black text-2xl font-semibold">
+            <span className={`text-2xl font-semibold transition-colors duration-300 ${
+              coinTextAnimating 
+                ? 'text-yellow-500 scale-110 transform' 
+                : 'text-black'
+            }`}>
               Coins: {gameState.coinsScore}
             </span>
           </div>
