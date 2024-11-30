@@ -1,12 +1,17 @@
-import React, { useRef, useEffect, useState } from 'react';
-import { RigidBody, RapierRigidBody, CollisionEnterPayload, CuboidCollider } from '@react-three/rapier';
-import { Vector3 } from 'three';
-import { useFrame } from '@react-three/fiber';
-import { GameState } from '../types/game';
-import { LANE_POSITIONS, GAME_SPEED } from '../constants/game';
-import { UserData } from '../types/userData';
-import { useGLTF } from '@react-three/drei';
-import { calculateMoveAmount } from '../utils/movement';
+import React, { useRef, useEffect, useState } from "react";
+import {
+  RigidBody,
+  RapierRigidBody,
+  CollisionEnterPayload,
+  CuboidCollider,
+} from "@react-three/rapier";
+import { Vector3 } from "three";
+import { useFrame } from "@react-three/fiber";
+import { GameState } from "../types/game";
+import { LANE_POSITIONS, GAME_SPEED } from "../constants/game";
+import { UserData } from "../types/userData";
+import { useGLTF } from "@react-three/drei";
+import { calculateMoveAmount } from "../utils/movement";
 
 interface CoinsProps {
   lane: number;
@@ -23,19 +28,26 @@ interface CustomCollisionEvent {
 const DEBUG = true;
 function debugLog(message: string, data?: any) {
   if (DEBUG) {
-  } 
+  }
 }
 
 interface UserDataWithId extends UserData {
   coinId: number;
 }
 
-const Coins: React.FC<CoinsProps> = ({ lane, gameState, onCollect, startingZ }) => {
-  const coinsRef = useRef<Array<{
-    rigidBodyRef: React.RefObject<RapierRigidBody>;
-    position: Vector3;
-    id: number;
-  }>>([]);
+const Coins: React.FC<CoinsProps> = ({
+  lane,
+  gameState,
+  onCollect,
+  startingZ,
+}) => {
+  const coinsRef = useRef<
+    Array<{
+      rigidBodyRef: React.RefObject<RapierRigidBody>;
+      position: Vector3;
+      id: number;
+    }>
+  >([]);
   const [collectedCoins, setCollectedCoins] = useState<number[]>([]);
   const numCoins = 10;
   const { scene } = useGLTF(`${process.env.PUBLIC_URL}/models/coin.glb`);
@@ -51,7 +63,7 @@ const Coins: React.FC<CoinsProps> = ({ lane, gameState, onCollect, startingZ }) 
       };
     });
     coinsRef.current = generatedCoins;
-    debugLog('Generated coins with new spacing:', generatedCoins);
+    debugLog("Generated coins with new spacing:", generatedCoins);
   }, [lane, startingZ, numCoins]);
 
   // Add collision zone check similar to options
@@ -61,17 +73,20 @@ const Coins: React.FC<CoinsProps> = ({ lane, gameState, onCollect, startingZ }) 
 
   useFrame((state, delta) => {
     const moveAmount = calculateMoveAmount(gameState, delta, GAME_SPEED);
-    
-    coinsRef.current.forEach(coin => {
+
+    coinsRef.current.forEach((coin) => {
       if (coin.rigidBodyRef.current && !collectedCoins.includes(coin.id)) {
         const currentPosition = coin.rigidBodyRef.current.translation();
         const newZ = currentPosition.z + moveAmount;
-        
+
         // Check for position-based collision like options
         if (isInCollisionZone(currentPosition.z)) {
           // Use targetLane if available, otherwise use currentLane
-          const effectiveLane = gameState.targetLane !== null ? gameState.targetLane : gameState.currentLane;
-          
+          const effectiveLane =
+            gameState.targetLane !== null
+              ? gameState.targetLane
+              : gameState.currentLane;
+
           if (lane === effectiveLane && !collectedCoins.includes(coin.id)) {
             handleCollect(coin.id);
           }
@@ -84,9 +99,9 @@ const Coins: React.FC<CoinsProps> = ({ lane, gameState, onCollect, startingZ }) 
             { x: LANE_POSITIONS[lane], y: 1, z: resetZ },
             true
           );
-          debugLog('Coin reset position', {
+          debugLog("Coin reset position", {
             coinId: coin.id,
-            newPosition: { x: LANE_POSITIONS[lane], y: 1, z: resetZ }
+            newPosition: { x: LANE_POSITIONS[lane], y: 1, z: resetZ },
           });
         } else {
           coin.rigidBodyRef.current.setTranslation(
@@ -101,17 +116,17 @@ const Coins: React.FC<CoinsProps> = ({ lane, gameState, onCollect, startingZ }) 
   // Simplify the collision handler
   const handleCollect = (id: number) => {
     if (!collectedCoins.includes(id)) {
-      debugLog('Collecting coin', {
+      debugLog("Collecting coin", {
         coinId: id,
         lane,
-        playerLane: gameState.currentLane
+        playerLane: gameState.currentLane,
       });
-      
-      setCollectedCoins(prev => [...prev, id]);
+
+      setCollectedCoins((prev) => [...prev, id]);
       onCollect(id);
 
       // Hide the collected coin
-      const coin = coinsRef.current.find(c => c.id === id);
+      const coin = coinsRef.current.find((c) => c.id === id);
       if (coin?.rigidBodyRef.current) {
         coin.rigidBodyRef.current.setTranslation(
           { x: LANE_POSITIONS[lane], y: -10, z: coin.position.z },
@@ -123,28 +138,28 @@ const Coins: React.FC<CoinsProps> = ({ lane, gameState, onCollect, startingZ }) 
 
   return (
     <>
-      {coinsRef.current.map(coin => (
+      {coinsRef.current.map((coin) => (
         <RigidBody
           key={coin.id}
           ref={coin.rigidBodyRef}
           position={[LANE_POSITIONS[lane], 1, coin.position.z]}
           type="kinematicPosition"
           colliders={false}
-          userData={{ 
-            type: 'Coin', 
-            coinId: coin.id, 
-            lane 
+          userData={{
+            type: "Coin",
+            coinId: coin.id,
+            lane,
           }}
         >
-          <CuboidCollider 
+          <CuboidCollider
             args={[0.5, 0.5, 0.5]} // Increased size for better collision detection
             sensor={true}
           />
           {!collectedCoins.includes(coin.id) && (
-            <primitive 
-              object={scene.clone()} 
-              scale={[1.5, 1.5, 1.5]}
-              rotation={[0, Math.PI / 2, 0]} // Adjust rotation as needed
+            <primitive
+              object={scene.clone()}
+              scale={[2, 2, 2]}
+              rotation={[Math.PI / 2, Math.PI / 2, 0]} // Updated rotation to make coin face forward
             />
           )}
         </RigidBody>

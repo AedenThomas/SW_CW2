@@ -68,7 +68,7 @@ const initialGameState: GameState = {
 
 // Add this helper function near the top of the file
 const isInfiniteModeUnlocked = (levelProgress: LevelProgressMap): boolean => {
-  return levelProgress[4]?.completed ?? false;
+  return levelProgress[2]?.completed ?? false;
 };
 
 // Update the color constants

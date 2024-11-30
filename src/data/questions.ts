@@ -163,7 +163,7 @@ export const questions: SignQuestions[] = [
       },
       correctAnswerInsight: "The National Speed Limit sign is to show that the speed limit is at its regular regulations on dual-carriageways or not, these limits are 70mph and 60mph respectively"
     }
-  }
+  },
 ];
 
 export const getOptionsForQuestion = (signPath: string): string[] => {

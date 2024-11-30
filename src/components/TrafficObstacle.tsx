@@ -12,12 +12,9 @@ import { calculateMoveAmount } from '../utils/movement';
 
 const OBSTACLE_MODELS = [
   `${process.env.PUBLIC_URL}/models/traffic6.glb`,
-    `${process.env.PUBLIC_URL}/models/traffic1.glb`,
-    `${process.env.PUBLIC_URL}/models/traffic2.glb`,
-    `${process.env.PUBLIC_URL}/models/traffic3.glb`,
-    `${process.env.PUBLIC_URL}/models/traffic4.glb`,
-    `${process.env.PUBLIC_URL}/models/traffic5.glb`,
-  ];
+  `${process.env.PUBLIC_URL}/models/traffic5.glb`,
+  `${process.env.PUBLIC_URL}/models/traffic7.glb`,
+];
 
 export const NUM_OBSTACLES = 3; // Number of simultaneous obstacles
 const SPAWN_INTERVAL = 40; // Distance between obstacles
@@ -50,11 +47,7 @@ export function TrafficObstacle({
   // Add this to track the actual position
   const currentPosition = useRef({
     x: LANE_POSITIONS[lane.current],
-    y: modelIndex.current === 3 ? 1.4 :
-       modelIndex.current === 2 ? 1.0 :
-       modelIndex.current === 1 ? 1.0 :
-       modelIndex.current === 4 ? 1.3 :
-       0.5,
+    y: 0.5,
     z: initialZ + (index * SPAWN_INTERVAL)
   });
 
@@ -108,11 +101,7 @@ export function TrafficObstacle({
       // Update position
       currentPosition.current = {
         x: LANE_POSITIONS[lane.current],
-        y: modelIndex.current === 3 ? 1.4 :
-           modelIndex.current === 2 ? 1.0 :
-           modelIndex.current === 1 ? 1.0 :
-           modelIndex.current === 4 ? 1.3 :
-           0.5,
+        y: 0.5,
         z: newZ
       };
 
@@ -142,19 +131,9 @@ export function TrafficObstacle({
     >
       <primitive 
         object={scene.clone()} 
-        scale={
-          modelIndex.current === 3 ? [2.8, 2.8, 2.8] :
-          modelIndex.current === 2 ? [2.1, 2.1, 2.1] :
-          modelIndex.current === 1 ? [2.1, 2.1, 2.1] :
-          modelIndex.current === 4 ? [2.7, 2.7, 2.7] :
-          [1.12, 1.12, 1.12]
-        }
+        scale={modelIndex.current === 2 ? [0.84, 0.84, 0.84] : [1.12, 1.12, 1.12]}
         position={[0, 0, 0]}
-        rotation={
-          modelIndex.current === 2 ? [0, Math.PI / 2, 0] :
-          modelIndex.current === 0 ? [0, -Math.PI / 2, 0] :
-          [0, Math.PI, 0]
-        }
+        rotation={modelIndex.current === 0 ? [0, -Math.PI / 2, 0] : [0, Math.PI / 2, 0]}
       />
     </RigidBody>
   );
