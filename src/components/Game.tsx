@@ -1471,70 +1471,119 @@ export default function Game() {
 
       {/* Game Over Screen */}
       {gameState.isGameOver && (
-        <div className="absolute inset-0 flex items-center justify-center z-20 bg-black/80">
-          <motion.div 
-            initial={{ scale: 0.8, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            className="bg-white p-8 rounded-lg text-center max-w-md w-full mx-4"
-          >
-            <h2 className={`text-3xl font-bold mb-2 ${
-              gameState.gameMode === 'levels' && gameState.lives > 0 
-                ? 'text-green-600' 
-                : gameState.gameMode === 'levels' 
-                  ? 'text-red-600'
-                  : 'text-gray-900'
-            }`}>
-              {getGameOverMessage(gameState).title}
-            </h2>
-            <p className="text-gray-700 text-xl mb-6">
-              {getGameOverMessage(gameState).message}
-            </p>
-            <div className="flex flex-col gap-3">
-              {getGameOverMessage(gameState).buttons.map((button, index) => (
-                <button
-                  key={index}
-                  onClick={button.action}
-                  className={`px-6 py-3 rounded-lg font-semibold transition-colors ${button.className}`}
-                >
-                  {button.text}
-                </button>
-              ))}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="fixed inset-0 bg-black/50 flex items-center justify-center z-40"
+          onClick={() => {}} // Prevent click-through
+        >
+          <div className="relative">
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-[#272D45] rounded-lg p-8 max-w-md w-full mx-4 relative shadow-xl"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="space-y-6">
+                {/* Title and Content */}
+                <div className="text-center text-white">
+                  <h2 className="text-3xl font-bold mb-4">
+                    {getGameOverMessage(gameState).title}
+                  </h2>
+                  <p className="text-xl mb-6">
+                    {getGameOverMessage(gameState).message}
+                  </p>
+                </div>
+
+                {/* Buttons */}
+                <div className="flex flex-col gap-3">
+                  {getGameOverMessage(gameState).buttons.map((button, index) => (
+                    <button
+                      key={index}
+                      onClick={button.action}
+                      className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg 
+                               font-semibold transition-colors w-full"
+                    >
+                      {button.text}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </motion.div>
+
+            {/* Sticker overlapping the modal */}
+            <div className="absolute -bottom-16 -right-16 w-36 h-36">
+              <img
+                src={process.env.PUBLIC_URL + "/images/happy1.svg"}
+                alt="Happy sticker"
+                className="w-full h-full"
+              />
             </div>
-          </motion.div>
-        </div>
+          </div>
+        </motion.div>
       )}
 
-      {/* Add pause overlay */}
+      {/* Pause Overlay */}
       {gameState.isPaused && (
-        <div className="absolute inset-0 flex items-center justify-center z-20 bg-black/50">
-          <motion.div 
-            initial={{ scale: 0.8, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            className="bg-white p-8 rounded-lg text-center"
-          >
-            <h2 className="text-3xl font-bold mb-6">Game Paused</h2>
-            <div className="flex flex-col gap-4">
-              <button
-                onClick={togglePause}
-                className="bg-blue-500 hover:bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold transition-colors"
-              >
-                Resume Game
-              </button>
-              <button
-                onClick={() => {
-                  setGameState({
-                    ...initialGameState,
-                    isPlaying: false,
-                    gameMode: null
-                  });
-                }}
-                className="border-2 border-gray-300 hover:bg-gray-100 px-6 py-3 rounded-lg font-semibold transition-colors"
-              >
-                Main Menu
-              </button>
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="fixed inset-0 bg-black/50 flex items-center justify-center z-40"
+          onClick={togglePause}
+        >
+          <div className="relative">
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-[#272D45] rounded-lg p-8 max-w-md w-full mx-4 relative shadow-xl"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="space-y-6">
+                {/* Title and Content */}
+                <div className="text-center text-white">
+                  <h2 className="text-3xl font-bold mb-6">Game Paused</h2>
+                </div>
+
+                {/* Buttons */}
+                <div className="flex flex-col gap-3">
+                  <button
+                    onClick={togglePause}
+                    className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 
+                             rounded-lg font-semibold transition-colors w-full"
+                  >
+                    Resume Game
+                  </button>
+                  <button
+                    onClick={() => {
+                      setGameState({
+                        ...initialGameState,
+                        isPlaying: false,
+                        gameMode: null
+                      });
+                    }}
+                    className="bg-gray-600 hover:bg-gray-700 text-white px-6 py-3 
+                             rounded-lg font-semibold transition-colors w-full"
+                  >
+                    Main Menu
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+
+            {/* Sticker overlapping the modal */}
+            <div className="absolute -bottom-16 -right-16 w-36 h-36">
+              <img
+                src={process.env.PUBLIC_URL + "/images/happy1.svg"}
+                alt="Happy sticker"
+                className="w-full h-full"
+              />
             </div>
-          </motion.div>
-        </div>
+          </div>
+        </motion.div>
       )}
 
       {/* 3D Game Scene */}
