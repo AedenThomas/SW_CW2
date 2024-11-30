@@ -4,7 +4,7 @@ import { useState, useEffect, useRef, Suspense, useCallback, useMemo } from 'rea
 import { motion } from 'framer-motion';
 import { Physics } from '@react-three/rapier';
 import { PerspectiveCamera, useGLTF, Sky, Stars, Html } from '@react-three/drei';
-import { questions, getOptionsForQuestion, getLevelQuestions } from '../data/questions';
+import { questions, getOptionsForQuestion, getLevelQuestions, initializeQuestions } from '../data/questions';
 import { LANE_SWITCH_COOLDOWN, SAFE_ZONE_AFTER, SAFE_ZONE_BEFORE, initialZ, LANE_POSITIONS } from '../constants/game';
 import { GameState, Question, GameMode } from '../types/game'; // Import Question and GameMode types
 import { OracleButton, OracleModal } from './Oracle';
@@ -1183,6 +1183,14 @@ export default function Game() {
       }));
     }
   }, [gameState.isPlaying, gameState.isPaused, gameState.isGameOver]);
+
+  // Add this useEffect near the start of the component
+  useEffect(() => {
+    // Initialize questions when component mounts
+    initializeQuestions().catch((error: Error) => {
+      console.error('Failed to initialize questions:', error);
+    });
+  }, []);
 
   return (
     // Add touch-action CSS to prevent default touch behaviors
