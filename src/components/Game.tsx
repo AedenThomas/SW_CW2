@@ -94,28 +94,27 @@ const COIN_GROUP_SPACING = 200; // Distance between coin groups
 const PHYSICS_UPDATE_RATE = 1 / 60; // 60 FPS physics update rate
 
 // Memoize UI components
-const GameScore = memo(({ score, coinsScore, coinTextAnimating }: { 
+const GameScore = memo(({ score, coinsScore, coinTextAnimating, lives }: { 
   score: number;
   coinsScore: number;
   coinTextAnimating: boolean;
+  lives: number;
 }) => (
   <div className="absolute top-4 left-4 flex flex-col gap-2">
     <div className="flex items-center gap-2">
-      <span className="text-black text-2xl font-semibold">Score: {score}</span>
-    </div>
-    <div className="flex items-center gap-2">
-      <span className={`text-2xl font-semibold transition-colors duration-300 ${
-        coinTextAnimating ? 'text-yellow-500 scale-110 transform' : 'text-black'
+      <div className={`flex items-center gap-2 text-2xl ${
+        coinTextAnimating ? 'text-yellow-500 scale-110 transform' : 'text-white'
       }`}>
-        Coins: {coinsScore}
-      </span>
+        <span className="w-8 h-8">🪙</span>
+        <span className="orbitron-score font-semibold">{coinsScore}</span>
+      </div>
     </div>
+    <FuelDisplay lives={lives} />
   </div>
 ));
 
 const FuelDisplay = memo(({ lives }: { lives: number }) => (
-  <div className="absolute top-4 left-1/2 transform -translate-x-1/2 flex items-center gap-2 bg-white/80 px-3 py-1 rounded-lg">
-    <span className="text-black text-2xl">Fuel:</span>
+  <div className="flex items-center gap-2">
     <div className="flex gap-1">
       {Array.from({ length: 3 }).map((_, i) => (
         <FuelIcon key={i} depleted={i >= lives} />
@@ -1161,7 +1160,16 @@ export default function Game() {
         ))}
       </>
     );
-  }, [gameState.isPlaying, gameState.isGameOver, gameState.isPaused, gameState.currentLane, coinGroups, targetLanePosition, handleCoinCollect, onLaneChangeComplete, activeGameObjects.shouldRenderCoins]);
+  }, [
+    gameState,
+    obstacleInitialZ,
+    targetLanePosition,
+    handleCoinCollect,
+    onLaneChangeComplete,
+    activeGameObjects.shouldRenderCoins,
+    coinGroups,
+    setShowObstacleCollisionFlash
+  ]);
 
   // Move frame update callback outside of useFrame
   const handleFrameUpdate = useCallback((delta: number) => {
@@ -1375,9 +1383,12 @@ export default function Game() {
           score={gameState.score}
           coinsScore={gameState.coinsScore}
           coinTextAnimating={coinTextAnimating}
+          lives={gameState.lives}
         />
         
-        <FuelDisplay lives={gameState.lives} />
+        <div className="absolute top-4 left-1/2 transform -translate-x-1/2 text-4xl orbitron-score font-bold text-white">
+          {gameState.score}
+        </div>
         
         <QuestionDisplay 
           question={gameState.currentQuestion}
