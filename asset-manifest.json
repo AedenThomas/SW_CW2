@@ -1,15 +1,15 @@
 {
   "files": {
-    "main.css": "https://aeden.me/SW_CW2/static/css/main.ac4de95a.css",
-    "main.js": "https://aeden.me/SW_CW2/static/js/main.7fad007b.js",
+    "main.css": "https://aeden.me/SW_CW2/static/css/main.0494aac2.css",
+    "main.js": "https://aeden.me/SW_CW2/static/js/main.8c2c840c.js",
     "static/js/453.69f3745b.chunk.js": "https://aeden.me/SW_CW2/static/js/453.69f3745b.chunk.js",
     "index.html": "https://aeden.me/SW_CW2/index.html",
-    "main.ac4de95a.css.map": "https://aeden.me/SW_CW2/static/css/main.ac4de95a.css.map",
-    "main.7fad007b.js.map": "https://aeden.me/SW_CW2/static/js/main.7fad007b.js.map",
+    "main.0494aac2.css.map": "https://aeden.me/SW_CW2/static/css/main.0494aac2.css.map",
+    "main.8c2c840c.js.map": "https://aeden.me/SW_CW2/static/js/main.8c2c840c.js.map",
     "453.69f3745b.chunk.js.map": "https://aeden.me/SW_CW2/static/js/453.69f3745b.chunk.js.map"
   },
   "entrypoints": [
-    "static/css/main.ac4de95a.css",
-    "static/js/main.7fad007b.js"
+    "static/css/main.0494aac2.css",
+    "static/js/main.8c2c840c.js"
   ]
 }
