@@ -1659,17 +1659,18 @@ export default function Game() {
 
       {/* Update the Oracle and Pause button positioning */}
       {gameState.isPlaying && !gameState.isGameOver && (
-        <div className="absolute top-4 right-4 flex items-center gap-2 z-20">
+        <div className="absolute top-4 right-4 flex items-center gap-4 z-20">
+           <OracleButton 
+        onClick={toggleOracle}
+        isActive={isOracleActive}
+        disabled={gameState.questionsAnswered === 0}
+          />
           <PauseButton 
-            isPaused={gameState.isPaused} 
-            onClick={togglePause}
-            disabled={isOracleActive}
+        isPaused={gameState.isPaused} 
+        onClick={togglePause}
+        disabled={isOracleActive}
           />
-          <OracleButton 
-            onClick={toggleOracle}
-            isActive={isOracleActive}
-            disabled={gameState.questionsAnswered === 0}
-          />
+         
         </div>
       )}
 

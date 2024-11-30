@@ -9,7 +9,7 @@ export const PauseButton: React.FC<PauseButtonProps> = ({ isPaused, onClick, dis
     <button
       onClick={onClick}
       disabled={disabled}
-      className={`fixed top-4 right-24 z-20 p-3 rounded-lg transition-all duration-300 
+      className={`z-20 p-3 rounded-lg transition-all duration-300 
                  ${disabled 
                    ? 'bg-gray-400 cursor-not-allowed opacity-50'
                    : 'bg-white hover:bg-gray-100 active:bg-gray-200'

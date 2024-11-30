@@ -12,7 +12,7 @@ export function OracleButton({ onClick, isActive, disabled }: OracleButtonProps)
   return (
     <motion.button
       onClick={onClick}
-      className={`fixed top-4 right-4 w-12 h-12 rounded-full flex items-center justify-center 
+      className={`w-12 h-12 rounded-full flex items-center justify-center 
                  transition-colors z-50 ${
                    disabled ? "bg-gray-400 cursor-not-allowed" :
                    isActive ? "bg-blue-600" : "bg-blue-500 hover:bg-blue-600"
