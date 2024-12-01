@@ -44,13 +44,13 @@ const MAX_SPEED = 3; // Maximum possible speed in the game
 const initialGameState: GameState = {
   currentLane: 1,
   score: 0,
-  speed: 1,
+  speed: 0,
   lives: 3,
   combo: 0,
   multiplier: 1,
   isGameOver: false,
   currentQuestion: null,
-  isMoving: true,
+  isMoving: false,
   coinsCollected: 0,
   oracleMode: false,
   oracleFeedback: null,
@@ -60,14 +60,14 @@ const initialGameState: GameState = {
   consecutiveCorrect: 0,
   showingCorrectAnswer: false,
   isPaused: false,
-  gameMode: null as GameMode | null,  // Explicitly type this as GameMode | null
+  gameMode: null as GameMode | null,
   currentLevel: 0,
-  levelQuestions: [], // Add this new property
-  askedQuestions: new Set<number>(), // Add this new property
-  activeOptionZones: [], // Add this new property to track active option zones
-  questionsAnswered: 0,  // Add this new property
+  levelQuestions: [],
+  askedQuestions: new Set<number>(),
+  activeOptionZones: [],
+  questionsAnswered: 0,
   targetLane: null,
-  coinsScore: getStoredCoins(), // Initialize with stored coins
+  coinsScore: getStoredCoins(),
 };
 
 // Add this helper function near the top of the file
@@ -181,13 +181,10 @@ const GameUpdater = memo(({
 
   useFrame((state, delta) => {
     if (!isPlaying || isPaused || isGameOver) {
-      debugLog('Frame update paused:', { isPlaying, isPaused, isGameOver });
       lastTime.current = performance.now();
       return;
     }
 
-    debugLog('Frame update active:', { isPlaying, isPaused, isGameOver });
-    
     // Handle all frame updates here
     const now = performance.now();
     const frameTime = Math.min(delta, 0.1);
@@ -205,11 +202,6 @@ const GameUpdater = memo(({
     while (physicsAccumulator.current >= PHYSICS_UPDATE_RATE) {
       onFrameUpdate(PHYSICS_UPDATE_RATE);
       physicsAccumulator.current -= PHYSICS_UPDATE_RATE;
-    }
-
-    // Throttle updates if FPS is too low
-    if (fps.current < 30) {
-      // Reduce visual effects here
     }
   });
 
@@ -450,7 +442,8 @@ export default function Game() {
       if (
         touchStartX.current === null || 
         touchStartY.current === null || 
-        gameState.isGameOver
+        gameState.isGameOver ||
+        !gameState.isPlaying
       ) {
         return;
       }
@@ -495,8 +488,13 @@ export default function Game() {
 
           if (newLane !== baseLane) {
             setTargetLane(newLane);
-            setTargetLanePosition(LANE_POSITIONS[newLane]); // Update targetLanePosition via state
-            lastLaneSwitch.current = now; // Debug log
+            setTargetLanePosition(LANE_POSITIONS[newLane]);
+            setGameState(prev => ({
+              ...prev,
+              targetLane: newLane,
+              isMoving: true // Add this to ensure smooth animation
+            }));
+            lastLaneSwitch.current = now;
           }
         }
       }
@@ -580,6 +578,8 @@ export default function Game() {
     setGameState(prev => ({ 
       ...initialGameState,
       isPlaying: true,
+      isPaused: false,
+      speed: 1,
       gameMode: mode,
     }));
   };
@@ -587,7 +587,11 @@ export default function Game() {
   // Add toggle pause function
   const togglePause = () => {
     if (gameState.isPlaying && !gameState.isGameOver) {
-      setGameState(prev => ({ ...prev, isPaused: !prev.isPaused }));
+      setGameState(prev => ({ 
+        ...prev, 
+        isPaused: !prev.isPaused,
+        isMoving: prev.isPaused
+      }));
     }
   };
 
@@ -615,7 +619,8 @@ export default function Game() {
     if (
       touchStartX.current === null || 
       touchStartY.current === null || 
-      gameState.isGameOver
+      gameState.isGameOver ||
+      !gameState.isPlaying
     ) {
       return;
     }
@@ -645,23 +650,28 @@ export default function Game() {
           return;
         }
 
-        let newLane = gameState.currentLane;
+        // Determine the base lane: use targetLane if a lane change is in progress
+        const baseLane = targetLane !== null ? targetLane : currentLaneRef.current;
 
-        if (deltaX > 0 && gameState.currentLane < 2) {
+        let newLane = baseLane;
+
+        if (deltaX > 0 && baseLane < 2) {
           // Swipe right
-          newLane = gameState.currentLane + 1;
-        } else if (deltaX < 0 && gameState.currentLane > 0) {
+          newLane = baseLane + 1;
+        } else if (deltaX < 0 && baseLane > 0) {
           // Swipe left
-          newLane = gameState.currentLane - 1;
+          newLane = baseLane - 1;
         }
 
-        if (newLane !== gameState.currentLane) {
-          lastLaneSwitch.current = now;
+        if (newLane !== baseLane) {
+          setTargetLane(newLane);
+          setTargetLanePosition(LANE_POSITIONS[newLane]);
           setGameState(prev => ({
             ...prev,
-            currentLane: newLane,
+            targetLane: newLane,
+            isMoving: true // Add this to ensure smooth animation
           }));
-          setTargetLanePosition(LANE_POSITIONS[newLane]);
+          lastLaneSwitch.current = now;
         }
       }
     }
@@ -712,15 +722,23 @@ export default function Game() {
     
     setShowLevelMap(false); // Hide the level map first
     
-    // Reset game state completely
-    setGameState(prev => ({
+    // Reset game state completely with proper initial values
+    setGameState({
       ...initialGameState,
       isPlaying: true,
+      isPaused: false, // Make sure to start unpaused
+      speed: 1, // Set initial speed
+      isMoving: true, // Enable movement
       gameMode: 'levels',
       currentLevel: levelId,
       levelQuestions: levelQuestions,
-      askedQuestions: new Set() // Make sure to reset asked questions
-    }));
+      askedQuestions: new Set() // Reset asked questions
+    });
+
+    // Small delay to ensure state is properly updated
+    setTimeout(() => {
+      showNextQuestion();
+    }, 100);
   };
 
   // Add this new effect to handle game initialization
@@ -1217,6 +1235,17 @@ export default function Game() {
     }
   }, [gameState.isGameOver]);
 
+  // Add this effect to handle level map state
+  useEffect(() => {
+    if (showLevelMap && !gameState.gameMode) { // Only pause if not in a game mode
+      setGameState(prev => ({
+        ...prev,
+        isPaused: true,
+        isMoving: false
+      }));
+    }
+  }, [showLevelMap, gameState.gameMode]);
+
   return (
     // Add touch-action CSS to prevent default touch behaviors
     <div className="w-full h-screen" style={{ touchAction: 'none' }} onTouchStart={(e: React.TouchEvent) => handleTouchStart(e.nativeEvent)} onTouchEnd={(e: React.TouchEvent) => handleTouchEnd(e.nativeEvent)}>
@@ -1551,7 +1580,7 @@ export default function Game() {
       )}
 
       {/* Pause Overlay */}
-      {gameState.isPaused && (
+      {gameState.isPaused && gameState.isPlaying && !gameState.isGameOver && (
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -1647,129 +1676,136 @@ export default function Game() {
       {/* 3D Game Scene */}
       <Canvas shadows>
         <Suspense fallback={<LoadingScreen />}>
-          <GameUpdater 
-            isPlaying={gameState.isPlaying}
-            isPaused={gameState.isPaused}
-            isGameOver={gameState.isGameOver}
-            onFrameUpdate={handleFrameUpdate}
-          />
-          <PerspectiveCamera 
-            makeDefault 
-            position={isMobile ? [0, 6, 22] : [0, 5, 10]} 
-            fov={isMobile ? 60 : 75}
-          />
-          
-          {/* Background gradient sky */}
-          <mesh>
-            <planeGeometry args={[2, 2]} />
-            <shaderMaterial
-              uniforms={{
-                colorTop: { value: new THREE.Color(SKY_COLOR_TOP) },
-                colorBottom: { value: new THREE.Color(SKY_COLOR_BOTTOM) }
-              }}
-              vertexShader={`
-                varying vec2 vUv;
-                void main() {
-                  vUv = uv;
-                  gl_Position = vec4(position.xy, 1.0, 1.0);
-                }
-              `}
-              fragmentShader={`
-                uniform vec3 colorTop;
-                uniform vec3 colorBottom;
-                varying vec2 vUv;
-                void main() {
-                  // Scale the UV coordinates to focus on top half of screen
-                  float yCoord = (vUv.y - 0.5) * 2.0;
-                  
-                  // Wider transition range (0.2-0.8 instead of 0.45-0.55)
-                  float startY = 0.2;
-                  float endY = 0.8;
-                  float t = smoothstep(startY, endY, yCoord);
-                  
-                  vec3 color = mix(colorBottom, colorTop, t);
-                  gl_FragColor = vec4(color, 1.0);
-                }
-              `}
-            />
-          </mesh>
-
-          {/* Ground with gradient */}
-          <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.2, 0]} receiveShadow>
-            <planeGeometry args={[1000, 1000]} />
-            <shaderMaterial
-              uniforms={{
-                colorTop: { value: new THREE.Color(GROUND_COLOR_TOP) },
-                colorBottom: { value: new THREE.Color(GROUND_COLOR_BOTTOM) }
-              }}
-              vertexShader={`
-                varying vec2 vUv;
-                varying vec3 vPosition;
-                void main() {
-                  vUv = uv;
-                  vPosition = position;
-                  gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-                }
-              `}
-              fragmentShader={`
-                uniform vec3 colorTop;
-                uniform vec3 colorBottom;
-                varying vec2 vUv;
-                varying vec3 vPosition;
-                void main() {
-                  // Adjust transition to visible ground area
-                  // Start green from the horizon (where ground meets sky)
-                  // Transition to red at 80% of the visible ground area
-                  float t = smoothstep(50.0, 150.0, vPosition.y);
-                  vec3 color = mix(colorTop, colorBottom, t);
-                  gl_FragColor = vec4(color, 1.0);
-                }
-              `}
-            />
-          </mesh>
-
-          {/* Enhanced lighting */}
-          <ambientLight intensity={0.4} />
-          <directionalLight
-            position={[10, 10, 5]}
-            intensity={1.2}
-            castShadow
-            shadow-mapSize-width={2048}
-            shadow-mapSize-height={2048}
-          />
-          <hemisphereLight 
-            color={SKY_COLOR_TOP} 
-            groundColor={GROUND_COLOR_BOTTOM} 
-            intensity={0.8} 
-          />
-          
-          <Physics 
-            paused={!gameState.isPlaying || gameState.isPaused || gameState.isGameOver}
-            timeStep={PHYSICS_UPDATE_RATE}
-          >
-            <group position={[0, 0, 0]}>
-              {/* Road is now positioned slightly above ground to prevent z-fighting */}
-              <Road />
-              <Scenery 
-                speed={gameState.speed} 
-                isPaused={gameState.isPaused || gameState.isGameOver}
+          {(!showLevelMap && (gameState.isPlaying || gameState.gameMode === null)) && (
+            <>
+              <GameUpdater 
+                isPlaying={gameState.isPlaying}
+                isPaused={gameState.isPaused || !gameState.isPlaying || showLevelMap || gameState.gameMode === null}
+                isGameOver={gameState.isGameOver}
+                onFrameUpdate={handleFrameUpdate}
               />
-              <MovingLaneDividers 
-                gameState={{
-                  ...gameState,
-                  isPaused: gameState.isPaused || gameState.isGameOver // Ensure road stops when game is over
-                }} 
+              <PerspectiveCamera 
+                makeDefault 
+                position={isMobile ? [0, 6, 22] : [0, 5, 10]} 
+                fov={isMobile ? 60 : 75}
               />
-              {renderGameObjects}
-              {gameState.currentQuestion && !gameState.showingCorrectAnswer && !gameState.isGameOver && (
-                <MovingAnswerOptions 
-                  question={gameState.currentQuestion}
-                  onCollision={handleCollision}
-                  gameState={gameState}
+              
+              {/* Background gradient sky */}
+              <mesh>
+                <planeGeometry args={[2, 2]} />
+                <shaderMaterial
+                  uniforms={{
+                    colorTop: { value: new THREE.Color(SKY_COLOR_TOP) },
+                    colorBottom: { value: new THREE.Color(SKY_COLOR_BOTTOM) }
+                  }}
+                  vertexShader={`
+                    varying vec2 vUv;
+                    void main() {
+                      vUv = uv;
+                      gl_Position = vec4(position.xy, 1.0, 1.0);
+                    }
+                  `}
+                  fragmentShader={`
+                    uniform vec3 colorTop;
+                    uniform vec3 colorBottom;
+                    varying vec2 vUv;
+                    void main() {
+                      // Scale the UV coordinates to focus on top half of screen
+                      float yCoord = (vUv.y - 0.5) * 2.0;
+                      
+                      // Wider transition range (0.2-0.8 instead of 0.45-0.55)
+                      float startY = 0.2;
+                      float endY = 0.8;
+                      float t = smoothstep(startY, endY, yCoord);
+                      
+                      vec3 color = mix(colorBottom, colorTop, t);
+                      gl_FragColor = vec4(color, 1.0);
+                    }
+                  `}
                 />
-              )}
-            </group>
-          </Physics>
+              </mesh>
+
+              {/* Ground with gradient */}
+              <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.2, 0]} receiveShadow>
+                <planeGeometry args={[1000, 1000]} />
+                <shaderMaterial
+                  uniforms={{
+                    colorTop: { value: new THREE.Color(GROUND_COLOR_TOP) },
+                    colorBottom: { value: new THREE.Color(GROUND_COLOR_BOTTOM) }
+                  }}
+                  vertexShader={`
+                    varying vec2 vUv;
+                    varying vec3 vPosition;
+                    void main() {
+                      vUv = uv;
+                      vPosition = position;
+                      gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+                    }
+                  `}
+                  fragmentShader={`
+                    uniform vec3 colorTop;
+                    uniform vec3 colorBottom;
+                    varying vec2 vUv;
+                    varying vec3 vPosition;
+                    void main() {
+                      // Adjust transition to visible ground area
+                      // Start green from the horizon (where ground meets sky)
+                      // Transition to red at 80% of the visible ground area
+                      float t = smoothstep(50.0, 150.0, vPosition.y);
+                      vec3 color = mix(colorTop, colorBottom, t);
+                      gl_FragColor = vec4(color, 1.0);
+                    }
+                  `}
+                />
+              </mesh>
+
+              {/* Enhanced lighting */}
+              <ambientLight intensity={0.4} />
+              <directionalLight
+                position={[10, 10, 5]}
+                intensity={1.2}
+                castShadow
+                shadow-mapSize-width={2048}
+                shadow-mapSize-height={2048}
+              />
+              <hemisphereLight 
+                color={SKY_COLOR_TOP} 
+                groundColor={GROUND_COLOR_BOTTOM} 
+                intensity={0.8} 
+              />
+              
+              <Physics 
+                paused={!gameState.isPlaying || gameState.isPaused || gameState.isGameOver || showLevelMap || gameState.gameMode === null}
+                timeStep={PHYSICS_UPDATE_RATE}
+              >
+                <group position={[0, 0, 0]}>
+                  {gameState.isPlaying && !showLevelMap && gameState.gameMode !== null && (
+                    <>
+                      <Road />
+                      <Scenery 
+                        speed={gameState.speed} 
+                        isPaused={gameState.isPaused || gameState.isGameOver || showLevelMap || gameState.gameMode === null}
+                      />
+                      <MovingLaneDividers 
+                        gameState={{
+                          ...gameState,
+                          isPaused: gameState.isPaused || gameState.isGameOver || showLevelMap || gameState.gameMode === null
+                        }} 
+                      />
+                      {renderGameObjects}
+                      {gameState.currentQuestion && !gameState.showingCorrectAnswer && !gameState.isGameOver && (
+                        <MovingAnswerOptions 
+                          question={gameState.currentQuestion}
+                          onCollision={handleCollision}
+                          gameState={gameState}
+                        />
+                      )}
+                    </>
+                  )}
+                </group>
+              </Physics>
+            </>
+          )}
         </Suspense>
       </Canvas>
 
