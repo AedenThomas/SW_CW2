@@ -616,17 +616,42 @@ export default function Game() {
     gameState.coinsCollected,
   ]);
 
+  // Update the handleCoinCollect function
   const handleCoinCollect = (id: number) => {
-    debugLog("Collecting coin", {
+    const prevCoins = gameState.coinsScore;
+    const prevCollected = gameState.coinsCollected;
+    
+    console.log("[COIN-DEBUG] Collecting coin:", {
       coinId: id,
       lane: getLaneFromId(id),
-      currentCoins: gameState.coinsCollected,
+      prevTotalCoins: prevCoins,
+      prevCollectedCoins: prevCollected,
+      isGameOver: gameState.isGameOver,
+      gameMode: gameState.gameMode
     });
 
-    setGameState((prev) => ({
-      ...prev,
-      coinsCollected: prev.coinsCollected + 1,
-    }));
+    setGameState((prev) => {
+      const newState = {
+        ...prev,
+        coinsCollected: prev.coinsCollected + 1,
+        coinsScore: prev.coinsScore + 1
+      };
+      
+      console.log("[COIN-DEBUG] After state update:", {
+        newTotalCoins: newState.coinsScore,
+        newCollectedCoins: newState.coinsCollected,
+        difference: newState.coinsScore - prevCoins
+      });
+      
+      return newState;
+    });
+
+    // Save the updated coins to storage immediately
+    console.log("[COIN-DEBUG] Saving to storage:", {
+      newTotal: gameState.coinsScore + 1,
+      currentTotal: gameState.coinsScore
+    });
+    saveCoins(gameState.coinsScore + 1);
 
     // Trigger animation
     setCoinTextAnimating(true);
@@ -642,12 +667,16 @@ export default function Game() {
 
   // Add new function to handle game start
   const startGame = (mode: GameMode) => {
+    // Get the latest coins from storage
+    const currentStoredCoins = getStoredCoins();
+    
     setGameState((prev) => ({
       ...initialGameState,
       isPlaying: true,
       isPaused: false,
       speed: 1,
       gameMode: mode,
+      coinsScore: currentStoredCoins, // Set the latest coins from storage
     }));
   };
 
@@ -862,11 +891,23 @@ export default function Game() {
   // Update the effect that handles game over
   useEffect(() => {
     if (gameState.isGameOver && gameState.gameMode === "infinite") {
+      console.log("[GAME-OVER-DEBUG] Game over triggered:", {
+        currentCoinsScore: gameState.coinsScore,
+        coinsCollected: gameState.coinsCollected,
+        animatingFinalCoins,
+        displayedCoins
+      });
+
       // Update high score if needed
       updateHighScore(gameState.score);
 
       // Start coin animation
       if (!animatingFinalCoins) {
+        console.log("[GAME-OVER-DEBUG] Starting final coin animation:", {
+          startingCoinsScore: gameState.coinsScore,
+          coinsToAdd: gameState.coinsCollected
+        });
+
         setAnimatingFinalCoins(true);
         setDisplayedCoins(0);
 
@@ -874,15 +915,13 @@ export default function Game() {
         const duration = 2000;
         const coinsCollected = gameState.coinsCollected;
 
-        // Save the new coins immediately to prevent state loss
-        const newTotalCoins = gameState.coinsScore + coinsCollected;
-
-        // Update both the stored coins and the game state
-        saveCoins(newTotalCoins);
+        // Remove this section as we don't need to add coins again
+        // const newTotalCoins = gameState.coinsScore + coinsCollected;
+        // saveCoins(newTotalCoins);
+        
         setGameState((prev) => ({
           ...prev,
-          coinsScore: newTotalCoins,
-          coinsCollected: 0, // Reset collected coins
+          coinsCollected: 0 // Just reset collected coins
         }));
 
         const animateCoins = () => {
@@ -899,6 +938,10 @@ export default function Game() {
             requestAnimationFrame(animateCoins);
           } else {
             setFinalCoinsReached(true);
+            console.log("[GAME-OVER-DEBUG] Animation completed:", {
+              finalDisplayedCoins: Math.floor(coinsCollected),
+              finalCoinsScore: gameState.coinsScore
+            });
           }
         };
 
@@ -1485,8 +1528,7 @@ export default function Game() {
           ...stateUpdates,
         }));
       }
-    },
-    [gameState.isPlaying, gameState.isPaused, gameState.isGameOver]
+    }, [gameState.isPlaying, gameState.isPaused, gameState.isGameOver]
   );
 
   // Add this useEffect near the start of the component
