@@ -12,7 +12,9 @@ export function MovingLaneDividers({ gameState }: { gameState: GameState }) {
     const numMarkers = 20;
   
     useFrame((state, delta) => {
-      if (!gameState.isPlaying || gameState.isPaused) return; // Add pause check
+      if (gameState.isPaused) {
+        return;
+      }
       
       const moveAmount = calculateMoveAmount(gameState, delta, GAME_SPEED);
       

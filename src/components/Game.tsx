@@ -32,6 +32,7 @@ import { memo } from 'react';
 const DEBUG = true;
 const debugLog = (message: string, data?: any) => {
   if (DEBUG) {
+    console.log(message, data);
   }
 };
 
@@ -180,10 +181,13 @@ const GameUpdater = memo(({
 
   useFrame((state, delta) => {
     if (!isPlaying || isPaused || isGameOver) {
+      debugLog('Frame update paused:', { isPlaying, isPaused, isGameOver });
       lastTime.current = performance.now();
       return;
     }
 
+    debugLog('Frame update active:', { isPlaying, isPaused, isGameOver });
+    
     // Handle all frame updates here
     const now = performance.now();
     const frameTime = Math.min(delta, 0.1);
@@ -381,14 +385,12 @@ export default function Game() {
     }));
   };
 
-  // Add memoized computation of active objects
+  // Update the activeGameObjects computation
   const activeGameObjects = useMemo(() => {
-    if (!gameState.isPlaying || gameState.isGameOver || gameState.isPaused) {
-      return { shouldRenderObstacles: false, shouldRenderCoins: false };
-    }
+    const isActive = gameState.isPlaying && !gameState.isGameOver && !gameState.isPaused;
     return {
-      shouldRenderObstacles: true,
-      shouldRenderCoins: gameState.gameMode === 'infinite'
+      shouldRenderObstacles: isActive,
+      shouldRenderCoins: isActive && gameState.gameMode === 'infinite'
     };
   }, [gameState.isPlaying, gameState.isGameOver, gameState.isPaused, gameState.gameMode]);
 
@@ -909,7 +911,7 @@ export default function Game() {
 
   const navigate = useNavigate();
 
-  // Add back the handleCollision function
+  // Update handleCollision to ensure game over state is properly set
   const handleCollision = useCallback((isCorrect: boolean) => {
     // Store the previous question and answer before updating state
     if (gameState.currentQuestion) {
@@ -1017,14 +1019,24 @@ export default function Game() {
 
         setGameState(prev => {
           const newLives = prev.lives - 1;
-          return {
+          const isGameOver = newLives <= 0;
+          
+          const updatedState = {
             ...prev,
             lives: newLives,
-            isGameOver: newLives <= 0,
+            isGameOver,
+            isPaused: isGameOver, // Also set isPaused when game is over
             consecutiveCorrect: 0,
             speed: 1,
             showingCorrectAnswer: true
           };
+          
+          debugLog('Game state updated:', {
+            isGameOver: updatedState.isGameOver,
+            isPaused: updatedState.isPaused
+          });
+          
+          return updatedState;
         });
 
         // Hide the flash effect after 1.5 seconds
@@ -1114,9 +1126,14 @@ export default function Game() {
     }
   }, [gameState.isPlaying, gameState.isPaused, gameState.isGameOver, updateGameState]);
 
-  // Optimize rendering of game objects
+  // Update the renderGameObjects memo condition
   const renderGameObjects = useMemo(() => {
     if (!gameState.isPlaying || gameState.isGameOver || gameState.isPaused) {
+      debugLog('Not rendering game objects due to game state:', {
+        isPlaying: gameState.isPlaying,
+        isGameOver: gameState.isGameOver,
+        isPaused: gameState.isPaused
+      });
       return null;
     }
 
@@ -1129,7 +1146,7 @@ export default function Game() {
           onLaneChangeComplete={onLaneChangeComplete}
           key={`player-${gameState.currentLane}`}
         />
-        {Array.from({ length: NUM_OBSTACLES }).map((_, index) => (
+        {activeGameObjects.shouldRenderObstacles && Array.from({ length: NUM_OBSTACLES }).map((_, index) => (
           <TrafficObstacle
             key={`obstacle-${index}`}
             index={index}
@@ -1162,6 +1179,7 @@ export default function Game() {
     targetLanePosition,
     handleCoinCollect,
     onLaneChangeComplete,
+    activeGameObjects.shouldRenderObstacles,
     activeGameObjects.shouldRenderCoins,
     coinGroups,
     setShowObstacleCollisionFlash
@@ -1191,6 +1209,13 @@ export default function Game() {
       console.error('Failed to initialize questions:', error);
     });
   }, []);
+
+  // Add debug logging when the game over popup is displayed
+  useEffect(() => {
+    if (gameState.isGameOver) {
+      debugLog('Displaying Game Over popup and pausing the game.');
+    }
+  }, [gameState.isGameOver]);
 
   return (
     // Add touch-action CSS to prevent default touch behaviors
@@ -1729,9 +1754,14 @@ export default function Game() {
                 speed={gameState.speed} 
                 isPaused={gameState.isPaused || gameState.isGameOver}
               />
-              <MovingLaneDividers gameState={gameState} />
-              {activeGameObjects.shouldRenderObstacles && renderGameObjects}
-              {gameState.currentQuestion && !gameState.showingCorrectAnswer && (
+              <MovingLaneDividers 
+                gameState={{
+                  ...gameState,
+                  isPaused: gameState.isPaused || gameState.isGameOver // Ensure road stops when game is over
+                }} 
+              />
+              {renderGameObjects}
+              {gameState.currentQuestion && !gameState.showingCorrectAnswer && !gameState.isGameOver && (
                 <MovingAnswerOptions 
                   question={gameState.currentQuestion}
                   onCollision={handleCollision}
