@@ -8,7 +8,8 @@ interface SignIndexProps {
   onBack: () => void;
 }
 
-const ITEMS_PER_PAGE = 4; // Number of signs per page
+const ITEMS_PER_PAGE = 4; // Number of signs per page for desktop
+const MOBILE_ITEMS_PER_PAGE = 2; // Number of signs per page for mobile
 const ANIMATION_DURATION = 1500; // matches CSS animation duration of 1.5s
 const PAGE_SWITCH_DELAY = ANIMATION_DURATION / 2;
 
@@ -21,8 +22,8 @@ export const SignIndex: React.FC<SignIndexProps> = ({ onBack }) => {
   const [pageDirection, setPageDirection] = useState<'forward' | 'backward'>('forward');
   const [isMobile, setIsMobile] = useState(false);
 
-  const totalPages = Math.ceil(questions.length / ITEMS_PER_PAGE);
-  const isLastPage = currentPage >= totalPages - 2; // -2 because we show 2 pages at once
+  const totalPages = Math.ceil(questions.length / (isMobile ? MOBILE_ITEMS_PER_PAGE : ITEMS_PER_PAGE));
+  const isLastPage = currentPage >= totalPages - (isMobile ? 1 : 2); // Adjust last page check for mobile
 
   // Add useEffect to trigger opening animation after mount
   React.useEffect(() => {
@@ -62,12 +63,11 @@ export const SignIndex: React.FC<SignIndexProps> = ({ onBack }) => {
   };
 
   const handleNextPage = () => {
-    const maxPages = isMobile ? totalPages : totalPages - 1;
-    if (currentPage < maxPages && !isPageTurning) {
+    if (currentPage < totalPages - 1 && !isPageTurning) {
       setIsPageTurning(true);
       setPageDirection('forward');
       setTimeout(() => {
-        setCurrentPage(prev => prev + (isMobile ? 1 : 2));
+        setCurrentPage(prev => prev + 1);
         setIsPageTurning(false);
       }, PAGE_SWITCH_DELAY);
     }
@@ -78,7 +78,7 @@ export const SignIndex: React.FC<SignIndexProps> = ({ onBack }) => {
       setIsPageTurning(true);
       setPageDirection('backward');
       setTimeout(() => {
-        setCurrentPage(prev => prev - (isMobile ? 1 : 2));
+        setCurrentPage(prev => prev - 1);
         setIsPageTurning(false);
       }, PAGE_SWITCH_DELAY);
     }
@@ -250,9 +250,9 @@ export const SignIndex: React.FC<SignIndexProps> = ({ onBack }) => {
                   <div className="grid grid-cols-2 gap-4">
                     {questions
                       .slice(
-                        currentPage * (isMobile ? ITEMS_PER_PAGE / 2 : ITEMS_PER_PAGE),
-                        (currentPage * (isMobile ? ITEMS_PER_PAGE / 2 : ITEMS_PER_PAGE)) + 
-                        (isMobile ? ITEMS_PER_PAGE / 2 : ITEMS_PER_PAGE)
+                        currentPage * (isMobile ? MOBILE_ITEMS_PER_PAGE : ITEMS_PER_PAGE),
+                        (currentPage * (isMobile ? MOBILE_ITEMS_PER_PAGE : ITEMS_PER_PAGE)) + 
+                        (isMobile ? MOBILE_ITEMS_PER_PAGE : ITEMS_PER_PAGE)
                       )
                       .map((signGroup, index) => renderSignCard(signGroup, index))}
                   </div>
