@@ -1,5 +1,6 @@
 import { read, utils } from 'xlsx';
 import { SignQuestions } from '../types/game';
+import Papa from 'papaparse';
 
 // Keep track of all available signs
 let allAvailableSigns: string[] = [];
@@ -53,10 +54,8 @@ type QuestionOrNull = QuestionItem | null;
 
 export const loadQuestions = async (): Promise<SignQuestions[]> => {
   try {
-    // Replace with your published Google Sheets URL
     const SHEET_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSXKMQ8i8Ehjk8gyawm2jrkDTl1nPLYKbyjYyNnt4Rr_X3XaP6z7L0HmFj8Mamv7NOXlnCrWYpgqtHE/pub?gid=805847491&single=true&output=csv';
 
-    
     console.log('Fetching from:', SHEET_URL);
     const response = await fetch(SHEET_URL);
     const csvText = await response.text();
@@ -66,22 +65,18 @@ export const loadQuestions = async (): Promise<SignQuestions[]> => {
       return [];
     }
 
-    const rows = csvText.split(/\r?\n/).filter(row => row.trim());
-    
-    if (rows.length < 2) {
-      console.error('Not enough rows in the data');
-      return [];
+    // Use Papa Parse to properly handle CSV parsing
+    const parseResult = Papa.parse(csvText, {
+      header: true,
+      skipEmptyLines: true,
+      transformHeader: (header) => header.trim()
+    });
+
+    if (parseResult.errors.length > 0) {
+      console.warn('CSV parsing errors:', parseResult.errors);
     }
 
-    const headers = rows[0].split(',').map(header => header.trim());
-
-    const data = rows.slice(1).map(row => {
-      const values = row.split(',');
-      return headers.reduce((obj: any, header, index) => {
-        obj[header] = values[index]?.trim() || '';
-        return obj;
-      }, {});
-    });
+    const data = parseResult.data as ExcelQuestion[];
 
     // Clear and populate allAvailableSigns
     allAvailableSigns = data.map(row => {
@@ -105,7 +100,7 @@ export const loadQuestions = async (): Promise<SignQuestions[]> => {
 
       return {
         signPath,
-        levelId: parseInt(row.Level) || 1,
+        levelId: parseInt(row.Level.toString()) || 1,
         questions: [
           row.Question1 ? { id: index * 3 + 1, text: row.Question1 } : null,
           row.Question2 ? { id: index * 3 + 2, text: row.Question2 } : null,
