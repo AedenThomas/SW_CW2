@@ -21,7 +21,13 @@ export function OracleButton({ onClick, isActive, disabled }: OracleButtonProps)
       whileTap={{ scale: disabled ? 1 : 0.95 }}
       disabled={disabled}
     >
-      <span className={`text-2xl ${disabled ? 'opacity-50' : ''}`}>🔮</span>
+     <span className={`${disabled ? 'opacity-50' : ''}`}>
+  <img
+    src={process.env.PUBLIC_URL + "/images/happy1.svg"}
+    alt="Oracle"
+    className="w-8 h-8" // Adjust size as needed
+  />
+</span>
     </motion.button>
   );
 }
