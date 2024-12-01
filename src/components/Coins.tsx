@@ -55,7 +55,10 @@ const Coins: React.FC<CoinsProps> = ({
   // Add new ref for coin rotation
   const coinRotationRefs = useRef<Group[]>([]);
 
-  // Initialize coins with better spacing based on startingZ
+  // Add ref for rotation offsets
+  const rotationOffsets = useRef<number[]>([]);
+
+  // Initialize coins with better spacing and rotation offsets
   useEffect(() => {
     const generatedCoins = Array.from({ length: numCoins }).map((_, index) => {
       const z = startingZ - index * 40 + Math.random() * 20;
@@ -66,6 +69,13 @@ const Coins: React.FC<CoinsProps> = ({
       };
     });
     coinsRef.current = generatedCoins;
+
+    // Initialize rotation offsets based on coin position
+    rotationOffsets.current = generatedCoins.map((coin, index) => {
+      // Create an offset based on index and a random factor
+      return (index * 0.4 + Math.random() * 0.5) * Math.PI;
+    });
+
     debugLog("Generated coins with new spacing:", generatedCoins);
   }, [lane, startingZ, numCoins]);
 
@@ -82,7 +92,7 @@ const Coins: React.FC<CoinsProps> = ({
   // Modify useFrame to include rotation
   useFrame((state, delta) => {
     const moveAmount = calculateMoveAmount(gameState, delta, GAME_SPEED);
-    const rotationSpeed = 2; // Adjust this value to control rotation speed
+    const baseRotationSpeed = 2; // Base rotation speed
 
     coinsRef.current.forEach((coin, index) => {
       if (coin.rigidBodyRef.current && !collectedCoins.includes(coin.id)) {
@@ -120,10 +130,19 @@ const Coins: React.FC<CoinsProps> = ({
           );
         }
 
-        // Add rotation to the coin
+        // Add rotation to the coin with offset and wave effect
         const rotationRef = coinRotationRefs.current[index];
         if (rotationRef && !gameState.isPaused) {
-          rotationRef.rotation.y += rotationSpeed * delta;
+          // Calculate wave effect based on time and position
+          const timeOffset = rotationOffsets.current[index];
+          const waveEffect = Math.sin(state.clock.elapsedTime + timeOffset) * 0.5;
+          
+          // Apply rotation with varying speed
+          const adjustedSpeed = baseRotationSpeed + waveEffect;
+          rotationRef.rotation.y += adjustedSpeed * delta;
+
+          // Optional: Add slight tilt for more dynamic effect
+          rotationRef.rotation.x = Math.sin(state.clock.elapsedTime + timeOffset) * 0.2;
         }
       }
     });
