@@ -1,15 +1,15 @@
 {
   "files": {
     "main.css": "https://aeden.me/SW_CW2/static/css/main.c68dd51a.css",
-    "main.js": "https://aeden.me/SW_CW2/static/js/main.05fcb144.js",
+    "main.js": "https://aeden.me/SW_CW2/static/js/main.95a07d8d.js",
     "static/js/453.69f3745b.chunk.js": "https://aeden.me/SW_CW2/static/js/453.69f3745b.chunk.js",
     "index.html": "https://aeden.me/SW_CW2/index.html",
     "main.c68dd51a.css.map": "https://aeden.me/SW_CW2/static/css/main.c68dd51a.css.map",
-    "main.05fcb144.js.map": "https://aeden.me/SW_CW2/static/js/main.05fcb144.js.map",
+    "main.95a07d8d.js.map": "https://aeden.me/SW_CW2/static/js/main.95a07d8d.js.map",
     "453.69f3745b.chunk.js.map": "https://aeden.me/SW_CW2/static/js/453.69f3745b.chunk.js.map"
   },
   "entrypoints": [
     "static/css/main.c68dd51a.css",
-    "static/js/main.05fcb144.js"
+    "static/js/main.95a07d8d.js"
   ]
 }
