@@ -1559,6 +1559,39 @@ export default function Game() {
                   </button>
                   <button
                     onClick={() => {
+                      // Handle restart based on game mode
+                      if (gameState.gameMode === 'levels') {
+                        // Get fresh questions for the current level
+                        const levelQuestions = getLevelQuestions(gameState.currentLevel);
+                        setGameState({
+                          ...initialGameState,
+                          isPlaying: true,
+                          gameMode: 'levels',
+                          currentLevel: gameState.currentLevel,
+                          levelQuestions: levelQuestions,
+                          askedQuestions: new Set(),
+                          isPaused: false
+                        });
+                        // Small delay to ensure state is updated before showing first question
+                        setTimeout(showNextQuestion, 100);
+                      } else {
+                        // Infinite mode restart
+                        setGameState({
+                          ...initialGameState,
+                          isPlaying: true,
+                          gameMode: 'infinite',
+                          isPaused: false
+                        });
+                        setTimeout(showNextQuestion, 100);
+                      }
+                    }}
+                    className="bg-yellow-600 hover:bg-yellow-700 text-white px-6 py-3 
+                             rounded-lg font-semibold transition-colors w-full"
+                  >
+                    Restart Game
+                  </button>
+                  <button
+                    onClick={() => {
                       setGameState({
                         ...initialGameState,
                         isPlaying: false,
