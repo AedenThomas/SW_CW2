@@ -814,22 +814,25 @@ export default function Game() {
             {
               text: "Try Again",
               action: () => {
-                // Get fresh questions for the level
                 const levelQuestions = getLevelQuestions(gameState.currentLevel);
-                
-                // Reset game state with the new questions
-                setGameState(prev => ({
+                setGameState({
                   ...initialGameState,
                   isPlaying: true,
                   isPaused: false,
+                  speed: 1,
                   gameMode: 'levels',
-                  currentLevel: prev.currentLevel,
+                  currentLevel: gameState.currentLevel,
                   levelQuestions: levelQuestions,
-                  askedQuestions: new Set(), // Reset asked questions
-                  isGameOver: false
-                }));
+                  askedQuestions: new Set(),
+                  isGameOver: false,
+                  isMoving: true
+                });
 
-                // Small delay to ensure state is updated before showing first question
+                // Important: Reset the target lane position
+                setTargetLanePosition(LANE_POSITIONS[1]); // Reset to middle lane
+                setTargetLane(null);
+
+                // Show first question after a small delay
                 setTimeout(() => {
                   showNextQuestion();
                 }, 100);
@@ -861,9 +864,21 @@ export default function Game() {
               setGameState({
                 ...initialGameState,
                 isPlaying: true,
-                gameMode: 'infinite'
+                isPaused: false,
+                speed: 1,
+                gameMode: 'infinite',
+                isMoving: true,
+                isGameOver: false
               });
-              showNextQuestion();
+
+              // Important: Reset the target lane position
+              setTargetLanePosition(LANE_POSITIONS[1]); // Reset to middle lane
+              setTargetLane(null);
+
+              // Show first question after a small delay
+              setTimeout(() => {
+                showNextQuestion();
+              }, 100);
             },
             className: "bg-blue-500 hover:bg-blue-600 text-white"
           }
@@ -1624,8 +1639,15 @@ export default function Game() {
                           currentLevel: gameState.currentLevel,
                           levelQuestions: levelQuestions,
                           askedQuestions: new Set(),
-                          isPaused: false
+                          isPaused: false,
+                          isMoving: true,
+                          speed: 1
                         });
+
+                        // Reset the target lane position
+                        setTargetLanePosition(LANE_POSITIONS[1]); // Reset to middle lane
+                        setTargetLane(null);
+
                         // Small delay to ensure state is updated before showing first question
                         setTimeout(showNextQuestion, 100);
                       } else {
@@ -1634,8 +1656,15 @@ export default function Game() {
                           ...initialGameState,
                           isPlaying: true,
                           gameMode: 'infinite',
-                          isPaused: false
+                          isPaused: false,
+                          isMoving: true,
+                          speed: 1
                         });
+
+                        // Reset the target lane position
+                        setTargetLanePosition(LANE_POSITIONS[1]); // Reset to middle lane
+                        setTargetLane(null);
+
                         setTimeout(showNextQuestion, 100);
                       }
                     }}
