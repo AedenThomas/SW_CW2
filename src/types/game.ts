@@ -63,6 +63,9 @@ export interface GameState {
   questionsAnswered: number;  // Add this new property
   targetLane: number | null;
   coinsScore: number;  // Add this new property
+  magnetActive: boolean;
+  magnetTimer: NodeJS.Timeout | null;
+  showMagnet: boolean;
 }
 
 export interface PowerUp {

@@ -12,12 +12,14 @@ import { LANE_POSITIONS, GAME_SPEED } from "../constants/game";
 import { UserData } from "../types/userData";
 import { useGLTF } from "@react-three/drei";
 import { calculateMoveAmount } from "../utils/movement";
+import * as THREE from "three";
 
 interface CoinsProps {
   lane: number;
   gameState: GameState;
   onCollect: (id: number) => void;
   startingZ: number;
+  magnetActive: boolean;
 }
 
 // Define a custom collision event interface
@@ -40,6 +42,7 @@ const Coins: React.FC<CoinsProps> = ({
   gameState,
   onCollect,
   startingZ,
+  magnetActive
 }) => {
   const coinsRef = useRef<
     Array<{
@@ -92,23 +95,46 @@ const Coins: React.FC<CoinsProps> = ({
   // Modify useFrame to include rotation
   useFrame((state, delta) => {
     const moveAmount = calculateMoveAmount(gameState, delta, GAME_SPEED);
-    const baseRotationSpeed = 2; // Base rotation speed
+    const baseRotationSpeed = 2;
 
     coinsRef.current.forEach((coin, index) => {
       if (coin.rigidBodyRef.current && !collectedCoins.includes(coin.id)) {
         const currentPosition = coin.rigidBodyRef.current.translation();
-        const newZ = currentPosition.z + moveAmount;
+        let newZ = currentPosition.z + moveAmount;
+        let newX = currentPosition.x;
+        let newY = 1;
 
-        // Check for position-based collision like options
-        if (isInCollisionZone(currentPosition.z)) {
-          // Use targetLane if available, otherwise use currentLane
-          const effectiveLane =
-            gameState.targetLane !== null
-              ? gameState.targetLane
-              : gameState.currentLane;
+        // Magnet effect
+        if (magnetActive) {
+          const playerLane = gameState.targetLane !== null ? gameState.targetLane : gameState.currentLane;
+          const targetX = LANE_POSITIONS[playerLane];
+          const distanceToPlayer = Math.abs(currentPosition.z);
 
-          if (lane === effectiveLane && !collectedCoins.includes(coin.id)) {
-            handleCollect(coin.id);
+          if (distanceToPlayer < 20) { // Only affect coins within 20 units
+            // Calculate attraction strength based on distance
+            const attractionStrength = Math.max(0, 1 - distanceToPlayer / 20);
+            
+            // Move coin towards player's lane
+            newX = THREE.MathUtils.lerp(currentPosition.x, targetX, attractionStrength * 0.1);
+            
+            // Add upward arc motion
+            newY = 1 + Math.sin(attractionStrength * Math.PI) * 2;
+            
+            // Increase forward speed
+            newZ += moveAmount * attractionStrength;
+
+            // Check for collection when coin is close to player
+            if (Math.abs(newX - targetX) < 1 && Math.abs(newZ) < 2) {
+              handleCollect(coin.id);
+            }
+          }
+        } else {
+          // Normal coin behavior
+          if (isInCollisionZone(currentPosition.z)) {
+            const effectiveLane = gameState.targetLane !== null ? gameState.targetLane : gameState.currentLane;
+            if (lane === effectiveLane && !collectedCoins.includes(coin.id)) {
+              handleCollect(coin.id);
+            }
           }
         }
 
@@ -119,13 +145,9 @@ const Coins: React.FC<CoinsProps> = ({
             { x: LANE_POSITIONS[lane], y: 1, z: resetZ },
             true
           );
-          debugLog("Coin reset position", {
-            coinId: coin.id,
-            newPosition: { x: LANE_POSITIONS[lane], y: 1, z: resetZ },
-          });
         } else {
           coin.rigidBodyRef.current.setTranslation(
-            { x: currentPosition.x, y: 1, z: newZ },
+            { x: newX, y: newY, z: newZ },
             true
           );
         }
@@ -133,16 +155,21 @@ const Coins: React.FC<CoinsProps> = ({
         // Add rotation to the coin with offset and wave effect
         const rotationRef = coinRotationRefs.current[index];
         if (rotationRef && !gameState.isPaused) {
-          // Calculate wave effect based on time and position
           const timeOffset = rotationOffsets.current[index];
           const waveEffect = Math.sin(state.clock.elapsedTime + timeOffset) * 0.5;
           
-          // Apply rotation with varying speed
-          const adjustedSpeed = baseRotationSpeed + waveEffect;
+          // Increase rotation speed during magnet effect
+          const magnetSpeedMultiplier = magnetActive ? 3 : 1;
+          const adjustedSpeed = (baseRotationSpeed + waveEffect) * magnetSpeedMultiplier;
           rotationRef.rotation.y += adjustedSpeed * delta;
 
-          // Optional: Add slight tilt for more dynamic effect
-          rotationRef.rotation.x = Math.sin(state.clock.elapsedTime + timeOffset) * 0.2;
+          // Add extra tilt during magnet effect
+          if (magnetActive) {
+            rotationRef.rotation.x = Math.sin(state.clock.elapsedTime * 2 + timeOffset) * 0.4;
+            rotationRef.rotation.z = Math.cos(state.clock.elapsedTime * 2 + timeOffset) * 0.4;
+          } else {
+            rotationRef.rotation.x = Math.sin(state.clock.elapsedTime + timeOffset) * 0.2;
+          }
         }
       }
     });

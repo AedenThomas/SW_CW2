@@ -27,12 +27,12 @@ import * as THREE from 'three';
 import { useNavigate } from 'react-router-dom';
 import { getStoredCoins, saveCoins } from '../utils/storage';
 import { memo } from 'react';
+import MagnetPowerup from './MagnetPowerup';
 
 // Add debug logging utility
 const DEBUG = true;
 const debugLog = (message: string, data?: any) => {
   if (DEBUG) {
-    console.log(message, data);
   }
 };
 
@@ -68,6 +68,9 @@ const initialGameState: GameState = {
   questionsAnswered: 0,
   targetLane: null,
   coinsScore: getStoredCoins(),
+  magnetActive: false,
+  magnetTimer: null,
+  showMagnet: false,
 };
 
 // Add this helper function near the top of the file
@@ -261,9 +264,13 @@ const performanceMetrics = {
   }
 };
 
+// Add this near the top of the file after other imports
+const DEBUG_MAGNET = true;
+
 export default function Game() {
   const [gameState, setGameState] = useState<GameState>(initialGameState);
   const [coinTextAnimating, setCoinTextAnimating] = useState(false);
+  const [magnetLane, setMagnetLane] = useState<number | null>(null);
 
   const [targetLanePosition, setTargetLanePosition] = useState<number>(
     LANE_POSITIONS[gameState.currentLane]
@@ -944,18 +951,34 @@ export default function Game() {
 
   const navigate = useNavigate();
 
-  // Update handleCollision to ensure game over state is properly set
+  // Add this function inside the Game component
+  const handleMagnetCollect = () => {
+    setGameState(prev => ({
+      ...prev,
+      magnetActive: true,
+      showMagnet: false
+    }));
+
+    // Start magnet timer
+    const timer = setTimeout(() => {
+      setGameState(prev => ({
+        ...prev,
+        magnetActive: false
+      }));
+    }, 10000); // 10 seconds
+
+    setGameState(prev => ({
+      ...prev,
+      magnetTimer: timer
+    }));
+  };
+
+  // Update the handleCollision function
   const handleCollision = useCallback((isCorrect: boolean) => {
-    // Store the previous question and answer before updating state
     if (gameState.currentQuestion) {
       setPreviousQuestion(gameState.currentQuestion);
       setPreviousAnswer(gameState.currentLane);
     }
-
-    setGameState(prev => ({
-      ...prev,
-      questionsAnswered: prev.questionsAnswered + 1  // Increment questions answered
-    }));
 
     if (gameState.oracleMode) {
       const currentQuestion = gameState.currentQuestion;
@@ -1008,34 +1031,44 @@ export default function Game() {
       }, 4000);
     } else {
       if (isCorrect) {
-        debugLog('Correct answer in normal mode', {
-          previousScore: gameState.score,
-          newScore: gameState.score + 100
-        });
+        if (DEBUG_MAGNET) console.log('Correct answer, current questions answered:', gameState.questionsAnswered);
 
-        // Show the green flash effect
         setShowCorrectAnswerFlash(true);
 
         setGameState(prev => {
+          const newQuestionsAnswered = prev.questionsAnswered + 1;
           const newConsecutiveCorrect = prev.consecutiveCorrect + 1;
           const speedIncrease = Math.floor(newConsecutiveCorrect / 3);
           const newSpeed = 1 + (speedIncrease * 0.2);
           
-          const speedLevel = Math.floor((newConsecutiveCorrect - 1) / 3);
-          const baseScore = 100;
-          const bonus = speedLevel > 0 ? speedLevel * 10 : 0;
-          const scoreIncrease = baseScore + bonus;
-
+          if (DEBUG_MAGNET) console.log('New questions answered:', newQuestionsAnswered);
+          
+          // Show magnet after 3 questions only in infinite mode
+          if (newQuestionsAnswered === 1 && prev.gameMode === 'infinite') {
+            const randomLane = Math.floor(Math.random() * 3);
+            if (DEBUG_MAGNET) console.log('Showing magnet in lane:', randomLane);
+            setMagnetLane(randomLane);
+            return {
+              ...prev,
+              questionsAnswered: newQuestionsAnswered,
+              score: prev.score + 100,
+              currentQuestion: null,
+              consecutiveCorrect: newConsecutiveCorrect,
+              speed: newSpeed,
+              showMagnet: true
+            };
+          }
+          
           return {
             ...prev,
-            score: prev.score + scoreIncrease,
+            questionsAnswered: newQuestionsAnswered,
+            score: prev.score + 100,
             currentQuestion: null,
             consecutiveCorrect: newConsecutiveCorrect,
             speed: newSpeed
           };
         });
 
-        // Hide the flash effect after 1.5 seconds
         setTimeout(() => {
           setShowCorrectAnswerFlash(false);
         }, 1500);
@@ -1162,12 +1195,16 @@ export default function Game() {
   // Update the renderGameObjects memo condition
   const renderGameObjects = useMemo(() => {
     if (!gameState.isPlaying || gameState.isGameOver || gameState.isPaused) {
-      debugLog('Not rendering game objects due to game state:', {
-        isPlaying: gameState.isPlaying,
-        isGameOver: gameState.isGameOver,
-        isPaused: gameState.isPaused
-      });
       return null;
+    }
+
+    if (DEBUG_MAGNET) {
+      console.log('Render state:', {
+        showMagnet: gameState.showMagnet,
+        magnetLane,
+        questionsAnswered: gameState.questionsAnswered,
+        gameMode: gameState.gameMode
+      });
     }
 
     return (
@@ -1199,23 +1236,38 @@ export default function Game() {
                 lane={laneIndex}
                 startingZ={groupZ}
                 gameState={gameState} 
-                onCollect={handleCoinCollect} 
+                onCollect={handleCoinCollect}
+                magnetActive={gameState.magnetActive}
               />
             ))}
           </React.Fragment>
         ))}
+        {gameState.showMagnet && magnetLane !== null && gameState.gameMode === 'infinite' && (
+          <MagnetPowerup
+            gameState={gameState}
+            onCollect={handleMagnetCollect}
+            lane={magnetLane}
+          />
+        )}
       </>
     );
   }, [
-    gameState,
-    obstacleInitialZ,
+    gameState.isPlaying,
+    gameState.isGameOver,
+    gameState.isPaused,
+    gameState.currentLane,
+    gameState.gameMode,
     targetLanePosition,
     handleCoinCollect,
     onLaneChangeComplete,
     activeGameObjects.shouldRenderObstacles,
     activeGameObjects.shouldRenderCoins,
     coinGroups,
-    setShowObstacleCollisionFlash
+    setShowObstacleCollisionFlash,
+    gameState.showMagnet,
+    gameState.magnetActive,
+    magnetLane,
+    handleMagnetCollect
   ]);
 
   // Move frame update callback outside of useFrame
@@ -1260,6 +1312,15 @@ export default function Game() {
       }));
     }
   }, [showLevelMap, gameState.gameMode]);
+
+  // Modify the cleanup in useEffect
+  useEffect(() => {
+    return () => {
+      if (gameState.magnetTimer) {
+        clearTimeout(gameState.magnetTimer);
+      }
+    };
+  }, [gameState.magnetTimer]);
 
   return (
     // Add touch-action CSS to prevent default touch behaviors
