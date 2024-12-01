@@ -297,7 +297,8 @@ export function LevelMap({ onSelectLevel, onBack }: {
                             const distance = index * spacing;
                             const point = getPointAtDistance(curvePoints, distance);
 
-                            return hoveredLevel === level.id ? (
+                            // Only show hover cards if not mobile and level is being hovered
+                            return (!isMobile && hoveredLevel === level.id) ? (
                                 <g key={`overlay-${level.id}`}>
                                     <g transform={`translate(${point.x}, ${point.y})`}>
                                         <foreignObject
