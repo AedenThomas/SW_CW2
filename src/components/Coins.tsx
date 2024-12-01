@@ -5,7 +5,7 @@ import {
   CollisionEnterPayload,
   CuboidCollider,
 } from "@react-three/rapier";
-import { Vector3 } from "three";
+import { Vector3, Euler, Group } from "three";
 import { useFrame } from "@react-three/fiber";
 import { GameState } from "../types/game";
 import { LANE_POSITIONS, GAME_SPEED } from "../constants/game";
@@ -52,6 +52,9 @@ const Coins: React.FC<CoinsProps> = ({
   const numCoins = 10;
   const { scene } = useGLTF(`${process.env.PUBLIC_URL}/models/coin.glb`);
 
+  // Add new ref for coin rotation
+  const coinRotationRefs = useRef<Group[]>([]);
+
   // Initialize coins with better spacing based on startingZ
   useEffect(() => {
     const generatedCoins = Array.from({ length: numCoins }).map((_, index) => {
@@ -66,15 +69,22 @@ const Coins: React.FC<CoinsProps> = ({
     debugLog("Generated coins with new spacing:", generatedCoins);
   }, [lane, startingZ, numCoins]);
 
+  // Initialize rotation refs
+  useEffect(() => {
+    coinRotationRefs.current = Array(numCoins).fill(null);
+  }, [numCoins]);
+
   // Add collision zone check similar to options
   const isInCollisionZone = (z: number) => {
     return z > -2 && z < 2;
   };
 
+  // Modify useFrame to include rotation
   useFrame((state, delta) => {
     const moveAmount = calculateMoveAmount(gameState, delta, GAME_SPEED);
+    const rotationSpeed = 2; // Adjust this value to control rotation speed
 
-    coinsRef.current.forEach((coin) => {
+    coinsRef.current.forEach((coin, index) => {
       if (coin.rigidBodyRef.current && !collectedCoins.includes(coin.id)) {
         const currentPosition = coin.rigidBodyRef.current.translation();
         const newZ = currentPosition.z + moveAmount;
@@ -109,6 +119,12 @@ const Coins: React.FC<CoinsProps> = ({
             true
           );
         }
+
+        // Add rotation to the coin
+        const rotationRef = coinRotationRefs.current[index];
+        if (rotationRef && !gameState.isPaused) {
+          rotationRef.rotation.y += rotationSpeed * delta;
+        }
       }
     });
   });
@@ -138,11 +154,11 @@ const Coins: React.FC<CoinsProps> = ({
 
   return (
     <>
-      {coinsRef.current.map((coin) => (
+      {coinsRef.current.map((coin, index) => (
         <RigidBody
           key={coin.id}
           ref={coin.rigidBodyRef}
-          position={[LANE_POSITIONS[lane], 2, coin.position.z]} // Lifted y position from 1 to 2
+          position={[LANE_POSITIONS[lane], 2, coin.position.z]}
           type="kinematicPosition"
           colliders={false}
           userData={{
@@ -152,15 +168,21 @@ const Coins: React.FC<CoinsProps> = ({
           }}
         >
           <CuboidCollider
-            args={[0.5, 0.5, 0.5]} // Increased size for better collision detection
+            args={[0.5, 0.5, 0.5]}
             sensor={true}
           />
           {!collectedCoins.includes(coin.id) && (
-            <primitive
-              object={scene.clone()}
-              scale={[2, 2, 2]}
-              rotation={[0, 0, Math.PI / 2]} // Changed rotation to make coin stand upright
-            />
+            <group 
+              ref={el => {
+                if (el) coinRotationRefs.current[index] = el;
+              }}
+            >
+              <primitive
+                object={scene.clone()}
+                scale={[2, 2, 2]}
+                rotation={[0, 0, Math.PI / 2]}
+              />
+            </group>
           )}
         </RigidBody>
       ))}
