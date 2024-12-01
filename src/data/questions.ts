@@ -1,15 +1,35 @@
 import { read, utils } from 'xlsx';
 import { SignQuestions } from '../types/game';
 
+// Keep track of all available signs
+let allAvailableSigns: string[] = [];
+
 // Helper function to get random signs excluding the current one
 const getRandomSigns = (currentSign: string, count: number = 2): string[] => {
-  const allSigns = ['1.1.jpg', '1.2.jpg', '1.3.jpg', '2.1.jpg', '2.2.jpg', '2.3.jpg', '3.1.jpg'];
+  console.log('Getting random signs:', {
+    currentSign,
+    totalAvailableSigns: allAvailableSigns.length,
+    allSigns: allAvailableSigns
+  });
   
-  const otherSigns = allSigns.filter(sign => !currentSign.includes(sign));
+  // Filter out the current sign from available options
+  const otherSigns = allAvailableSigns.filter(sign => sign !== currentSign);
+  
+  console.log('Filtered signs:', {
+    otherSignsCount: otherSigns.length,
+    currentSignFound: allAvailableSigns.includes(currentSign)
+  });
+  
+  // Shuffle and take required number of signs
   const randomSigns = [...otherSigns]
     .sort(() => Math.random() - 0.5)
-    .slice(0, count)
-    .map(sign => process.env.PUBLIC_URL + "/signs/warning-signs-jpg/notion/" + sign);
+    .slice(0, count);
+    
+  console.log('Selected random signs:', {
+    count,
+    selectedSigns: randomSigns,
+    originalSign: currentSign
+  });
     
   return randomSigns;
 };
@@ -34,22 +54,19 @@ type QuestionOrNull = QuestionItem | null;
 export const loadQuestions = async (): Promise<SignQuestions[]> => {
   try {
     // Replace with your published Google Sheets URL
-    // const SHEET_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSXKMQ8i8Ehjk8gyawm2jrkDTl1nPLYKbyjYyNnt4Rr_X3XaP6z7L0HmFj8Mamv7NOXlnCrWYpgqtHE/pub?gid=805847491&single=true&output=csv';
-const SHEET_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vR-TpyiDx-iy4jkoJOXtti5TXysu22myGdYzuD9qkcorTFlem785UUpcQXY41fdXE7QZGVbYIyLMGmo/pub?gid=0&single=true&output=csv'
+    const SHEET_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSXKMQ8i8Ehjk8gyawm2jrkDTl1nPLYKbyjYyNnt4Rr_X3XaP6z7L0HmFj8Mamv7NOXlnCrWYpgqtHE/pub?gid=805847491&single=true&output=csv';
+
     
     console.log('Fetching from:', SHEET_URL);
     const response = await fetch(SHEET_URL);
     const csvText = await response.text();
-    console.log('Received data:', csvText.substring(0, 200)); // Log first 200 chars to check data
-
+    
     if (!csvText.trim()) {
       console.error('Received empty data from Google Sheets');
       return [];
     }
 
-    // Split by newline and handle both \r\n and \n
     const rows = csvText.split(/\r?\n/).filter(row => row.trim());
-    console.log('Number of rows:', rows.length);
     
     if (rows.length < 2) {
       console.error('Not enough rows in the data');
@@ -57,7 +74,6 @@ const SHEET_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vR-TpyiDx-iy4
     }
 
     const headers = rows[0].split(',').map(header => header.trim());
-    console.log('Headers:', headers);
 
     const data = rows.slice(1).map(row => {
       const values = row.split(',');
@@ -67,12 +83,29 @@ const SHEET_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vR-TpyiDx-iy4
       }, {});
     });
 
-    console.log('Parsed data sample:', data[0]); // Log first row of parsed data
+    // Clear and populate allAvailableSigns
+    allAvailableSigns = data.map(row => {
+      const isUrl = row.SignPath.startsWith('http') || row.SignPath.startsWith('https');
+      const path = isUrl 
+        ? row.SignPath 
+        : process.env.PUBLIC_URL + "/signs/warning-signs-jpg/notion/" + row.SignPath;
+      return path;
+    });
+
+    console.log('Populated available signs:', {
+      count: allAvailableSigns.length,
+      signs: allAvailableSigns
+    });
 
     const transformedQuestions: SignQuestions[] = data.map((row, index) => {
-      const question = {
-        signPath: process.env.PUBLIC_URL + "/signs/warning-signs-jpg/notion/" + row.SignPath,
-        levelId: parseInt(row.Level) || 1, // Default to level 1 if parsing fails
+      const isUrl = row.SignPath.startsWith('http') || row.SignPath.startsWith('https');
+      const signPath = isUrl 
+        ? row.SignPath 
+        : process.env.PUBLIC_URL + "/signs/warning-signs-jpg/notion/" + row.SignPath;
+
+      return {
+        signPath,
+        levelId: parseInt(row.Level) || 1,
         questions: [
           row.Question1 ? { id: index * 3 + 1, text: row.Question1 } : null,
           row.Question2 ? { id: index * 3 + 2, text: row.Question2 } : null,
@@ -87,8 +120,6 @@ const SHEET_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vR-TpyiDx-iy4
           correctAnswerInsight: row.oracleHelpcorrectAnswerInsight || ''
         }
       };
-      console.log('Transformed question:', question); // Log each transformed question
-      return question;
     });
 
     console.log('Total questions loaded:', transformedQuestions.length);
@@ -113,6 +144,19 @@ export const getLevelQuestions = (levelId: number): SignQuestions[] => {
 };
 
 export const getOptionsForQuestion = (signPath: string): string[] => {
+  console.log('Getting options for question:', {
+    signPath,
+    availableSignsCount: allAvailableSigns.length
+  });
+  
   const randomSigns = getRandomSigns(signPath, 2);
-  return [signPath, ...randomSigns];
+  const options = [signPath, ...randomSigns];
+  
+  console.log('Final options:', {
+    correctAnswer: signPath,
+    alternatives: randomSigns,
+    allOptions: options
+  });
+  
+  return options;
 };

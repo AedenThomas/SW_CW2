@@ -557,16 +557,10 @@ export default function Game() {
       currentCoins: gameState.coinsCollected,
     });
     
-    setGameState(prev => {
-      const newCoinsScore = prev.coinsScore + 1;
-      // Save coins to localStorage whenever they change
-      saveCoins(newCoinsScore);
-      return {
-        ...prev,
-        coinsCollected: prev.coinsCollected + 1,
-        coinsScore: newCoinsScore,
-      };
-    });
+    setGameState(prev => ({
+      ...prev,
+      coinsCollected: prev.coinsCollected + 1,
+    }));
 
     // Trigger animation
     setCoinTextAnimating(true);
@@ -780,7 +774,72 @@ export default function Game() {
 
   const [showSignIndex, setShowSignIndex] = useState(false);
 
-  // Move getGameOverMessage inside the Game component
+  // Add these new states near the top of the Game component
+  const [animatingFinalCoins, setAnimatingFinalCoins] = useState(false);
+  const [displayedCoins, setDisplayedCoins] = useState(0);
+  const [finalCoinsReached, setFinalCoinsReached] = useState(false);
+  const [highScore, setHighScore] = useState(() => {
+    const stored = localStorage.getItem('infiniteHighScore');
+    return stored ? parseInt(stored, 10) : 0;
+  });
+
+  // Add this function to handle high score updates
+  const updateHighScore = (newScore: number) => {
+    if (newScore > highScore) {
+      setHighScore(newScore);
+      localStorage.setItem('infiniteHighScore', newScore.toString());
+    }
+  };
+
+  // Update the effect that handles game over
+  useEffect(() => {
+    if (gameState.isGameOver && gameState.gameMode === 'infinite') {
+      // Update high score if needed
+      updateHighScore(gameState.score);
+      
+      // Start coin animation
+      if (!animatingFinalCoins) {
+        setAnimatingFinalCoins(true);
+        setDisplayedCoins(0);
+        
+        const startTime = Date.now();
+        const duration = 2000;
+        const coinsCollected = gameState.coinsCollected;
+        
+        // Save the new coins immediately to prevent state loss
+        const newTotalCoins = gameState.coinsScore + coinsCollected;
+        
+        // Update both the stored coins and the game state
+        saveCoins(newTotalCoins);
+        setGameState(prev => ({
+          ...prev,
+          coinsScore: newTotalCoins,
+          coinsCollected: 0 // Reset collected coins
+        }));
+        
+        const animateCoins = () => {
+          const currentTime = Date.now();
+          const elapsed = currentTime - startTime;
+          const progress = Math.min(elapsed / duration, 1);
+          
+          const easeOutQuart = (x: number): number => 1 - Math.pow(1 - x, 4);
+          const easedProgress = easeOutQuart(progress);
+          
+          setDisplayedCoins(Math.floor(easedProgress * coinsCollected));
+          
+          if (progress < 1) {
+            requestAnimationFrame(animateCoins);
+          } else {
+            setFinalCoinsReached(true);
+          }
+        };
+        
+        requestAnimationFrame(animateCoins);
+      }
+    }
+  }, [gameState.isGameOver, gameState.gameMode, gameState.coinsCollected, gameState.score, gameState.coinsScore]);
+
+  // Update the getGameOverMessage function's infinite mode section
   const getGameOverMessage = (gameState: GameState) => {
     if (gameState.gameMode === 'levels') {
       if (gameState.lives > 0 && gameState.questionsAnswered > 0) {
@@ -863,11 +922,14 @@ export default function Game() {
     } else { // infinite mode
       return {
         title: "Game Over",
-        message: `Final Score: ${gameState.score}`,
+        message: "", // We'll handle the message in the JSX
         buttons: [
           {
             text: "Play Again",
             action: () => {
+              // Get the updated total coins
+              const currentTotalCoins = getStoredCoins();
+              
               setGameState({
                 ...initialGameState,
                 isPlaying: true,
@@ -875,19 +937,38 @@ export default function Game() {
                 speed: 1,
                 gameMode: 'infinite',
                 isMoving: true,
-                isGameOver: false
+                isGameOver: false,
+                coinsScore: currentTotalCoins // Set the updated coins
               });
 
-              // Important: Reset the target lane position
-              setTargetLanePosition(LANE_POSITIONS[1]); // Reset to middle lane
+              // Reset animation states
+              setAnimatingFinalCoins(false);
+              setDisplayedCoins(0);
+              setFinalCoinsReached(false);
+
+              // Reset positions
+              setTargetLanePosition(LANE_POSITIONS[1]);
               setTargetLane(null);
 
-              // Show first question after a small delay
-              setTimeout(() => {
-                showNextQuestion();
-              }, 100);
+              setTimeout(showNextQuestion, 100);
             },
-            className: "bg-blue-500 hover:bg-blue-600 text-white"
+            className: "bg-blue-600 hover:bg-blue-700"
+          },
+          {
+            text: "Main Menu",
+            action: () => {
+              setGameState({
+                ...initialGameState,
+                isPlaying: false,
+                gameMode: null
+              });
+              
+              // Reset animation states
+              setAnimatingFinalCoins(false);
+              setDisplayedCoins(0);
+              setFinalCoinsReached(false);
+            },
+            className: "bg-gray-600 hover:bg-gray-700"
           }
         ]
       };
@@ -1199,12 +1280,6 @@ export default function Game() {
     }
 
     if (DEBUG_MAGNET) {
-      console.log('Render state:', {
-        showMagnet: gameState.showMagnet,
-        magnetLane,
-        questionsAnswered: gameState.questionsAnswered,
-        gameMode: gameState.gameMode
-      });
     }
 
     return (
@@ -1321,6 +1396,39 @@ export default function Game() {
       }
     };
   }, [gameState.magnetTimer]);
+
+  // Add this effect to handle coin animation when game over
+  useEffect(() => {
+    if (gameState.isGameOver && gameState.gameMode === 'infinite' && !animatingFinalCoins) {
+      setAnimatingFinalCoins(true);
+      setDisplayedCoins(0);
+      
+      // Animate coins collection
+      const startTime = Date.now();
+      const duration = 2000; // 2 seconds animation
+      const coinsCollected = gameState.coinsCollected;
+      
+      const animateCoins = () => {
+        const currentTime = Date.now();
+        const elapsed = currentTime - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+        
+        // Use easeOutQuart for smooth animation
+        const easeOutQuart = (x: number): number => 1 - Math.pow(1 - x, 4);
+        const easedProgress = easeOutQuart(progress);
+        
+        setDisplayedCoins(Math.floor(easedProgress * coinsCollected));
+        
+        if (progress < 1) {
+          requestAnimationFrame(animateCoins);
+        } else {
+          setFinalCoinsReached(true);
+        }
+      };
+      
+      requestAnimationFrame(animateCoins);
+    }
+  }, [gameState.isGameOver, gameState.gameMode, gameState.coinsCollected]);
 
   return (
     // Add touch-action CSS to prevent default touch behaviors
@@ -1606,7 +1714,7 @@ export default function Game() {
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           className="fixed inset-0 bg-black/50 flex items-center justify-center z-40"
-          onClick={() => {}} // Prevent click-through
+          onClick={() => {}}
         >
           <div className="relative">
             <motion.div
@@ -1617,24 +1725,58 @@ export default function Game() {
               onClick={(e) => e.stopPropagation()}
             >
               <div className="space-y-6">
-                {/* Title and Content */}
                 <div className="text-center text-white">
                   <h2 className="text-3xl font-bold mb-4">
                     {getGameOverMessage(gameState).title}
                   </h2>
-                  <p className="text-xl mb-6">
-                    {getGameOverMessage(gameState).message}
-                  </p>
+                  
+                  {gameState.gameMode === 'infinite' && (
+                    <div className="space-y-4">
+                      <div className="text-2xl font-semibold">
+                        Score: {gameState.score}
+                      </div>
+                      
+                      <div className="text-xl text-yellow-400">
+                        High Score: {Math.max(highScore, gameState.score)}
+                      </div>
+                      
+                      <div className="flex items-center justify-center gap-3">
+                        <img 
+                          src={`${process.env.PUBLIC_URL}/images/coin.svg`}
+                          alt="Coins"
+                          className="w-8 h-8"
+                        />
+                        <div className="text-2xl font-semibold">
+                          +{displayedCoins}
+                        </div>
+                      </div>
+                      
+                      {finalCoinsReached && (
+                        <motion.div
+                          initial={{ opacity: 0, y: 20 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          className="text-lg text-gray-300"
+                        >
+                          Total Coins: {gameState.coinsScore}
+                        </motion.div>
+                      )}
+                    </div>
+                  )}
+                  
+                  {gameState.gameMode === 'levels' && (
+                    <p className="text-xl mb-6">
+                      {getGameOverMessage(gameState).message}
+                    </p>
+                  )}
                 </div>
 
-                {/* Buttons */}
                 <div className="flex flex-col gap-3">
                   {getGameOverMessage(gameState).buttons.map((button, index) => (
                     <button
                       key={index}
                       onClick={button.action}
-                      className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg 
-                               font-semibold transition-colors w-full"
+                      className={`${button.className} text-white px-6 py-3 rounded-lg 
+                               font-semibold transition-colors w-full`}
                     >
                       {button.text}
                     </button>
