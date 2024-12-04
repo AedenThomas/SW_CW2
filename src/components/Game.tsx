@@ -8,7 +8,7 @@ import {
   useCallback,
   useMemo,
 } from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { Physics } from "@react-three/rapier";
 import {
   PerspectiveCamera,
@@ -311,6 +311,159 @@ const performanceMetrics = {
 // Add this near the top of the file after other imports
 const DEBUG_MAGNET = true;
 
+interface HelpModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+}
+
+function HelpModal({ isOpen, onClose }: HelpModalProps) {
+  const [currentPage, setCurrentPage] = useState(0);
+
+  const handleBackdropClick = (e: React.MouseEvent) => {
+    if (e.target === e.currentTarget) {
+      onClose();
+    }
+  };
+
+  // Help content with two pages
+  const helpContent = [
+    {
+      title: "Game Controls",
+      content: [
+        "Move Left/Right to Answer: Use Left/Right arrow keys (desktop) or swipe Left/Right (mobile) to change lanes.",
+        "Answer Questions: Change into the lane with the correct traffic sign and drive through it to answer questions.",
+        "Avoid Obstacles: Steer away from obstacles to avoid collisions.",
+        "Collect Coins: Collect coins that appear on the road.",
+        "Pause Menu: Tap the Pause Button to pause the game or press the Escape key (desktop).",
+        "Oracle Feedback: Tap the Oracle Button or Spacebar (desktop) mid-game to learn more about the previous traffic sign."
+      ]
+    },
+    {
+      title: "Game Objectives",
+      content: [
+        "Levels Mode: Progress through levels by answering traffic sign-related questions correctly. Learn new traffic signs at each level and unlock more challenging stages.",
+        "Infinite Mode: Test your skills in endless gameplay. Answer questions to keep going and collect coins.",
+        "Traffic Sign Encyclopedia: Review and learn about unlocked traffic signs anytime for extra practice.",
+        "Car Garage: Collect coins during gameplay to purchase new vehicles."
+      ]
+    }
+  ];
+
+  // Add keyboard navigation
+  useEffect(() => {
+    const handleKeyPress = (e: KeyboardEvent) => {
+      if (e.key === "ArrowLeft" && currentPage > 0) {
+        setCurrentPage(0);
+      } else if (e.key === "ArrowRight" && currentPage < 1) {
+        setCurrentPage(1);
+      }
+    };
+
+    if (isOpen) {
+      window.addEventListener("keydown", handleKeyPress);
+    }
+
+    return () => {
+      window.removeEventListener("keydown", handleKeyPress);
+    };
+  }, [isOpen, currentPage]);
+
+  return (
+    <AnimatePresence>
+      {isOpen && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="fixed inset-0 bg-black/50 flex items-center justify-center z-40"
+          onClick={handleBackdropClick}
+        >
+          <div className="relative">
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-[#272D45] rounded-lg p-8 max-w-md w-full mx-4 relative shadow-xl"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="space-y-6">
+                <div className="text-center text-white">
+                  <h2 className="text-2xl font-bold mb-6">{helpContent[currentPage].title}</h2>
+                  <div className="space-y-4">
+                    {helpContent[currentPage].content.map((item, index) => (
+                      <p key={index} className="text-left">{item}</p>
+                    ))}
+                  </div>
+                  {currentPage === 1 && (
+                    <p className="mt-6 text-sm text-gray-300 italic">
+                      Tip: Press the Help Button in the Main Menu if you need a quick refresher on game controls!
+                    </p>
+                  )}
+                </div>
+              </div>
+            </motion.div>
+
+            {/* Navigation Arrows - Now positioned at center left and center right */}
+            <div className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-16">
+              <button
+                onClick={() => setCurrentPage(0)}
+                className={`p-2 rounded-full ${
+                  currentPage === 0 ? 'bg-blue-600' : 'bg-gray-600 hover:bg-gray-500'
+                }`}
+              >
+                <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                </svg>
+              </button>
+            </div>
+            <div className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-16">
+              <button
+                onClick={() => setCurrentPage(1)}
+                className={`p-2 rounded-full ${
+                  currentPage === 1 ? 'bg-blue-600' : 'bg-gray-600 hover:bg-gray-500'
+                }`}
+              >
+                <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
+              </button>
+            </div>
+
+            {/* Sticker - Bottom right, positioned like Oracle modal */}
+            <div className="absolute -bottom-16 -right-16 w-36 h-36">
+              <img
+                src={process.env.PUBLIC_URL + "/images/happy1.svg"}
+                alt="Happy sticker"
+                className="w-full h-full"
+              />
+            </div>
+          </div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
+}
+
+function HelpButton({ onClick }: { onClick: () => void }) {
+  return (
+    <motion.button
+      onClick={onClick}
+      className="w-12 h-12 rounded-full flex items-center justify-center bg-blue-500 hover:bg-blue-600 transition-colors"
+      whileHover={{ scale: 1.05 }}
+      whileTap={{ scale: 0.95 }}
+    >
+      <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth={2}
+          d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+        />
+      </svg>
+    </motion.button>
+  );
+}
+
 export default function Game() {
   const [gameState, setGameState] = useState<GameState>(initialGameState);
   const [coinTextAnimating, setCoinTextAnimating] = useState(false);
@@ -435,6 +588,9 @@ export default function Game() {
       ]),
       activeOptionZones: [newSafeZone],
     }));
+
+    // Set firstQuestionShown to true when first question appears
+    setFirstQuestionShown(true);
   };
 
   // Update the activeGameObjects computation
@@ -620,36 +776,36 @@ export default function Game() {
   const handleCoinCollect = (id: number) => {
     const prevCoins = gameState.coinsScore;
     const prevCollected = gameState.coinsCollected;
-    
+
     console.log("[COIN-DEBUG] Collecting coin:", {
       coinId: id,
       lane: getLaneFromId(id),
       prevTotalCoins: prevCoins,
       prevCollectedCoins: prevCollected,
       isGameOver: gameState.isGameOver,
-      gameMode: gameState.gameMode
+      gameMode: gameState.gameMode,
     });
 
     setGameState((prev) => {
       const newState = {
         ...prev,
         coinsCollected: prev.coinsCollected + 1,
-        coinsScore: prev.coinsScore + 1
+        coinsScore: prev.coinsScore + 1,
       };
-      
+
       console.log("[COIN-DEBUG] After state update:", {
         newTotalCoins: newState.coinsScore,
         newCollectedCoins: newState.coinsCollected,
-        difference: newState.coinsScore - prevCoins
+        difference: newState.coinsScore - prevCoins,
       });
-      
+
       return newState;
     });
 
     // Save the updated coins to storage immediately
     console.log("[COIN-DEBUG] Saving to storage:", {
       newTotal: gameState.coinsScore + 1,
-      currentTotal: gameState.coinsScore
+      currentTotal: gameState.coinsScore,
     });
     saveCoins(gameState.coinsScore + 1);
 
@@ -669,7 +825,7 @@ export default function Game() {
   const startGame = (mode: GameMode) => {
     // Get the latest coins from storage
     const currentStoredCoins = getStoredCoins();
-    
+
     setGameState((prev) => ({
       ...initialGameState,
       isPlaying: true,
@@ -784,12 +940,13 @@ export default function Game() {
   );
   const [previousAnswer, setPreviousAnswer] = useState<number | undefined>();
 
+  // Update the toggleOracle function
   const toggleOracle = () => {
-    if (gameState.isPlaying || isOracleActive) {
+    if (gameState.isPlaying && (previousQuestion || isOracleActive)) {
       setIsOracleActive(!isOracleActive);
       setGameState((prev) => ({
         ...prev,
-        isPaused: !isOracleActive, // Pause game when oracle is active
+        isPaused: !isOracleActive // Pause when oracle opens, unpause when it closes
       }));
     }
   };
@@ -895,7 +1052,7 @@ export default function Game() {
         currentCoinsScore: gameState.coinsScore,
         coinsCollected: gameState.coinsCollected,
         animatingFinalCoins,
-        displayedCoins
+        displayedCoins,
       });
 
       // Update high score if needed
@@ -905,7 +1062,7 @@ export default function Game() {
       if (!animatingFinalCoins) {
         console.log("[GAME-OVER-DEBUG] Starting final coin animation:", {
           startingCoinsScore: gameState.coinsScore,
-          coinsToAdd: gameState.coinsCollected
+          coinsToAdd: gameState.coinsCollected,
         });
 
         setAnimatingFinalCoins(true);
@@ -918,10 +1075,10 @@ export default function Game() {
         // Remove this section as we don't need to add coins again
         // const newTotalCoins = gameState.coinsScore + coinsCollected;
         // saveCoins(newTotalCoins);
-        
+
         setGameState((prev) => ({
           ...prev,
-          coinsCollected: 0 // Just reset collected coins
+          coinsCollected: 0, // Just reset collected coins
         }));
 
         const animateCoins = () => {
@@ -940,7 +1097,7 @@ export default function Game() {
             setFinalCoinsReached(true);
             console.log("[GAME-OVER-DEBUG] Animation completed:", {
               finalDisplayedCoins: Math.floor(coinsCollected),
-              finalCoinsScore: gameState.coinsScore
+              finalCoinsScore: gameState.coinsScore,
             });
           }
         };
@@ -1604,6 +1761,14 @@ export default function Game() {
     }
   }, [gameState.isGameOver, gameState.gameMode, gameState.coinsCollected]);
 
+  // Add this state to track if first question has been shown
+  const [firstQuestionShown, setFirstQuestionShown] = useState(false);
+
+  const [isHelpOpen, setIsHelpOpen] = React.useState(false);
+
+  // Add this near the other UI elements in the return statement, where the main menu buttons are
+  const toggleHelp = () => setIsHelpOpen(!isHelpOpen);
+
   return (
     // Add touch-action CSS to prevent default touch behaviors
     <div
@@ -1643,14 +1808,14 @@ export default function Game() {
       {/* Game Menu */}
       {!gameState.isPlaying && !showLevelMap && (
         <div
-          className="absolute inset-0 flex items-center justify-center z-30"
-          style={{
-            backgroundImage: `url(${process.env.PUBLIC_URL}/images/background.jpg)`,
-            backgroundSize: "cover",
-            backgroundPosition: "center",
-          }}
-        >
-          {/* Top buttons container */}
+        className="absolute inset-0 flex items-center justify-center z-30"
+        style={{
+          backgroundImage: `url(${process.env.PUBLIC_URL}/images/image.png)`,
+          backgroundSize: "cover",
+          backgroundPosition: "center",
+        }}
+      >
+          {/* Left buttons container - Remove Help button */}
           <div className="absolute top-4 left-4 flex flex-col gap-2">
             <button
               onClick={() => setShowSignIndex(true)}
@@ -1669,6 +1834,17 @@ export default function Game() {
             </button>
           </div>
 
+          {/* Add Help button to top right */}
+          <div className="absolute top-4 right-4">
+            <button
+              onClick={toggleHelp}
+              className="bg-[#505050] hover:bg-[#505050] text-white px-4 py-2 
+                         rounded-lg transition-colors flex items-center gap-2 shadow-md"
+            >
+              ❓ Help ❓
+            </button>
+          </div>
+
           {/* Centered Menu Content */}
           <div className="flex flex-col items-center gap-8">
             {/* Title */}
@@ -1678,6 +1854,20 @@ export default function Game() {
 
             {/* Game Mode Buttons */}
             <div className="flex flex-col gap-4">
+              <button
+                onClick={() => setShowLevelMap(true)}
+                className="bg-[#4A63B4] hover:bg-[#5A73C4] text-white px-8 py-3 
+                         rounded-lg font-bold text-xl transition-all duration-300 
+                         flex items-center gap-4 shadow-lg hover:shadow-xl 
+                         transform hover:-translate-y-0.5"
+              >
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="white">
+                  <path d="M3 5v14h18V5H3zm16 12H5V7h14v10z" />
+                  <path d="M8.5 11.5l2.5 3 3.5-4.5 4.5 6H5z" />
+                </svg>
+                Levels Mode
+              </button>
+
               <div className="relative group">
                 <button
                   onClick={() => startGame("infinite")}
@@ -1754,20 +1944,6 @@ export default function Game() {
                   </div>
                 )}
               </div>
-
-              <button
-                onClick={() => setShowLevelMap(true)}
-                className="bg-[#4A63B4] hover:bg-[#5A73C4] text-white px-8 py-3 
-                         rounded-lg font-bold text-xl transition-all duration-300 
-                         flex items-center gap-4 shadow-lg hover:shadow-xl 
-                         transform hover:-translate-y-0.5"
-              >
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="white">
-                  <path d="M3 5v14h18V5H3zm16 12H5V7h14v10z" />
-                  <path d="M8.5 11.5l2.5 3 3.5-4.5 4.5 6H5z" />
-                </svg>
-                Levels Mode
-              </button>
             </div>
           </div>
         </div>
@@ -1786,7 +1962,7 @@ export default function Game() {
         <motion.div
           initial={{ opacity: 0, y: 50 }}
           animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -50 }}
+          exit={{ opacity: 0, y: -50 }} 
           className="absolute inset-0 flex items-center justify-center z-25 pointer-events-none"
         >
           <div
@@ -1996,7 +2172,8 @@ export default function Game() {
             {/* Update the sticker based on game mode and completion status */}
             <div className="absolute -bottom-16 -right-16 w-36 h-36">
               <img
-                src={process.env.PUBLIC_URL + 
+                src={
+                  process.env.PUBLIC_URL +
                   (gameState.gameMode === "levels" && gameState.lives > 0
                     ? "/images/amazed.svg"
                     : "/images/sad.svg")
@@ -2010,7 +2187,7 @@ export default function Game() {
       )}
 
       {/* Pause Overlay */}
-      {gameState.isPaused && gameState.isPlaying && !gameState.isGameOver && (
+      {gameState.isPaused && gameState.isPlaying && !gameState.isGameOver && !isOracleActive && (
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -2107,7 +2284,7 @@ export default function Game() {
               </div>
             </motion.div>
 
-            {/* Sticker overlapping the modal */}
+            {/* Sticker - Bottom right, positioned like Oracle modal */}
             <div className="absolute -bottom-16 -right-16 w-36 h-36">
               <img
                 src={process.env.PUBLIC_URL + "/images/happy1.svg"}
@@ -2164,8 +2341,6 @@ export default function Game() {
                     void main() {
                       // Scale the UV coordinates to focus on top half of screen
                       float yCoord = (vUv.y - 0.5) * 2.0;
-                      
-                      // Wider transition range (0.2-0.8 instead of 0.45-0.55)
                       float startY = 0.2;
                       float endY = 0.8;
                       float t = smoothstep(startY, endY, yCoord);
@@ -2192,28 +2367,33 @@ export default function Game() {
                       },
                     }}
                     vertexShader={`
-                    varying vec2 vUv;
-                    varying vec3 vPosition;
-                    void main() {
-                      vUv = uv;
-                      vPosition = position;
-                      gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-                    }
-                  `}
+      varying vec2 vUv;
+      varying vec3 vPosition;
+      void main() {
+        vUv = uv;
+        vPosition = position;
+        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+      }
+    `}
                     fragmentShader={`
-                    uniform vec3 colorTop;
-                    uniform vec3 colorBottom;
-                    varying vec2 vUv;
-                    varying vec3 vPosition;
-                    void main() {
-                      // Adjust transition to visible ground area
-                      // Start green from the horizon (where ground meets sky)
-                      // Transition to red at 80% of the visible ground area
-                      float t = smoothstep(50.0, 150.0, vPosition.y);
-                      vec3 color = mix(colorTop, colorBottom, t);
-                      gl_FragColor = vec4(color, 1.0);
-                    }
-                  `}
+      uniform vec3 colorTop;
+      uniform vec3 colorBottom;
+      varying vec2 vUv;
+      varying vec3 vPosition;
+      void main() {
+        // Adjust these values to control the gradient distribution
+        float startY = -50.0;  // Start transition earlier
+        float endY = 50.0;     // End transition later
+        
+        // Create a more gradual transition
+        float t = smoothstep(startY, endY, vPosition.y);
+        
+        // Adjust the mix ratio to show more of the top color
+        // This will make the top color visible for roughly 50% of the ground
+        vec3 color = mix(colorTop, colorBottom, t);
+        gl_FragColor = vec4(color, 1.0);
+      }
+    `}
                   />
                 </mesh>
 
@@ -2292,7 +2472,7 @@ export default function Game() {
           <OracleButton
             onClick={toggleOracle}
             isActive={isOracleActive}
-            disabled={gameState.questionsAnswered === 0}
+            disabled={!previousQuestion} // Disable if no previous question
           />
           <PauseButton
             isPaused={gameState.isPaused}
@@ -2311,6 +2491,9 @@ export default function Game() {
       />
 
       {showSignIndex && <SignIndex onBack={() => setShowSignIndex(false)} />}
+
+      {/* Add the help modal */}
+      <HelpModal isOpen={isHelpOpen} onClose={() => setIsHelpOpen(false)} />
     </div>
   );
 }

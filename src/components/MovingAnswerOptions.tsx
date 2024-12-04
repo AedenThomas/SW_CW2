@@ -311,6 +311,13 @@ export const MovingAnswerOptions = memo(({
       <group ref={optionsGroupRef} position={[0, 0, initialZ]} name="optionsGroup">
         {randomizedOptions.map(({ option, laneIndex }, index) => {
           const lanePosition = LANE_POSITIONS[laneIndex];
+          // Initialize TextureLoader with crossOrigin set to 'anonymous'
+          const loader = new THREE.TextureLoader();
+          loader.setCrossOrigin('anonymous');
+          
+          // Load texture using the configured loader
+          const texture = loader.load(option);
+          
           return (
             <RigidBody
               key={index}
@@ -331,12 +338,10 @@ export const MovingAnswerOptions = memo(({
               >
                 <planeGeometry args={[4, 3]} />
                 <meshStandardMaterial 
-                  map={new THREE.TextureLoader().load(option)} 
+                  map={texture}
                   transparent={true}
-                  // Enable depth testing but write to depth buffer
                   depthTest={true}
                   depthWrite={true}
-                  // Ensure material renders on top
                   polygonOffset={true}
                   polygonOffsetFactor={-1}
                 />

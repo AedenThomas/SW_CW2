@@ -244,7 +244,7 @@ export const CarGarage: React.FC<CarGarageProps> = ({ onBack }) => {
 
       {/* Coins Display */}
       <div className="absolute top-4 right-4 bg-black/50 text-white px-4 py-2 rounded-lg flex items-center gap-2">
-        <span className="text-yellow-400">🪙</span>
+        <img src={`${process.env.PUBLIC_URL}/images/coin.svg`} alt="Coin" className="w-6 h-6" />
         <span className="text-xl font-bold">{coins}</span>
       </div>
 
