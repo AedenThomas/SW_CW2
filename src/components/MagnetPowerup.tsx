@@ -67,6 +67,14 @@ const MagnetPowerup: React.FC<MagnetPowerupProps> = ({ gameState, onCollect, lan
         }
       }
 
+       // Mark magnet as missed if it passes the player without being collected
+    if (newZ > 5 && !isCollected.current) {
+      if (DEBUG_MAGNET) console.log('Magnet missed!');
+      isCollected.current = true;
+      // Signal to Game component that magnet was missed
+      magnetRef.current.setTranslation(new Vector3(LANE_POSITIONS[lane], -10, newZ), true);
+    }
+
       // Reset position if passed player
       if (newZ > 10) {
         if (DEBUG_MAGNET) console.log('Magnet reset position');
@@ -74,8 +82,12 @@ const MagnetPowerup: React.FC<MagnetPowerupProps> = ({ gameState, onCollect, lan
       } else {
         magnetRef.current.setTranslation(new Vector3(currentPosition.x, newY, newZ), true);
       }
+      if (!isCollected.current) {
+        magnetRef.current.setTranslation(new Vector3(currentPosition.x, newY, newZ), true);
+      }
     }
   });
+  
 
   // Create a temporary box for testing if the magnet model isn't loading
   const tempGeometry = new THREE.BoxGeometry(1, 1, 1);

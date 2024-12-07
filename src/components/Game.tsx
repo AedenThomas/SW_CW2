@@ -100,6 +100,7 @@ const initialGameState: GameState = {
   showFuel: false,
   fuelTimer: null,
   fuelShownThisSession: false,
+  magnetMissed: false,
 };
 
 // Add this helper function near the top of the file
@@ -472,6 +473,7 @@ function HelpButton({ onClick }: { onClick: () => void }) {
 }
 
 export default function Game() {
+  const [fuelMissed, setFuelMissed] = useState(false);
   const [gameState, setGameState] = useState<GameState>(initialGameState);
   const [coinTextAnimating, setCoinTextAnimating] = useState(false);
   const [magnetLane, setMagnetLane] = useState<number | null>(null);
@@ -1652,6 +1654,7 @@ const renderGameObjects = useMemo(() => {
           </React.Fragment>
         ))}
       {gameState.showMagnet &&
+        !gameState.magnetMissed && // Add this condition
         magnetLane !== null &&
         gameState.gameMode === "infinite" && (
           <MagnetPowerup
