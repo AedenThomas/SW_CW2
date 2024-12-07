@@ -6,6 +6,12 @@ import { useState } from 'react';
 import { getAllLevelProgress } from '../utils/storage';
 import { LevelProgressMap } from '../types/game';
 
+interface LevelMapProps {
+    onSelectLevel: (level: number) => void;
+    onBack: () => void;
+    onGameStateChange: (isGame: boolean) => void;
+  }
+
 // Add these utility functions at the top of the component
 function getBezierPoint(t: number, p0: Point, p1: Point, p2: Point, p3: Point) {
     const cX = 3 * (p1.x - p0.x);
@@ -97,10 +103,7 @@ function isLevelUnlocked(levelId: number, levelProgress: LevelProgressMap): bool
     return levelProgress[levelId - 1]?.completed === true;
 }
 
-export function LevelMap({ onSelectLevel, onBack }: { 
-    onSelectLevel: (level: number) => void,
-    onBack: () => void 
-}) {
+export function LevelMap({ onSelectLevel, onBack, onGameStateChange }: LevelMapProps) {
     const { width, height, isMobile } = useViewport();
     const [selectedLevel, setSelectedLevel] = useState<number | null>(null);
     const [currentSignIndex, setCurrentSignIndex] = useState(0);
@@ -485,16 +488,17 @@ export function LevelMap({ onSelectLevel, onBack }: {
                                     Sign {currentSignIndex + 1} of {levelQuestions.length}
                                 </div>
                                 {currentSignIndex === levelQuestions.length - 1 && (
-                                    <button
-                                        onClick={() => {
-                                            setSelectedLevel(null);
-                                            onSelectLevel(selectedLevel);
-                                        }}
-                                        className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
-                                    >
-                                        {levelProgress[selectedLevel]?.completed ? 'Play Again' : 'Start Level'}
-                                    </button>
-                                )}
+    <button
+    onClick={() => {
+      setSelectedLevel(null);
+      onSelectLevel(selectedLevel);
+      onGameStateChange(true); // Now this will work
+    }}
+    className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
+  >
+    {levelProgress[selectedLevel]?.completed ? 'Play Again' : 'Start Level'}
+  </button>
+)}
                             </div>
                         </div>
                     </div>

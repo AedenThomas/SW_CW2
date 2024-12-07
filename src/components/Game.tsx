@@ -54,6 +54,8 @@ import { memo } from "react";
 import MagnetPowerup from "./MagnetPowerup";
 import FuelPowerup from "./FuelPowerup"; // Add this import
 import { audioManager } from '../utils/audio';
+import CustomButton from './CustomButton';
+
 
 // Add debug logging utility
 const DEBUG = true;
@@ -411,7 +413,7 @@ function HelpModal({ isOpen, onClose }: HelpModalProps) {
 
             {/* Navigation Arrows - Now positioned at center left and center right */}
             <div className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-16">
-              <button
+              <CustomButton
                 onClick={() => setCurrentPage(0)}
                 className={`p-2 rounded-full ${
                   currentPage === 0 ? 'bg-gray-600' : 'bg-blue-600 hover:bg-blue-500'
@@ -421,10 +423,10 @@ function HelpModal({ isOpen, onClose }: HelpModalProps) {
                 <svg className={`w-6 h-6 ${currentPage === 0 ? 'text-gray-400' : 'text-white'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
                 </svg>
-              </button>
+              </CustomButton>
             </div>
             <div className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-16">
-              <button
+              <CustomButton
                 onClick={() => setCurrentPage(1)}
                 className={`p-2 rounded-full ${
                   currentPage === 1 ? 'bg-gray-600' : 'bg-blue-600 hover:bg-blue-500'
@@ -434,7 +436,7 @@ function HelpModal({ isOpen, onClose }: HelpModalProps) {
                 <svg className={`w-6 h-6 ${currentPage === 1 ? 'text-gray-400' : 'text-white'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                 </svg>
-              </button>
+              </CustomButton>
             </div>
 
             {/* Sticker - Bottom right, positioned like Oracle modal */}
@@ -472,7 +474,12 @@ function HelpButton({ onClick }: { onClick: () => void }) {
   );
 }
 
-export default function Game() {
+interface GameProps {
+  onGameStateChange: (isGame: boolean) => void;
+}
+
+export default function Game({ onGameStateChange }: GameProps) {
+
   const [fuelMissed, setFuelMissed] = useState(false);
   const [gameState, setGameState] = useState<GameState>(initialGameState);
   const [coinTextAnimating, setCoinTextAnimating] = useState(false);
@@ -833,14 +840,24 @@ export default function Game() {
   const startGame = (mode: GameMode) => {
     // Get the latest coins from storage
     const currentStoredCoins = getStoredCoins();
-
+    
+    // Notify parent that game is starting and set different states based on mode
+    if (mode === "levels") {
+      console.log("Starting levels mode and stopping gameless music");
+      onGameStateChange(true); // This will stop the gameless music
+      audioManager.playBackgroundMusic(); // Play the game music for levels
+    } else {
+      // For infinite mode, just notify parent to stop gameless music
+      onGameStateChange(true);
+    }
+  
     setGameState((prev) => ({
       ...initialGameState,
       isPlaying: true,
       isPaused: false,
       speed: 1,
       gameMode: mode,
-      coinsScore: currentStoredCoins, // Set the latest coins from storage
+      coinsScore: currentStoredCoins,
     }));
   };
 
@@ -1726,19 +1743,6 @@ const renderGameObjects = useMemo(() => {
     });
   }, []);
 
-  // Add debug logging when the game over popup is displayed
-  useEffect(() => {
-    if (gameState.isGameOver) {
-      debugLog("Displaying Game Over popup and pausing the game.");
-      
-    }
-  }, [gameState.isGameOver]);
-  useEffect(() => {
-    if (gameState.isGameOver && gameState.gameMode === "levels" && gameState.lives === 0) {
-      debugLog("Displaying Game Over popup and pausing the game.");
-      audioManager.playGameOverSound();
-    }
-  }, [gameState.isGameOver, gameState.gameMode, gameState.lives]);
 
   // Add this effect to handle level map state
   useEffect(() => {
@@ -1876,32 +1880,32 @@ const renderGameObjects = useMemo(() => {
       >
           {/* Left buttons container - Remove Help button */}
           <div className="absolute top-4 left-4 flex flex-col gap-2">
-            <button
+            <CustomButton
               onClick={() => setShowSignIndex(true)}
               className="bg-[#505050] hover:bg-[#505050] text-white px-4 py-2 
                          rounded-lg transition-colors flex items-center gap-2 shadow-md"
             >
               📖 Sign Index 📖
-            </button>
+            </CustomButton>
 
-            <button
+            <CustomButton
               onClick={() => navigate("/garage")}
               className="bg-[#505050] hover:bg-[#505050] text-white px-4 py-2 
                          rounded-lg transition-colors flex items-center gap-2 shadow-md"
             >
               🚗 Car Garage 🚗
-            </button>
+            </CustomButton>
           </div>
 
           {/* Add Help button to top right */}
           <div className="absolute top-4 right-4">
-            <button
+            <CustomButton
               onClick={toggleHelp}
               className="bg-[#505050] hover:bg-[#505050] text-white px-4 py-2 
                          rounded-lg transition-colors flex items-center gap-2 shadow-md"
             >
               ❓ Help ❓
-            </button>
+            </CustomButton>
           </div>
 
           {/* Centered Menu Content */}
@@ -1913,7 +1917,7 @@ const renderGameObjects = useMemo(() => {
 
             {/* Game Mode Buttons */}
             <div className="flex flex-col gap-4">
-              <button
+              <CustomButton
                 onClick={() => setShowLevelMap(true)}
                 className="bg-[#4A63B4] hover:bg-[#5A73C4] text-white px-8 py-3 
                          rounded-lg font-bold text-xl transition-all duration-300 
@@ -1925,10 +1929,10 @@ const renderGameObjects = useMemo(() => {
                   <path d="M8.5 11.5l2.5 3 3.5-4.5 4.5 6H5z" />
                 </svg>
                 Levels Mode
-              </button>
+              </CustomButton>
 
               <div className="relative group">
-                <button
+                <CustomButton
                   onClick={() => startGame("infinite")}
                   disabled={!isInfiniteModeUnlocked(levelProgress)}
                   className={`w-full bg-[#333333] px-8 py-3 rounded-lg font-bold text-xl 
@@ -1969,7 +1973,7 @@ const renderGameObjects = useMemo(() => {
                       />
                     </svg>
                   )}
-                </button>
+                </CustomButton>
 
                 {/* Hover tooltip for locked state */}
                 {!isInfiniteModeUnlocked(levelProgress) && (
@@ -2010,11 +2014,12 @@ const renderGameObjects = useMemo(() => {
 
       {/* Level Selection Screen */}
       {showLevelMap && (
-        <LevelMap
-          onSelectLevel={handleLevelSelect}
-          onBack={() => setShowLevelMap(false)}
-        />
-      )}
+  <LevelMap
+    onSelectLevel={handleLevelSelect}
+    onBack={() => setShowLevelMap(false)}
+    onGameStateChange={onGameStateChange} // Add this prop
+  />
+)}
 
       {/* Oracle Feedback Modal */}
       {gameState.oracleMode && gameState.oracleFeedback && (
@@ -2214,14 +2219,14 @@ const renderGameObjects = useMemo(() => {
                 <div className="flex flex-col gap-3">
                   {getGameOverMessage(gameState).buttons.map(
                     (button, index) => (
-                      <button
+                      <CustomButton
                         key={index}
                         onClick={button.action}
                         className={`${button.className} text-white px-6 py-3 rounded-lg 
                                font-semibold transition-colors w-full`}
                       >
                         {button.text}
-                      </button>
+                      </CustomButton>
                     )
                   )}
                 </div>
@@ -2268,7 +2273,7 @@ const renderGameObjects = useMemo(() => {
                 </div>
 
                 {/* Add sound control button */}
-                <button
+                <CustomButton
                   onClick={() => {
                     const newMuteState = audioManager.toggleMute();
                     setIsMuted(newMuteState);
@@ -2297,18 +2302,18 @@ const renderGameObjects = useMemo(() => {
                       Sound On
                     </>
                   )}
-                </button>
+                </CustomButton>
 
                 {/* Game control buttons */}
                 <div className="flex flex-col gap-3">
-                  <button
+                  <CustomButton
                     onClick={togglePause}
                     className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 
                              rounded-lg font-semibold transition-colors w-full"
                   >
                     Resume Game
-                  </button>
-                  <button
+                  </CustomButton>
+                  <CustomButton
                     onClick={() => {
                       // Handle restart based on game mode
                       if (gameState.gameMode === "levels") {
@@ -2327,7 +2332,7 @@ const renderGameObjects = useMemo(() => {
                           isMoving: true,
                           speed: 1,
                         });
-
+                        audioManager.playBackgroundMusic();
                         // Reset the target lane position
                         setTargetLanePosition(LANE_POSITIONS[1]); // Reset to middle lane
                         setTargetLane(null);
@@ -2344,7 +2349,7 @@ const renderGameObjects = useMemo(() => {
                           isMoving: true,
                           speed: 1,
                         });
-
+                        audioManager.playBackgroundMusic();
                         // Reset the target lane position
                         setTargetLanePosition(LANE_POSITIONS[1]); // Reset to middle lane
                         setTargetLane(null);
@@ -2356,20 +2361,22 @@ const renderGameObjects = useMemo(() => {
                              rounded-lg font-semibold transition-colors w-full"
                   >
                     Restart Game
-                  </button>
-                  <button
+                  </CustomButton>
+                  <CustomButton
                     onClick={() => {
                       setGameState({
                         ...initialGameState,
                         isPlaying: false,
                         gameMode: null,
                       });
+                      audioManager.playBackgroundMusicGameless();
+
                     }}
                     className="bg-gray-600 hover:bg-gray-700 text-white px-6 py-3 
                              rounded-lg font-semibold transition-colors w-full"
                   >
                     Main Menu
-                  </button>
+                  </CustomButton>
                 </div>
               </div>
             </motion.div>
