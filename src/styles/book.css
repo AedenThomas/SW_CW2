@@ -40,15 +40,47 @@
   display: none;
 }
 
-.book-content {
-  transform-style: preserve-3d;
-  perspective: 2000px;
-  background: white;
-  z-index: 5;
-  position: relative;
-  overflow: visible;
-  width: 100%;
-  height: 100%;
+
+.book-content::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 0;
+  bottom: 0;
+  width: 20px;
+  background: linear-gradient(
+    to right,
+    rgba(0,0,0,0.1),
+    rgba(0,0,0,0.15),
+    rgba(0,0,0,0.1)
+  );
+  transform: translateX(-50%);
+  z-index: 10; /* Increased z-index to ensure visibility */
+  pointer-events: none;
+}
+
+.book-content::before {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 0;
+  bottom: 0;
+  width: 120px;
+  background: linear-gradient(
+    to right,
+    rgba(0,0,0,0.03) 0%,
+    transparent 20%,
+    transparent 80%,
+    rgba(0,0,0,0.03) 100%
+  );
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+@media (max-width: 768px) {
+  .book-content::after,
+  .book-content::before {
+    display: none;
+  }
 }
 
 .left-page, .right-page {

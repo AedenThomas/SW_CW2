@@ -8,7 +8,7 @@ interface SignIndexProps {
   onBack: () => void;
 }
 
-const ITEMS_PER_PAGE = 4; // Number of signs per page for desktop
+const ITEMS_PER_PAGE = 2; // Number of signs per page for both desktop and mobile
 const MOBILE_ITEMS_PER_PAGE = 2; // Number of signs per page for mobile
 const ANIMATION_DURATION = 1500; // matches CSS animation duration of 1.5s
 const PAGE_SWITCH_DELAY = ANIMATION_DURATION / 2;
@@ -22,7 +22,9 @@ export const SignIndex: React.FC<SignIndexProps> = ({ onBack }) => {
   const [pageDirection, setPageDirection] = useState<'forward' | 'backward'>('forward');
   const [isMobile, setIsMobile] = useState(false);
 
-  const totalPages = Math.ceil(questions.length / (isMobile ? MOBILE_ITEMS_PER_PAGE : ITEMS_PER_PAGE));
+  const totalPages = isMobile
+  ? Math.ceil(questions.length / MOBILE_ITEMS_PER_PAGE)
+  : Math.ceil(questions.length / (ITEMS_PER_PAGE * 2));
   const isLastPage = currentPage >= totalPages - (isMobile ? 1 : 2); // Adjust last page check for mobile
 
   // Add useEffect to trigger opening animation after mount
@@ -217,7 +219,7 @@ export const SignIndex: React.FC<SignIndexProps> = ({ onBack }) => {
 
                   {/* Navigation Controls - Show on top for mobile */}
                   {isMobile && (
-                    <div className="flex justify-between items-center mb-8 mobile-nav">
+                    <div className="flex justify-between items-center mb-18 mobile-nav">
                       <button
                         onClick={handlePrevPage}
                         disabled={currentPage === 0}
@@ -246,23 +248,25 @@ export const SignIndex: React.FC<SignIndexProps> = ({ onBack }) => {
                     </div>
                   )}
 
-                  {/* Signs Grid - Left Page */}
-                  <div className="grid grid-cols-2 gap-4">
-                    {questions
-                      .slice(
-                        currentPage * (isMobile ? MOBILE_ITEMS_PER_PAGE : ITEMS_PER_PAGE),
-                        (currentPage * (isMobile ? MOBILE_ITEMS_PER_PAGE : ITEMS_PER_PAGE)) + 
-                        (isMobile ? MOBILE_ITEMS_PER_PAGE : ITEMS_PER_PAGE)
-                      )
-                      .map((signGroup, index) => renderSignCard(signGroup, index))}
-                  </div>
+                  {/* Signs Grid - Left Page - Modified to show 1 sign per row */}
+                 {/* Left Page Signs */}
+<div className="grid grid-cols-1 gap-6">
+  {questions
+    .slice(
+      currentPage * ITEMS_PER_PAGE * 2,
+      currentPage * ITEMS_PER_PAGE * 2 + ITEMS_PER_PAGE
+    )
+    .map((signGroup, index) => renderSignCard(signGroup, index))}
+</div>
                 </div>
+
+                
 
                 {/* Right Page - Hide on mobile */}
                 {!isMobile && (
                   <div className="flex-1 p-8 bg-white right-page overflow-y-auto">
                     {/* Navigation Controls */}
-                    <div className="flex justify-between items-center mb-8">
+                    <div className="flex justify-between items-center mb-8" style={{ marginBottom: '6.3rem' }}>
                       <button
                         onClick={handlePrevPage}
                         disabled={currentPage === 0}
@@ -290,12 +294,15 @@ export const SignIndex: React.FC<SignIndexProps> = ({ onBack }) => {
                       </button>
                     </div>
 
-                    {/* Signs Grid - Right Page */}
-                    <div className="grid grid-cols-2 gap-4 mt-[68px]">
-                      {questions.slice((currentPage * ITEMS_PER_PAGE) + ITEMS_PER_PAGE, (currentPage * ITEMS_PER_PAGE) + (ITEMS_PER_PAGE * 2)).map((signGroup, index) => (
-                        renderSignCard(signGroup, index)
-                      ))}
-                    </div>
+                    {/* Signs Grid - Right Page - Modified to show 1 sign per row */}
+                    <div className="grid grid-cols-1 gap-6 mt-[68px]">
+  {questions
+    .slice(
+      currentPage * ITEMS_PER_PAGE * 2 + ITEMS_PER_PAGE,
+      currentPage * ITEMS_PER_PAGE * 2 + ITEMS_PER_PAGE * 2
+    )
+    .map((signGroup, index) => renderSignCard(signGroup, index))}
+</div>
                   </div>
                 )}
               </div>
@@ -317,7 +324,7 @@ export const SignIndex: React.FC<SignIndexProps> = ({ onBack }) => {
                               {pageDirection === 'forward' ? currentPage + 4 : currentPage} of {totalPages}
                       </div>
                     </div>
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 gap-6">
                       {questions.slice(
                         pageDirection === 'forward' 
                           ? ((currentPage + 2) * ITEMS_PER_PAGE)
@@ -358,7 +365,7 @@ export const SignIndex: React.FC<SignIndexProps> = ({ onBack }) => {
                         Next →
                       </button>
                     </div>
-                    <div className="grid grid-cols-2 gap-4 mt-[68px]">
+                    <div className="grid grid-cols-1 gap-6 mt-[68px]">
                       {questions.slice(
                         pageDirection === 'forward'
                           ? ((currentPage + 2) * ITEMS_PER_PAGE) + ITEMS_PER_PAGE
@@ -377,4 +384,4 @@ export const SignIndex: React.FC<SignIndexProps> = ({ onBack }) => {
       </div>
     </div>
   );
-}; 
+};
