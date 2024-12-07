@@ -332,7 +332,7 @@ function HelpModal({ isOpen, onClose }: HelpModalProps) {
       content: [
         "Move Left/Right to Answer: Use Left/Right arrow keys (desktop) or swipe Left/Right (mobile) to change lanes.",
         "Answer Questions: Change into the lane with the correct traffic sign and drive through it to answer questions.",
-        "Avoid Obstacles: Steer away from obstacles to avoid collisions.",
+        "Avoid Obstacles: Steer away from obstacles to avoid collisions.", 
         "Collect Coins: Collect coins that appear on the road.",
         "Pause Menu: Tap the Pause Button to pause the game or press the Escape key (desktop).",
         "Oracle Feedback: Tap the Oracle Button or Spacebar (desktop) mid-game to learn more about the previous traffic sign."
@@ -408,10 +408,11 @@ function HelpModal({ isOpen, onClose }: HelpModalProps) {
               <button
                 onClick={() => setCurrentPage(0)}
                 className={`p-2 rounded-full ${
-                  currentPage === 0 ? 'bg-blue-600' : 'bg-gray-600 hover:bg-gray-500'
+                  currentPage === 0 ? 'bg-gray-600' : 'bg-blue-600 hover:bg-blue-500'
                 }`}
+                disabled={currentPage === 0}
               >
-                <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <svg className={`w-6 h-6 ${currentPage === 0 ? 'text-gray-400' : 'text-white'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
                 </svg>
               </button>
@@ -420,10 +421,11 @@ function HelpModal({ isOpen, onClose }: HelpModalProps) {
               <button
                 onClick={() => setCurrentPage(1)}
                 className={`p-2 rounded-full ${
-                  currentPage === 1 ? 'bg-blue-600' : 'bg-gray-600 hover:bg-gray-500'
+                  currentPage === 1 ? 'bg-gray-600' : 'bg-blue-600 hover:bg-blue-500'
                 }`}
+                disabled={currentPage === 1}
               >
-                <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <svg className={`w-6 h-6 ${currentPage === 1 ? 'text-gray-400' : 'text-white'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                 </svg>
               </button>
