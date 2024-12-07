@@ -52,6 +52,7 @@ import { useNavigate } from "react-router-dom";
 import { getStoredCoins, saveCoins } from "../utils/storage";
 import { memo } from "react";
 import MagnetPowerup from "./MagnetPowerup";
+import { audioManager } from '../utils/audio';
 
 // Add debug logging utility
 const DEBUG = true;
@@ -474,7 +475,19 @@ export default function Game() {
   const [targetLanePosition, setTargetLanePosition] = useState<number>(
     LANE_POSITIONS[gameState.currentLane]
   );
-
+  const [isMuted, setIsMuted] = useState(audioManager.getMuteState());
+  useEffect(() => {
+    if (gameState.isPlaying) {
+      audioManager.playBackgroundMusic();
+    } else {
+      audioManager.pauseBackgroundMusic();
+    }
+  
+    return () => {
+      audioManager.pauseBackgroundMusic();
+    };
+  }, [gameState.isPlaying]);
+  
   const questionTimer = useRef<NodeJS.Timeout | null>(null);
   const lastLaneSwitch = useRef(0);
   const questionIdCounter = useRef(1);
@@ -2206,12 +2219,43 @@ export default function Game() {
               onClick={(e) => e.stopPropagation()}
             >
               <div className="space-y-6">
-                {/* Title and Content */}
                 <div className="text-center text-white">
                   <h2 className="text-3xl font-bold mb-6">Game Paused</h2>
                 </div>
 
-                {/* Buttons */}
+                {/* Add sound control button */}
+                <button
+                  onClick={() => {
+                    const newMuteState = audioManager.toggleMute();
+                    setIsMuted(newMuteState);
+                  }}
+                  className="flex items-center justify-center gap-2 w-full bg-gray-700 
+                           hover:bg-gray-600 text-white px-6 py-3 rounded-lg 
+                           font-semibold transition-colors mb-4"
+                >
+                  {isMuted ? (
+                    <>
+                      <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
+                              d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" 
+                              clipRule="evenodd" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
+                              d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2" />
+                      </svg>
+                      Sound Off
+                    </>
+                  ) : (
+                    <>
+                      <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
+                              d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
+                      </svg>
+                      Sound On
+                    </>
+                  )}
+                </button>
+
+                {/* Game control buttons */}
                 <div className="flex flex-col gap-3">
                   <button
                     onClick={togglePause}
