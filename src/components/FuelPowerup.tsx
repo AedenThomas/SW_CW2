@@ -1,4 +1,3 @@
-
 import React, { useRef, useEffect } from 'react';
 import { RigidBody, CuboidCollider, RapierRigidBody } from '@react-three/rapier';
 import { useFrame } from '@react-three/fiber';
@@ -14,10 +13,11 @@ const DEBUG_FUEL = false;
 interface FuelPowerupProps {
   gameState: GameState;
   onCollect: () => void;
+  onMiss: () => void;  // Add this prop
   lane: number;
 }
 
-const FuelPowerup: React.FC<FuelPowerupProps> = ({ gameState, onCollect, lane }) => {
+const FuelPowerup: React.FC<FuelPowerupProps> = ({ gameState, onCollect, onMiss, lane }) => {
   const fuelRef = useRef<RapierRigidBody>(null);
   const modelRef = useRef<THREE.Group>(null);
   const { scene } = useGLTF(`${process.env.PUBLIC_URL}/models/fuel.glb`);
@@ -67,10 +67,13 @@ const FuelPowerup: React.FC<FuelPowerupProps> = ({ gameState, onCollect, lane })
         }
       }
 
-      // Reset position if passed player
+      // Update the position check to handle missed fuel
       if (newZ > 10) {
-        if (DEBUG_FUEL) console.log('Fuel reset position');
-        fuelRef.current.setTranslation(new Vector3(LANE_POSITIONS[lane], baseY, -150), true);
+        if (DEBUG_FUEL) console.log('Fuel missed');
+        isCollected.current = true;
+        onMiss();
+        // Hide the fuel
+        fuelRef.current.setTranslation(new Vector3(LANE_POSITIONS[lane], -10, newZ), true);
       } else {
         fuelRef.current.setTranslation(new Vector3(currentPosition.x, newY, newZ), true);
       }
@@ -94,22 +97,14 @@ const FuelPowerup: React.FC<FuelPowerupProps> = ({ gameState, onCollect, lane })
         {scene ? (
           <primitive
             object={scene.clone()}
-            scale={[1.2, 1.2, 1.2]}
+            scale={[5, 5, 5]}
             rotation={[0, 0, 0]}
           />
         ) : (
           // Fallback green cylinder if model doesn't load
           <mesh geometry={tempGeometry} material={tempMaterial} />
         )}
-        {/* Add glow effect */}
-        <mesh>
-          <sphereGeometry args={[0.8, 16, 16]} />
-          <meshBasicMaterial
-            color={0x00ff00}
-            transparent={true}
-            opacity={0.3}
-          />
-        </mesh>
+        {/* Removed the glow effect mesh */}
       </group>
     </RigidBody>
   );

@@ -99,6 +99,7 @@ const initialGameState: GameState = {
   showMagnet: false,
   showFuel: false,
   fuelTimer: null,
+  fuelShownThisSession: false,
 };
 
 // Add this helper function near the top of the file
@@ -1587,103 +1588,112 @@ export default function Game() {
     ]
   );
 
-  // Add fuel collection handler - Move this before renderGameObjects
-  const handleFuelCollect = useCallback(() => {
-    audioManager.playCoinPickupSound(); // You might want to create a specific fuel pickup sound
-    setGameState(prev => ({
-      ...prev,
-      lives: Math.min(prev.lives + 1, 3), // Increase lives by 1, max of 3
-      showFuel: false,
-    }));
-  }, []); // Add dependencies if needed
+  // Add fuel collection and miss handlers before renderGameObjects
+const handleFuelCollect = useCallback(() => {
+  audioManager.playCoinPickupSound();
+  setGameState(prev => ({
+    ...prev,
+    lives: Math.min(prev.lives + 1, 3),
+    showFuel: false,
+  }));
+}, []);
 
-  // Now renderGameObjects can use handleFuelCollect
-  const renderGameObjects = useMemo(() => {
-    if (!gameState.isPlaying || gameState.isGameOver || gameState.isPaused) {
-      return null;
-    }
+const handleFuelMiss = useCallback(() => {
+  setGameState(prev => ({
+    ...prev,
+    showFuel: false
+  }));
+}, []);
 
-    if (DEBUG_MAGNET) {
-    }
+// Now renderGameObjects can use both handlers
+const renderGameObjects = useMemo(() => {
+  if (!gameState.isPlaying || gameState.isGameOver || gameState.isPaused) {
+    return null;
+  }
 
-    return (
-      <>
-        <PlayerCar
-          position={[LANE_POSITIONS[gameState.currentLane], 1.0, 0]}
-          targetPosition={targetLanePosition}
-          handleCoinCollect={handleCoinCollect}
-          onLaneChangeComplete={onLaneChangeComplete}
-          key={`player-${gameState.currentLane}`}
-        />
-        {activeGameObjects.shouldRenderObstacles &&
-          Array.from({ length: NUM_OBSTACLES }).map((_, index) => (
-            <TrafficObstacle
-              key={`obstacle-${index}`}
-              index={index}
-              gameState={gameState}
-              setGameState={setGameState}
-              onRespawn={() => {}}
-              initialZ={obstacleInitialZ}
-              activeOptionZones={gameState.activeOptionZones}
-              setShowObstacleCollisionFlash={setShowObstacleCollisionFlash}
-            />
-          ))}
-        {activeGameObjects.shouldRenderCoins &&
-          coinGroups.slice(0, 5).map((groupZ, groupIndex) => (
-            <React.Fragment key={`coin-group-${groupIndex}`}>
-              {LANE_POSITIONS.map((position, laneIndex) => (
-                <Coins
-                  key={`coin-${laneIndex}-${groupIndex}`}
-                  lane={laneIndex}
-                  startingZ={groupZ}
-                  gameState={gameState}
-                  onCollect={handleCoinCollect}
-                  magnetActive={gameState.magnetActive}
-                />
-              ))}
-            </React.Fragment>
-          ))}
-        {gameState.showMagnet &&
-          magnetLane !== null &&
-          gameState.gameMode === "infinite" && (
-            <MagnetPowerup
-              gameState={gameState}
-              onCollect={handleMagnetCollect}
-              lane={magnetLane}
-            />
-          )}
-        {gameState.showFuel && 
+  if (DEBUG_MAGNET) {
+  }
+
+  return (
+    <>
+      <PlayerCar
+        position={[LANE_POSITIONS[gameState.currentLane], 1.0, 0]}
+        targetPosition={targetLanePosition}
+        handleCoinCollect={handleCoinCollect}
+        onLaneChangeComplete={onLaneChangeComplete}
+        key={`player-${gameState.currentLane}`}
+      />
+      {activeGameObjects.shouldRenderObstacles &&
+        Array.from({ length: NUM_OBSTACLES }).map((_, index) => (
+          <TrafficObstacle
+            key={`obstacle-${index}`}
+            index={index}
+            gameState={gameState}
+            setGameState={setGameState}
+            onRespawn={() => {}}
+            initialZ={obstacleInitialZ}
+            activeOptionZones={gameState.activeOptionZones}
+            setShowObstacleCollisionFlash={setShowObstacleCollisionFlash}
+          />
+        ))}
+      {activeGameObjects.shouldRenderCoins &&
+        coinGroups.slice(0, 5).map((groupZ, groupIndex) => (
+          <React.Fragment key={`coin-group-${groupIndex}`}>
+            {LANE_POSITIONS.map((position, laneIndex) => (
+              <Coins
+                key={`coin-${laneIndex}-${groupIndex}`}
+                lane={laneIndex}
+                startingZ={groupZ}
+                gameState={gameState}
+                onCollect={handleCoinCollect}
+                magnetActive={gameState.magnetActive}
+              />
+            ))}
+          </React.Fragment>
+        ))}
+      {gameState.showMagnet &&
+        magnetLane !== null &&
+        gameState.gameMode === "infinite" && (
+          <MagnetPowerup
+            gameState={gameState}
+            onCollect={handleMagnetCollect}
+            lane={magnetLane}
+          />
+        )}
+      {gameState.showFuel && 
        gameState.gameMode === "infinite" && 
        fuelLane !== null && (
         <FuelPowerup
           gameState={gameState}
           onCollect={handleFuelCollect}
+          onMiss={handleFuelMiss}
           lane={fuelLane}
         />
       )}
-      </>
-    );
-  }, [
-    gameState.isPlaying,
-    gameState.isGameOver,
-    gameState.isPaused,
-    gameState.currentLane,
-    gameState.gameMode,
-    targetLanePosition,
-    handleCoinCollect,
-    onLaneChangeComplete,
-    activeGameObjects.shouldRenderObstacles,
-    activeGameObjects.shouldRenderCoins,
-    coinGroups,
-    setShowObstacleCollisionFlash,
-    gameState.showMagnet,
-    gameState.magnetActive,
-    magnetLane,
-    handleMagnetCollect,
-    gameState.showFuel, 
-    fuelLane,
-    handleFuelCollect
-  ]);
+    </>
+  );
+}, [
+  gameState.isPlaying,
+  gameState.isGameOver,
+  gameState.isPaused,
+  gameState.currentLane,
+  gameState.gameMode,
+  targetLanePosition,
+  handleCoinCollect,
+  onLaneChangeComplete,
+  activeGameObjects.shouldRenderObstacles,
+  activeGameObjects.shouldRenderCoins,
+  coinGroups,
+  setShowObstacleCollisionFlash,
+  gameState.showMagnet,
+  gameState.magnetActive,
+  magnetLane,
+  handleMagnetCollect,
+  gameState.showFuel, 
+  fuelLane,
+  handleFuelCollect,
+  handleFuelMiss
+]);
 
   // Move frame update callback outside of useFrame
   const handleFrameUpdate = useCallback(
@@ -1795,15 +1805,16 @@ export default function Game() {
 
     // Add effect to monitor lives and show fuel powerup
   useEffect(() => {
-    if (gameState.gameMode === 'infinite' && gameState.lives === 1 && !gameState.showFuel) {
+    if (gameState.gameMode === 'infinite' && gameState.lives === 1 && !gameState.showFuel && !gameState.fuelShownThisSession) {
       const randomLane = Math.floor(Math.random() * 3);
       setFuelLane(randomLane);
       setGameState(prev => ({
         ...prev,
-        showFuel: true
+        showFuel: true,
+        fuelShownThisSession: true
       }));
     }
-  }, [gameState.lives, gameState.gameMode, gameState.showFuel]);
+  }, [gameState.lives, gameState.gameMode, gameState.showFuel, gameState.fuelShownThisSession]);
 
   // Add cleanup for fuel timer in component cleanup
   useEffect(() => {

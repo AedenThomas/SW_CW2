@@ -68,6 +68,7 @@ export interface GameState {
   showMagnet: boolean;
   showFuel: boolean;
   fuelTimer: NodeJS.Timeout | null;
+  fuelShownThisSession: boolean;  // Add this new property
 }
 
 export interface PowerUp {
