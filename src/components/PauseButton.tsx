@@ -1,3 +1,5 @@
+import CustomButton from './CustomButton';
+
 interface PauseButtonProps {
   isPaused: boolean;
   onClick: () => void;
@@ -6,7 +8,7 @@ interface PauseButtonProps {
 
 export const PauseButton: React.FC<PauseButtonProps> = ({ isPaused, onClick, disabled }) => {
   return (
-    <button
+    <CustomButton
       onClick={onClick}
       disabled={disabled}
       className={`z-20 p-3 rounded-lg transition-all duration-300 
@@ -25,6 +27,6 @@ export const PauseButton: React.FC<PauseButtonProps> = ({ isPaused, onClick, dis
           <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>
         </svg>
       )}
-    </button>
+    </CustomButton>
   );
 };

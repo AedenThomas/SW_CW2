@@ -3,6 +3,7 @@ import { questions } from '../data/questions';
 import '../styles/book.css';
 import { getAllLevelProgress } from '../utils/storage';
 import { LevelProgressMap } from '../types/game';
+import CustomButton from './CustomButton';
 
 interface SignIndexProps {
   onBack: () => void;
@@ -220,7 +221,7 @@ export const SignIndex: React.FC<SignIndexProps> = ({ onBack }) => {
                   {/* Navigation Controls - Show on top for mobile */}
                   {isMobile && (
                     <div className="flex justify-between items-center mb-18 mobile-nav">
-                      <button
+                      <CustomButton
                         onClick={handlePrevPage}
                         disabled={currentPage === 0}
                         className={`${currentPage === 0 ? 'opacity-50 cursor-not-allowed' : ''} 
@@ -228,15 +229,15 @@ export const SignIndex: React.FC<SignIndexProps> = ({ onBack }) => {
                                  rounded-lg transition-colors flex items-center gap-2 w-full`}
                       >
                         ← Previous
-                      </button>
-                      <button
+                      </CustomButton>
+                      <CustomButton
                         onClick={handleClose}
                         className="bg-gray-800 hover:bg-gray-700 text-white px-4 py-2 
                                  rounded-lg transition-colors flex items-center gap-2 w-full"
                       >
                         Close Book
-                      </button>
-                      <button
+                      </CustomButton>
+                      <CustomButton
                         onClick={handleNextPage}
                         disabled={isLastPage}
                         className={`${isLastPage ? 'opacity-50 cursor-not-allowed' : ''} 
@@ -244,7 +245,7 @@ export const SignIndex: React.FC<SignIndexProps> = ({ onBack }) => {
                                  rounded-lg transition-colors flex items-center gap-2 w-full`}
                       >
                         Next →
-                      </button>
+                      </CustomButton>
                     </div>
                   )}
 
@@ -267,7 +268,7 @@ export const SignIndex: React.FC<SignIndexProps> = ({ onBack }) => {
                   <div className="flex-1 p-8 bg-white right-page overflow-y-auto">
                     {/* Navigation Controls */}
                     <div className="flex justify-between items-center mb-8" style={{ marginBottom: '6.3rem' }}>
-                      <button
+                      <CustomButton
                         onClick={handlePrevPage}
                         disabled={currentPage === 0}
                         className={`${currentPage === 0 ? 'opacity-50 cursor-not-allowed' : ''} 
@@ -275,15 +276,15 @@ export const SignIndex: React.FC<SignIndexProps> = ({ onBack }) => {
                                  rounded-lg transition-colors flex items-center gap-2`}
                       >
                         ← Previous
-                      </button>
-                      <button
+                      </CustomButton>
+                      <CustomButton
                         onClick={handleClose}
                         className="bg-gray-800 hover:bg-gray-700 text-white px-4 py-2 
                                  rounded-lg transition-colors flex items-center gap-2"
                       >
                         Close Book
-                      </button>
-                      <button
+                      </CustomButton>
+                      <CustomButton
                         onClick={handleNextPage}
                         disabled={isLastPage}
                         className={`${isLastPage ? 'opacity-50 cursor-not-allowed' : ''} 
@@ -291,7 +292,7 @@ export const SignIndex: React.FC<SignIndexProps> = ({ onBack }) => {
                                  rounded-lg transition-colors flex items-center gap-2`}
                       >
                         Next →
-                      </button>
+                      </CustomButton>
                     </div>
 
                     {/* Signs Grid - Right Page - Modified to show 1 sign per row */}
@@ -339,7 +340,7 @@ export const SignIndex: React.FC<SignIndexProps> = ({ onBack }) => {
                   {/* Next Right Page */}
                   <div className="flex-1 p-8 bg-white right-page overflow-y-auto">
                     <div className="flex justify-between items-center mb-8">
-                      <button
+                      <CustomButton
                         onClick={handlePrevPage}
                         disabled={currentPage === 0}
                         className={`${currentPage === 0 ? 'opacity-50 cursor-not-allowed' : ''} 
@@ -347,15 +348,15 @@ export const SignIndex: React.FC<SignIndexProps> = ({ onBack }) => {
                                  rounded-lg transition-colors flex items-center gap-2`}
                       >
                         ← Previous
-                      </button>
-                      <button
+                      </CustomButton>
+                      <CustomButton
                         onClick={handleClose}
                         className="bg-gray-800 hover:bg-gray-700 text-white px-4 py-2 
                                  rounded-lg transition-colors flex items-center gap-2"
                       >
                         Close Book
-                      </button>
-                      <button
+                      </CustomButton>
+                      <CustomButton
                         onClick={handleNextPage}
                         disabled={isLastPage}
                         className={`${isLastPage ? 'opacity-50 cursor-not-allowed' : ''} 
@@ -363,7 +364,7 @@ export const SignIndex: React.FC<SignIndexProps> = ({ onBack }) => {
                                  rounded-lg transition-colors flex items-center gap-2`}
                       >
                         Next →
-                      </button>
+                      </CustomButton>
                     </div>
                     <div className="grid grid-cols-1 gap-6 mt-[68px]">
                       {questions.slice(

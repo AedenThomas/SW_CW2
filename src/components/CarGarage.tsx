@@ -5,7 +5,7 @@ import * as THREE from 'three';
 import { useNavigate } from 'react-router-dom';
 import { CarModel, CAR_MODELS } from '../data/carModels';
 import { getStoredCoins, saveCoins, getUnlockedCars, unlockCar, isCarUnlocked } from '../utils/storage';
-
+import CustomButton from './CustomButton';
 interface CarGarageProps {
   onBack?: () => void;
 }
@@ -156,7 +156,7 @@ export const CarGarage: React.FC<CarGarageProps> = ({ onBack }) => {
            backgroundPosition: 'center'
          }}>
       {/* Add close button */}
-      <button 
+      <CustomButton 
         onClick={handleBack}
         className="absolute top-4 left-4 z-30 bg-gray-800/80 hover:bg-gray-700 
                    text-white p-3 rounded-full transition-colors duration-200"
@@ -174,7 +174,7 @@ export const CarGarage: React.FC<CarGarageProps> = ({ onBack }) => {
             d="M10 19l-7-7m0 0l7-7m-7 7h18"
           />
         </svg>
-      </button>
+      </CustomButton>
      
       {/* Car Name */}
       <div className="absolute top-20 left-1/2 transform -translate-x-1/2 
@@ -226,20 +226,20 @@ export const CarGarage: React.FC<CarGarageProps> = ({ onBack }) => {
 
       {/* Navigation Arrows */}
       <div className="absolute bottom-1/2 left-4 transform translate-y-1/2 z-20">
-        <button 
+        <CustomButton 
           onClick={handlePrevCar}
           className="bg-gray-800/80 hover:bg-gray-700 text-white p-4 rounded-full"
         >
           ←
-        </button>
+        </CustomButton>
       </div>
       <div className="absolute bottom-1/2 right-4 transform translate-y-1/2 z-20">
-        <button 
+        <CustomButton 
           onClick={handleNextCar}
           className="bg-gray-800/80 hover:bg-gray-700 text-white p-4 rounded-full"
         >
           →
-        </button>
+        </CustomButton>
       </div>
 
       {/* Coins Display */}
@@ -264,7 +264,7 @@ export const CarGarage: React.FC<CarGarageProps> = ({ onBack }) => {
               )}
             </p>
             <div className="flex gap-4">
-              <button
+              <CustomButton
                 onClick={handlePurchase}
                 disabled={coins < (selectedForPurchase.price || 0)}
                 className={`flex-1 py-2 rounded-lg ${
@@ -274,13 +274,13 @@ export const CarGarage: React.FC<CarGarageProps> = ({ onBack }) => {
                 }`}
               >
                 Purchase
-              </button>
-              <button
+              </CustomButton>
+              <CustomButton
                 onClick={() => setShowPurchaseModal(false)}
                 className="flex-1 py-2 rounded-lg border border-gray-300 hover:bg-gray-100"
               >
                 Cancel
-              </button>
+              </CustomButton>
             </div>
           </div>
         </div>
@@ -290,7 +290,7 @@ export const CarGarage: React.FC<CarGarageProps> = ({ onBack }) => {
 
       {/* Use Button */}
       <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 z-20">
-        <button 
+        <CustomButton 
           onClick={handleUseCar}
           className="bg-green-500 hover:bg-green-600 text-white px-8 py-3 rounded-lg 
                     font-bold text-xl transition-all duration-300 shadow-lg"
@@ -298,7 +298,7 @@ export const CarGarage: React.FC<CarGarageProps> = ({ onBack }) => {
           {isCarUnlocked(selectedCar) || !CAR_MODELS.find(car => car.id === selectedCar)?.price 
             ? 'Use' 
             : `Buy (${CAR_MODELS.find(car => car.id === selectedCar)?.price} Coins)`}
-        </button>
+        </CustomButton>
       </div>
     </div>
   );

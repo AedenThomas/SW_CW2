@@ -5,6 +5,7 @@ import { questions } from '../data/questions';
 import { useState } from 'react';
 import { getAllLevelProgress } from '../utils/storage';
 import { LevelProgressMap } from '../types/game';
+import CustomButton from './CustomButton';
 
 interface LevelMapProps {
     onSelectLevel: (level: number) => void;
@@ -193,14 +194,14 @@ export function LevelMap({ onSelectLevel, onBack, onGameStateChange }: LevelMapP
             <div className="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-sm shadow-md">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
                     <h1 className="text-3xl font-bold text-gray-900">Road to Mastery</h1>
-                    <button
+                    <CustomButton
                         onClick={onBack}
                         className="rounded-full p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100"
                     >
                         <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                         </svg>
-                    </button>
+                    </CustomButton>
                 </div>
             </div>
 
@@ -435,11 +436,11 @@ export function LevelMap({ onSelectLevel, onBack, onGameStateChange }: LevelMapP
                         <div className="p-6">
                             <div className="flex justify-between items-center mb-4">
                                 <h2 className="text-2xl font-bold">Level {selectedLevel}</h2>
-                                <button onClick={() => setSelectedLevel(null)} className="text-gray-500 hover:text-gray-700">
+                                <CustomButton onClick={() => setSelectedLevel(null)} className="text-gray-500 hover:text-gray-700">
                                     <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                                     </svg>
-                                </button>
+                                </CustomButton>
                             </div>
                             <div className="relative">
                                 {levelQuestions.length > 0 && (
@@ -463,7 +464,7 @@ export function LevelMap({ onSelectLevel, onBack, onGameStateChange }: LevelMapP
                                 
                                 {/* Navigation Buttons */}
                                 <div className="absolute inset-y-0 left-0 right-0 flex items-center justify-between">
-                                    <button
+                                    <CustomButton
                                         onClick={handlePrevSign}
                                         className={`p-2 rounded-full bg-gray-100 hover:bg-gray-200 transform -translate-x-4
                                             ${currentSignIndex === 0 ? 'invisible' : ''}`}
@@ -471,8 +472,8 @@ export function LevelMap({ onSelectLevel, onBack, onGameStateChange }: LevelMapP
                                         <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
                                         </svg>
-                                    </button>
-                                    <button
+                                    </CustomButton>
+                                    <CustomButton
                                         onClick={handleNextSign}
                                         className={`p-2 rounded-full bg-gray-100 hover:bg-gray-200 transform translate-x-4
                                             ${currentSignIndex === levelQuestions.length - 1 ? 'invisible' : ''}`}
@@ -480,7 +481,7 @@ export function LevelMap({ onSelectLevel, onBack, onGameStateChange }: LevelMapP
                                         <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                                         </svg>
-                                    </button>
+                                    </CustomButton>
                                 </div>
                             </div>
                             <div className="mt-6 flex justify-between items-center">
@@ -488,7 +489,7 @@ export function LevelMap({ onSelectLevel, onBack, onGameStateChange }: LevelMapP
                                     Sign {currentSignIndex + 1} of {levelQuestions.length}
                                 </div>
                                 {currentSignIndex === levelQuestions.length - 1 && (
-    <button
+    <CustomButton
     onClick={() => {
       setSelectedLevel(null);
       onSelectLevel(selectedLevel);
@@ -497,7 +498,7 @@ export function LevelMap({ onSelectLevel, onBack, onGameStateChange }: LevelMapP
     className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
   >
     {levelProgress[selectedLevel]?.completed ? 'Play Again' : 'Start Level'}
-  </button>
+  </CustomButton>
 )}
                             </div>
                         </div>
