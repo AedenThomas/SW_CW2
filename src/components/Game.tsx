@@ -52,6 +52,7 @@ import { useNavigate } from "react-router-dom";
 import { getStoredCoins, saveCoins } from "../utils/storage";
 import { memo } from "react";
 import MagnetPowerup from "./MagnetPowerup";
+import FuelPowerup from "./FuelPowerup"; // Add this import
 import { audioManager } from '../utils/audio';
 
 // Add debug logging utility
@@ -96,6 +97,8 @@ const initialGameState: GameState = {
   magnetActive: false,
   magnetTimer: null,
   showMagnet: false,
+  showFuel: false,
+  fuelTimer: null,
 };
 
 // Add this helper function near the top of the file
@@ -471,6 +474,7 @@ export default function Game() {
   const [gameState, setGameState] = useState<GameState>(initialGameState);
   const [coinTextAnimating, setCoinTextAnimating] = useState(false);
   const [magnetLane, setMagnetLane] = useState<number | null>(null);
+  const [fuelLane, setFuelLane] = useState<number | null>(null); // Move this up here with other state declarations
 
   const [targetLanePosition, setTargetLanePosition] = useState<number>(
     LANE_POSITIONS[gameState.currentLane]
@@ -1583,7 +1587,17 @@ export default function Game() {
     ]
   );
 
-  // Update the renderGameObjects memo condition
+  // Add fuel collection handler - Move this before renderGameObjects
+  const handleFuelCollect = useCallback(() => {
+    audioManager.playCoinPickupSound(); // You might want to create a specific fuel pickup sound
+    setGameState(prev => ({
+      ...prev,
+      lives: Math.min(prev.lives + 1, 3), // Increase lives by 1, max of 3
+      showFuel: false,
+    }));
+  }, []); // Add dependencies if needed
+
+  // Now renderGameObjects can use handleFuelCollect
   const renderGameObjects = useMemo(() => {
     if (!gameState.isPlaying || gameState.isGameOver || gameState.isPaused) {
       return null;
@@ -1638,6 +1652,15 @@ export default function Game() {
               lane={magnetLane}
             />
           )}
+        {gameState.showFuel && 
+       gameState.gameMode === "infinite" && 
+       fuelLane !== null && (
+        <FuelPowerup
+          gameState={gameState}
+          onCollect={handleFuelCollect}
+          lane={fuelLane}
+        />
+      )}
       </>
     );
   }, [
@@ -1657,6 +1680,9 @@ export default function Game() {
     gameState.magnetActive,
     magnetLane,
     handleMagnetCollect,
+    gameState.showFuel, 
+    fuelLane,
+    handleFuelCollect
   ]);
 
   // Move frame update callback outside of useFrame
@@ -1766,6 +1792,27 @@ export default function Game() {
 
   // Add this near the other UI elements in the return statement, where the main menu buttons are
   const toggleHelp = () => setIsHelpOpen(!isHelpOpen);
+
+    // Add effect to monitor lives and show fuel powerup
+  useEffect(() => {
+    if (gameState.gameMode === 'infinite' && gameState.lives === 1 && !gameState.showFuel) {
+      const randomLane = Math.floor(Math.random() * 3);
+      setFuelLane(randomLane);
+      setGameState(prev => ({
+        ...prev,
+        showFuel: true
+      }));
+    }
+  }, [gameState.lives, gameState.gameMode, gameState.showFuel]);
+
+  // Add cleanup for fuel timer in component cleanup
+  useEffect(() => {
+    return () => {
+      if (gameState.fuelTimer) {
+        clearTimeout(gameState.fuelTimer);
+      }
+    };
+  }, [gameState.fuelTimer]);
 
   return (
     // Add touch-action CSS to prevent default touch behaviors

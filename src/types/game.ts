@@ -66,6 +66,8 @@ export interface GameState {
   magnetActive: boolean;
   magnetTimer: NodeJS.Timeout | null;
   showMagnet: boolean;
+  showFuel: boolean;
+  fuelTimer: NodeJS.Timeout | null;
 }
 
 export interface PowerUp {
