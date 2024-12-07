@@ -9,6 +9,7 @@ import { GameState } from '../types/game';
 import { Dispatch, SetStateAction } from 'react';
 import { SAFE_ZONE_AFTER, SAFE_ZONE_BEFORE } from '../constants/game';
 import { calculateMoveAmount } from '../utils/movement';
+import { audioManager } from '../utils/audio';
 
 const OBSTACLE_MODELS = [
   `${process.env.PUBLIC_URL}/models/traffic6.glb`,
@@ -117,6 +118,7 @@ export function TrafficObstacle({
       const effectiveLane = gameState.targetLane !== null ? gameState.targetLane : gameState.currentLane;
       
       if (effectiveLane === lane.current) {
+        audioManager.playObstacleHitSound();
         hasCollided.current = true;
         setShowObstacleCollisionFlash(true);
         setGameState(prev => ({

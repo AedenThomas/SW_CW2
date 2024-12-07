@@ -1020,6 +1020,7 @@ export default function Game() {
         completed: gameState.lives > 0, // Consider level completed if player didn't lose all lives
         lastPlayed: new Date().toISOString(),
       });
+      audioManager.playLevelCompleteSound();
     }
   }, [gameState.isGameOver]);
 
@@ -1690,8 +1691,15 @@ export default function Game() {
   useEffect(() => {
     if (gameState.isGameOver) {
       debugLog("Displaying Game Over popup and pausing the game.");
+      
     }
   }, [gameState.isGameOver]);
+  useEffect(() => {
+    if (gameState.isGameOver && gameState.gameMode === "levels" && gameState.lives === 0) {
+      debugLog("Displaying Game Over popup and pausing the game.");
+      audioManager.playGameOverSound();
+    }
+  }, [gameState.isGameOver, gameState.gameMode, gameState.lives]);
 
   // Add this effect to handle level map state
   useEffect(() => {

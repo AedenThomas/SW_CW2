@@ -19,9 +19,9 @@ class AudioManager {
     this.sounds = {
       correct: this.createAudio('correct.mp3'),
       incorrect: this.createAudio('incorrect.mp3'),
-      obstacleHit: this.createAudio('obstacle-hit.mp3'),
-      gameOver: this.createAudio('game-over.mp3'),
-      levelComplete: this.createAudio('level-complete.mp3'),
+      obstacleHit: this.createAudio('obstacle-hit.wav'),
+      gameOver: this.createAudio('game-over.wav'),
+      levelComplete: this.createAudio('level-complete.wav'),
       coinPickup: this.createAudio('coin.mp3'),
     };
     
