@@ -500,6 +500,10 @@ export default function Game() {
   // Add state for device type
   const [isMobile, setIsMobile] = useState(false);
 
+  useEffect(() => {
+    audioManager.preloadSounds().catch(console.error);
+  }, []);
+  
   // Detect mobile devices
   useEffect(() => {
     const handleResize = () => {
@@ -789,17 +793,9 @@ export default function Game() {
 
   // Update the handleCoinCollect function
   const handleCoinCollect = (id: number) => {
+    audioManager.playCoinPickupSound();
     const prevCoins = gameState.coinsScore;
     const prevCollected = gameState.coinsCollected;
-
-    console.log("[COIN-DEBUG] Collecting coin:", {
-      coinId: id,
-      lane: getLaneFromId(id),
-      prevTotalCoins: prevCoins,
-      prevCollectedCoins: prevCollected,
-      isGameOver: gameState.isGameOver,
-      gameMode: gameState.gameMode,
-    });
 
     setGameState((prev) => {
       const newState = {
@@ -808,20 +804,10 @@ export default function Game() {
         coinsScore: prev.coinsScore + 1,
       };
 
-      console.log("[COIN-DEBUG] After state update:", {
-        newTotalCoins: newState.coinsScore,
-        newCollectedCoins: newState.coinsCollected,
-        difference: newState.coinsScore - prevCoins,
-      });
-
       return newState;
     });
 
     // Save the updated coins to storage immediately
-    console.log("[COIN-DEBUG] Saving to storage:", {
-      newTotal: gameState.coinsScore + 1,
-      currentTotal: gameState.coinsScore,
-    });
     saveCoins(gameState.coinsScore + 1);
 
     // Trigger animation
@@ -1063,22 +1049,12 @@ export default function Game() {
   // Update the effect that handles game over
   useEffect(() => {
     if (gameState.isGameOver && gameState.gameMode === "infinite") {
-      console.log("[GAME-OVER-DEBUG] Game over triggered:", {
-        currentCoinsScore: gameState.coinsScore,
-        coinsCollected: gameState.coinsCollected,
-        animatingFinalCoins,
-        displayedCoins,
-      });
 
       // Update high score if needed
       updateHighScore(gameState.score);
 
       // Start coin animation
       if (!animatingFinalCoins) {
-        console.log("[GAME-OVER-DEBUG] Starting final coin animation:", {
-          startingCoinsScore: gameState.coinsScore,
-          coinsToAdd: gameState.coinsCollected,
-        });
 
         setAnimatingFinalCoins(true);
         setDisplayedCoins(0);
@@ -1110,10 +1086,6 @@ export default function Game() {
             requestAnimationFrame(animateCoins);
           } else {
             setFinalCoinsReached(true);
-            console.log("[GAME-OVER-DEBUG] Animation completed:", {
-              finalDisplayedCoins: Math.floor(coinsCollected),
-              finalCoinsScore: gameState.coinsScore,
-            });
           }
         };
 
@@ -1369,6 +1341,10 @@ export default function Game() {
         }
 
         if (isCorrect) {
+          // Explicitly play correct sound
+          console.log('Playing correct sound');
+          audioManager.playCorrectSound();
+
           debugLog("Correct answer in Oracle mode", {
             previousScore: gameState.score,
             newScore: gameState.score + 100,
@@ -1384,6 +1360,7 @@ export default function Game() {
             },
           }));
         } else {
+          audioManager.playIncorrectSound();
           const wrongOption = gameState.currentLane;
           debugLog("Wrong answer in Oracle mode", {
             wrongOption,
@@ -1412,13 +1389,12 @@ export default function Game() {
           }));
           showNextQuestion();
         }, 4000);
-      } else {
+      } 
+      else {
         if (isCorrect) {
           if (DEBUG_MAGNET)
-            console.log(
-              "Correct answer, current questions answered:",
-              gameState.questionsAnswered
-            );
+            console.log('Playing correct sound');
+          audioManager.playCorrectSound();
 
           setShowCorrectAnswerFlash(true);
 
@@ -1429,13 +1405,11 @@ export default function Game() {
             const newSpeed = 1 + speedIncrease * 0.2;
 
             if (DEBUG_MAGNET)
-              console.log("New questions answered:", newQuestionsAnswered);
 
             // Show magnet after 3 questions only in infinite mode
             if (newQuestionsAnswered === 1 && prev.gameMode === "infinite") {
               const randomLane = Math.floor(Math.random() * 3);
               if (DEBUG_MAGNET)
-                console.log("Showing magnet in lane:", randomLane);
               setMagnetLane(randomLane);
               return {
                 ...prev,
@@ -1468,6 +1442,7 @@ export default function Game() {
             currentLives: gameState.lives,
             newLives: gameState.lives - 1,
           });
+          audioManager.playIncorrectSound();
 
           // Show the wrong answer flash effect
           setShowWrongAnswerFlash(true);
