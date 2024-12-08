@@ -479,6 +479,13 @@ interface GameProps {
 }
 
 export default function Game({ onGameStateChange }: GameProps) {
+  // Add at the top with other state declarations
+  const [isMobile, setIsMobile] = useState(false);
+  
+  // Add touch tracking refs after other refs
+  const touchStartX = useRef<number | null>(null);
+  const touchStartY = useRef<number | null>(null);
+  const touchStartTime = useRef<number>(0);
 
   const [fuelMissed, setFuelMissed] = useState(false);
   const [gameState, setGameState] = useState<GameState>(initialGameState);
@@ -486,9 +493,26 @@ export default function Game({ onGameStateChange }: GameProps) {
   const [magnetLane, setMagnetLane] = useState<number | null>(null);
   const [fuelLane, setFuelLane] = useState<number | null>(null); // Move this up here with other state declarations
   const handleFirstInteraction = async () => {
-    await audioManager.requestPermission();
-    startGame(gameState.gameMode || "infinite");
+    try {
+      // Request audio permission
+      const permission = await audioManager.requestPermission();
+      setHasAudioPermission(permission);
+      
+      if (permission) {
+        // Start playing background music for menu
+        audioManager.playBackgroundMusicGameless();
+        // Update game state if needed
+        if (gameState.gameMode) {
+          startGame(gameState.gameMode);
+        }
+      } else {
+        console.warn('Failed to get audio permission');
+      }
+    } catch (error) {
+      console.error('Error during audio initialization:', error);
+    }
   };
+    const [hasAudioPermission, setHasAudioPermission] = useState(false);
 
   const [targetLanePosition, setTargetLanePosition] = useState<number>(
     LANE_POSITIONS[gameState.currentLane]
@@ -510,16 +534,13 @@ export default function Game({ onGameStateChange }: GameProps) {
   const lastLaneSwitch = useRef(0);
   const questionIdCounter = useRef(1);
 
-  // Add these refs for touch handling
-  const touchStartX = useRef<number | null>(null);
-  const touchStartY = useRef<number | null>(null);
-  const touchStartTime = useRef<number>(0);
-
-  // Add state for device type
-  const [isMobile, setIsMobile] = useState(false);
-
+    // Add this useEffect near the top of your Game component
   useEffect(() => {
-    audioManager.preloadSounds().catch(console.error);
+    const checkAudioPermission = async () => {
+      const hasPermission = await audioManager.requestPermission();
+      setHasAudioPermission(hasPermission);
+    };
+    checkAudioPermission();
   }, []);
   
   // Detect mobile devices
@@ -1836,7 +1857,34 @@ const renderGameObjects = useMemo(() => {
     };
   }, [gameState.fuelTimer]);
 
+  // Remove the automatic audio permission check
+  useEffect(() => {
+    // Only check audio permission after explicit user interaction
+    if (hasAudioPermission) {
+      audioManager.playBackgroundMusicGameless();
+    }
+  }, [hasAudioPermission]);
+
+  // Add clear audio permission overlay
+  if (!hasAudioPermission) {
+    return (
+      <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+        <div className="bg-white p-8 rounded-lg text-center max-w-md">
+          <h2 className="text-2xl font-bold mb-4">Enable Game Audio</h2>
+          <p className="mb-4">Click to enable game audio and music</p>
+          <button
+            onClick={handleFirstInteraction}
+            className="bg-blue-500 hover:bg-blue-600 text-white px-6 py-3 rounded"
+          >
+            Enable Audio
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
+    
     // Add touch-action CSS to prevent default touch behaviors
     <div
       className="w-full h-screen"
@@ -1872,6 +1920,20 @@ const renderGameObjects = useMemo(() => {
           <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-green-500/70 to-transparent" />
         </div>
       )}
+      {!hasAudioPermission && (
+      <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+        <div className="bg-white p-8 rounded-lg text-center max-w-md">
+          <h2 className="text-2xl font-bold mb-4">Enable Game Audio</h2>
+          <p className="mb-4">Click anywhere to enable game audio and music</p>
+          <CustomButton
+            onClick={handleFirstInteraction}
+            className="bg-blue-500 hover:bg-blue-600 text-white px-6 py-3 rounded"
+          >
+            Enable Audio
+          </CustomButton>
+        </div>
+      </div>
+    )}
       {/* Game Menu */}
       {!gameState.isPlaying && !showLevelMap && (
         <div
@@ -1911,6 +1973,7 @@ const renderGameObjects = useMemo(() => {
               ❓ Help ❓
             </CustomButton>
           </div>
+
 
           {/* Centered Menu Content */}
           <div className="flex flex-col items-center gap-8">
