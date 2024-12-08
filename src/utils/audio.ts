@@ -1,6 +1,8 @@
 class AudioManager {
   private bgMusic: HTMLAudioElement;
   private bgMusicGameless: HTMLAudioElement;
+  private hasPermission: boolean = false;
+
   private sounds: {
     correct: HTMLAudioElement;
     incorrect: HTMLAudioElement;
@@ -45,6 +47,37 @@ class AudioManager {
     Object.values(this.sounds).forEach((sound) => {
       sound.muted = this.isMuted;
     });
+    this.checkAudioPermission();
+
+  }
+
+  private async checkAudioPermission() {
+    try {
+      // Try to play a silent audio to check permission
+      const silentAudio = new Audio();
+      silentAudio.volume = 0;
+      await silentAudio.play();
+      this.hasPermission = true;
+      silentAudio.remove();
+    } catch (error) {
+      this.hasPermission = false;
+      console.warn('Audio permission not granted:', error);
+    }
+  }
+
+  async requestPermission() {
+    if (this.hasPermission) return true;
+
+    try {
+      // Try to play any sound on user interaction
+      await this.bgMusic.play();
+      this.bgMusic.pause();
+      this.hasPermission = true;
+      return true;
+    } catch (error) {
+      console.error('Failed to get audio permission:', error);
+      return false;
+    }
   }
 
   private createAudio(filename: string): HTMLAudioElement {
@@ -97,13 +130,18 @@ class AudioManager {
     }
   }
 
-  playBackgroundMusic() {
+  async playBackgroundMusic() {
+    if (!this.hasPermission) {
+      await this.requestPermission();
+    }
+    
     if (this.isMuted) return;
 
-    this.bgMusic.volume = 0.5; // Set volume to 50%
-    this.bgMusic.play().catch((error) => {
-      console.warn("Background music playback failed:", error);
-    });
+    try {
+      await this.bgMusic.play();
+    } catch (error) {
+      console.warn('Background music playback failed:', error);
+    }
   }
 
   playButtonSound() {

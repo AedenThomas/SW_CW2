@@ -485,6 +485,10 @@ export default function Game({ onGameStateChange }: GameProps) {
   const [coinTextAnimating, setCoinTextAnimating] = useState(false);
   const [magnetLane, setMagnetLane] = useState<number | null>(null);
   const [fuelLane, setFuelLane] = useState<number | null>(null); // Move this up here with other state declarations
+  const handleFirstInteraction = async () => {
+    await audioManager.requestPermission();
+    startGame(gameState.gameMode || "infinite");
+  };
 
   const [targetLanePosition, setTargetLanePosition] = useState<number>(
     LANE_POSITIONS[gameState.currentLane]
