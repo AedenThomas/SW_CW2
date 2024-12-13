@@ -62,6 +62,10 @@ const PlayerCar = ({ position, rotation, modelId = 'car1' }: {
   );
 };
 
+const getSelectedCar = () => {
+  return localStorage.getItem('selectedCar') || 'car1';
+};
+
 export const CarGarage: React.FC<CarGarageProps> = ({ onBack }) => {
   const navigate = useNavigate();
   const [selectedCar, setSelectedCar] = useState(CAR_MODELS[0].id);
@@ -70,6 +74,7 @@ export const CarGarage: React.FC<CarGarageProps> = ({ onBack }) => {
   const [unlockedCars] = useState(getUnlockedCars());
   const [showPurchaseModal, setShowPurchaseModal] = useState(false);
   const [selectedForPurchase, setSelectedForPurchase] = useState<CarModel | null>(null);
+  const [currentlySelectedCar] = useState(getSelectedCar());
   
   const handleBack = () => {
     if (onBack) {
@@ -292,12 +297,20 @@ export const CarGarage: React.FC<CarGarageProps> = ({ onBack }) => {
       <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 z-20">
         <CustomButton 
           onClick={handleUseCar}
-          className="bg-green-500 hover:bg-green-600 text-white px-8 py-3 rounded-lg 
-                    font-bold text-xl transition-all duration-300 shadow-lg"
+          className={`px-8 py-3 rounded-lg font-bold text-xl transition-all duration-300 shadow-lg
+            ${selectedCar === currentlySelectedCar 
+              ? 'bg-blue-500 hover:bg-blue-500 cursor-default text-white' 
+              : isCarUnlocked(selectedCar) || !CAR_MODELS.find(car => car.id === selectedCar)?.price 
+                ? 'bg-green-500 hover:bg-green-600 text-white'
+                : 'bg-purple-500 hover:bg-purple-600 text-white'
+            }`}
+          disabled={selectedCar === currentlySelectedCar}
         >
-          {isCarUnlocked(selectedCar) || !CAR_MODELS.find(car => car.id === selectedCar)?.price 
-            ? 'Use' 
-            : `Buy (${CAR_MODELS.find(car => car.id === selectedCar)?.price} Coins)`}
+          {selectedCar === currentlySelectedCar 
+            ? 'Selected' 
+            : isCarUnlocked(selectedCar) || !CAR_MODELS.find(car => car.id === selectedCar)?.price 
+              ? 'Use' 
+              : `Buy (${CAR_MODELS.find(car => car.id === selectedCar)?.price} Coins)`}
         </CustomButton>
       </div>
     </div>
