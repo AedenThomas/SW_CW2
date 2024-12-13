@@ -1,52 +1,62 @@
 {
-  "name": "road-safety-game",
-  "version": "0.1.0",
-  "private": true,
-  "dependencies": {
-    "@react-three/drei": "^9.114.6",
-    "@react-three/fiber": "^8.17.10",
-    "@react-three/rapier": "^1.5.0",
-    "@testing-library/jest-dom": "^5.17.0",
-    "@testing-library/react": "^13.4.0",
-    "@testing-library/user-event": "^13.5.0",
-    "@types/jest": "^27.5.2",
-    "@types/node": "^16.18.115",
-    "@types/react": "^18.3.12",
-    "@types/react-dom": "^18.3.1",
-    "@types/three": "^0.169.0",
-    "autoprefixer": "^10.4.20",
-    "framer-motion": "^11.11.9",
-    "postcss": "^8.4.47",
-    "react": "^18.3.1",
-    "react-dom": "^18.3.1",
-    "react-scripts": "5.0.1",
-    "tailwindcss": "^3.4.14",
-    "three": "^0.169.0",
-    "typescript": "^4.9.5",
-    "web-vitals": "^2.1.4"
-  },
-  "scripts": {
-    "start": "react-scripts start",
-    "build": "react-scripts build",
-    "test": "react-scripts test",
-    "eject": "react-scripts eject"
-  },
-  "eslintConfig": {
-    "extends": [
-      "react-app",
-      "react-app/jest"
-    ]
-  },
-  "browserslist": {
-    "production": [
-      ">0.2%",
-      "not dead",
-      "not op_mini all"
-    ],
-    "development": [
-      "last 1 chrome version",
-      "last 1 firefox version",
-      "last 1 safari version"
-    ]
-  }
+    "homepage": "https://aedenthomas.github.io/SW_CW2",
+    "version": "0.1.0",
+    "private": true,
+    "dependencies": {
+        "@react-three/drei": "^9.114.6",
+        "@react-three/fiber": "^8.17.10",
+        "@react-three/rapier": "^1.5.0",
+        "@testing-library/jest-dom": "^5.17.0",
+        "@testing-library/react": "^13.4.0",
+        "@testing-library/user-event": "^13.5.0",
+        "@types/jest": "^27.5.2",
+        "@types/node": "^16.18.115",
+        "@types/papaparse": "^5.3.15",
+        "@types/react": "^18.3.12",
+        "@types/react-dom": "^18.3.1",
+        "@types/three": "^0.169.0",
+        "autoprefixer": "^10.4.20",
+        "framer-motion": "^11.11.9",
+        "maath": "^0.10.8",
+        "papaparse": "^5.4.1",
+        "postcss": "^8.4.47",
+        "react": "^18.3.1",
+        "react-dom": "^18.3.1",
+        "react-router-dom": "^7.0.1",
+        "react-scripts": "5.0.1",
+        "tailwindcss": "^3.4.14",
+        "three": "^0.169.0",
+        "typescript": "^4.9.5",
+        "web-vitals": "^2.1.4",
+        "xlsx": "^0.18.5"
+    },
+    "scripts": {
+        "predeploy": "npm run build",
+        "deploy": "gh-pages -d build",
+        "start": "react-scripts start",
+        "build": "react-scripts build && cp public/.htaccess build/ && cp public/_headers build/",
+        "test": "react-scripts test",
+        "eject": "react-scripts eject"
+    },
+    "eslintConfig": {
+        "extends": [
+            "react-app",
+            "react-app/jest"
+        ]
+    },
+    "browserslist": {
+        "production": [
+            ">0.2%",
+            "not dead",
+            "not op_mini all"
+        ],
+        "development": [
+            "last 1 chrome version",
+            "last 1 firefox version",
+            "last 1 safari version"
+        ]
+    },
+    "devDependencies": {
+        "gh-pages": "^6.2.0"
+    }
 }
